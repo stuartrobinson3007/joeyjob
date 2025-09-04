@@ -32,11 +32,8 @@
       "@/*": [
         "./src/*"
       ],
-      "@components/ui/*": [
-        "../packages/taali-ui/ui/*"
-      ],
-      "@taali/ui": [
-        "../packages/taali-ui/src/index.ts"
+      "@/ui/*": [
+        "./src/components/taali-ui/components/*"
       ]
     }
   }
