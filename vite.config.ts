@@ -17,12 +17,9 @@ const config = defineConfig({
     }),
     viteReact(),
   ],
-  optimizeDeps: {
-    include: ['@taali/ui']
-  },
   resolve: {
     alias: {
-      '@/ui': resolve(__dirname, './src/components/taali-ui/components'),
+      '@/ui': resolve(__dirname, './src/components/taali-ui/ui'),
       '@': resolve(__dirname, './src')
     }
   },
