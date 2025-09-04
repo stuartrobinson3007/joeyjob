@@ -17,11 +17,17 @@ const config = defineConfig({
     }),
     viteReact(),
   ],
+  optimizeDeps: {
+    include: ['@taali/ui']
+  },
   resolve: {
     alias: {
-      '@components/ui': resolve(__dirname, '../packages/taali-ui/src/ui'),
-      '@taali/ui': resolve(__dirname, '../packages/taali-ui/src'),
       '@/lib/utils': resolve(__dirname, './src/lib/utils')
+    }
+  },
+  build: {
+    rollupOptions: {
+      external: ['@web-std/file']
     }
   }
 })

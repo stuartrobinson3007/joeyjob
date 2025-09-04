@@ -1,5 +1,5 @@
-import { Button } from '@components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/card'
+import { Button } from '@stuartrobinson3007/taali-ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@stuartrobinson3007/taali-ui/card'
 import { authClient } from '@/lib/auth-client'
 
 export function SessionDisplay() {

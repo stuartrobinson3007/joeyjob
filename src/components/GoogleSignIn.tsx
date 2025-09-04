@@ -1,4 +1,4 @@
-import { Button } from '@components/ui/button'
+import { Button } from '@stuartrobinson3007/taali-ui/button'
 import { authClient } from '@/lib/auth-client'
 
 export function GoogleSignIn() {
