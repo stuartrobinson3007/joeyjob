@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 import { useStickyState } from "../hooks/use-sticky-state"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MagicLinkSignIn } from '@/features/auth/components/magic-link-sign-in'
 import { GoogleSignIn } from '@/features/auth/components/google-sign-in'
-import { GitHubSignIn } from '@/features/auth/components/git-hub-sign-in'
+import { GitHubSignIn } from '@/features/auth/components/github-sign-in'
 import { Navigate } from '@tanstack/react-router'
 import { useSession } from '@/lib/auth/auth-hooks'
 

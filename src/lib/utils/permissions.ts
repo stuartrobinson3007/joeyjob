@@ -1,5 +1,5 @@
 import { getWebRequest } from '@tanstack/react-start/server'
-import { auth } from '@/lib/auth'
+import { auth } from '@/lib/auth/auth'
 import { PermissionError } from './errors'
 
 export const checkPermission = async (

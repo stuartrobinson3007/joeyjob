@@ -25,7 +25,7 @@ const viewer = ac.newRole({
 })
 
 const member = ac.newRole({
-  todos: ["create", "read", "update"]
+  todos: ["create", "read", "update", "delete"]
 })
 
 const orgAdmin = ac.newRole({
