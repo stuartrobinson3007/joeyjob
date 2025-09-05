@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
-import { useSession } from '@/lib/auth-hooks'
-import { OnboardingForm } from '@/components/auth/OnboardingForm'
-import { getInvitationDetails } from '@/lib/onboarding.server'
+import { useSession } from '@/lib/auth/auth-hooks'
+import { OnboardingForm } from '@/features/auth/components/onboarding-form'
+import { getInvitationDetails } from '@/features/organization/lib/onboarding.server'
 import { z } from 'zod'
 
 const searchSchema = z.object({

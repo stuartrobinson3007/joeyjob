@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { authClient } from '@/lib/auth-client'
-import { getInvitationDetails } from '@/lib/onboarding.server'
-import { OTPSignIn } from '@/components/auth/OTPSignIn'
+import { authClient } from '@/lib/auth/auth-client'
+import { getInvitationDetails } from '@/features/organization/lib/onboarding.server'
+import { OTPSignIn } from '@/features/auth/components/otp-sign-in'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Building2, Mail, UserPlus, AlertCircle } from 'lucide-react'
-import { useSession } from '@/lib/auth-hooks'
+import { useSession } from '@/lib/auth/auth-hooks'
 
 export const Route = createFileRoute('/invite/$invitationId')({
   loader: async ({ params }) => {

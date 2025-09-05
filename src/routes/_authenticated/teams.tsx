@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useSetPageMeta } from '@/lib/page-context'
+import { useSetPageMeta } from '@/lib/hooks/page-context'
 import { Users } from 'lucide-react'
 
 export const Route = createFileRoute('/_authenticated/teams')({

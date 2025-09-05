@@ -1,13 +1,13 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState, Link } from '@tanstack/react-router'
 import React, { useEffect } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/AppSidebar'
-import { SuperAdminWrapper, useSuperAdminWrapper } from '@/components/SuperAdminWrapper'
-import { useSession } from '@/lib/auth-hooks'
-import { SuperAdminLayout } from '@/components/SuperAdminLayout'
+import { AppSidebar } from '@/components/app-sidebar'
+import { SuperAdminWrapper, useSuperAdminWrapper } from '@/features/admin/components/super-admin-wrapper'
+import { useSession } from '@/lib/auth/auth-hooks'
+import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout'
 import { Separator } from '@/components/taali-ui/ui/separator'
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbLink, BreadcrumbSeparator } from '@/components/taali-ui/ui/breadcrumb'
-import { usePageContext } from '@/lib/page-context'
+import { usePageContext } from '@/lib/hooks/page-context'
 
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout

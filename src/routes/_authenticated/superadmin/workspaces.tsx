@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
 import { Building2, Search, Users, Calendar, Trash2 } from 'lucide-react'
 

@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { MagicLinkSignIn } from '@/components/auth/MagicLinkSignIn'
-import { GoogleSignIn } from '@/components/GoogleSignIn'
-import { GitHubSignIn } from '@/components/auth/GitHubSignIn'
+import { MagicLinkSignIn } from '@/features/auth/components/magic-link-sign-in'
+import { GoogleSignIn } from '@/features/auth/components/google-sign-in'
+import { GitHubSignIn } from '@/features/auth/components/git-hub-sign-in'
 import { Navigate } from '@tanstack/react-router'
-import { useSession } from '@/lib/auth-hooks'
+import { useSession } from '@/lib/auth/auth-hooks'
 
 export const Route = createFileRoute('/auth/signin')({
   component: SignInPage,

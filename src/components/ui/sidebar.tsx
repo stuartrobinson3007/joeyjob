@@ -10,7 +10,7 @@ import { Separator } from "@/components/taali-ui/ui/separator"
 import { Sheet, SheetContent } from "@/components/taali-ui/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/taali-ui/ui/tooltip"
 import { cn } from "@/components/taali-ui/lib/utils"
-import { useSuperAdminWrapper } from '@/components/SuperAdminWrapper'
+import { useSuperAdminWrapper } from '@/features/admin/components/super-admin-wrapper'
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7

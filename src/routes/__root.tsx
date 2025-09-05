@@ -4,7 +4,7 @@ import { TanstackDevtools } from '@tanstack/react-devtools'
 import { Toaster } from 'sonner'
 
 import appCss from '../styles.css?url'
-import { Providers } from '@/lib/providers'
+import { Providers } from '@/lib/hooks/providers'
 import { ThemeProvider } from 'next-themes'
 
 export const Route = createRootRoute({
@@ -57,7 +57,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

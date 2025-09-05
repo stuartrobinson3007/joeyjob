@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { authClient } from '@/lib/auth-client'
-import { useActiveOrganization } from '@/lib/organization-context'
-import { useSetPageMeta } from '@/lib/page-context'
+import { authClient } from '@/lib/auth/auth-client'
+import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { useSetPageMeta } from '@/lib/hooks/page-context'
 import { toast } from 'sonner'
 import { Save, Trash2 } from 'lucide-react'
 

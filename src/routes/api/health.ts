@@ -1,6 +1,6 @@
 import { createServerFileRoute } from '@tanstack/react-start/server'
-import { redis } from '@/lib/redis'
-import { db } from '@/lib/db'
+import { redis } from '@/lib/db/redis'
+import { db } from '@/lib/db/db'
 
 export const ServerRoute = createServerFileRoute('/api/health').methods({
   GET: async () => {

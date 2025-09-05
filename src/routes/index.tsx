@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
-import { useSession } from '@/lib/auth-hooks'
+import { useSession } from '@/lib/auth/auth-hooks'
 
 export const Route = createFileRoute('/')({
   component: Home,

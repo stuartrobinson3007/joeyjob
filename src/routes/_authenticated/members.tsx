@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { authClient } from '@/lib/auth-client'
-import { useActiveOrganization } from '@/lib/organization-context'
-import { useSetPageMeta } from '@/lib/page-context'
-import { inviteMember, removeMember, updateMemberRole } from '@/lib/members.server'
+import { authClient } from '@/lib/auth/auth-client'
+import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { useSetPageMeta } from '@/lib/hooks/page-context'
+import { inviteMember, removeMember, updateMemberRole } from '@/features/organization/lib/members.server'
 import { toast } from 'sonner'
 import { UserPlus, Mail, Trash2, Crown, Shield, User as UserIcon } from 'lucide-react'
 
