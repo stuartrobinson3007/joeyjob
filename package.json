@@ -11,7 +11,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run",
-    "push-taali-ui": "git subtree push --prefix=src/components/taali-ui origin main"
+    "push-taali-ui": "git subtree push --prefix=src/components/taali-ui taali-ui main",
+    "pull-taali-ui": "git subtree pull --prefix=src/components/taali-ui taali-ui main --squash"
   },
   "dependencies": {
     "@daveyplate/better-auth-tanstack": "^1.3.6",
@@ -85,7 +86,9 @@
     "tanstack": "link:@daveyplate/better-auth-ui/tanstack",
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^5.1.4",
-    "zod": "^4.1.5"
+    "zod": "^4.1.5",
+    "@web-std/file": "^3.0.3",
+    "@radix-ui/react-slot": "^1.2.3"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
