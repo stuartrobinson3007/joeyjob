@@ -1,7 +1,14 @@
 import { createAuthClient } from 'better-auth/react'
-import { organizationClient } from 'better-auth/client/plugins'
+import { organizationClient, magicLinkClient, adminClient, inferAdditionalFields, emailOTPClient } from 'better-auth/client/plugins'
+import type { auth } from './auth'
 
 export const authClient = createAuthClient({
-  baseURL: 'http://localhost:2847',
-  plugins: [organizationClient()]
+  baseURL: import.meta.env.VITE_BETTER_AUTH_URL,
+  plugins: [
+    magicLinkClient(),
+    emailOTPClient(),
+    adminClient(),
+    organizationClient(),
+    inferAdditionalFields<typeof auth>()
+  ]
 })

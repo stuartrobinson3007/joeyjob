@@ -17,18 +17,24 @@ const config = defineConfig({
     }),
     viteReact(),
   ],
-  optimizeDeps: {
-    include: ['@taali/ui']
-  },
   resolve: {
     alias: {
-      '@/ui': resolve(__dirname, './src/components/taali-ui/components'),
+      '@/ui': resolve(__dirname, './src/components/taali-ui/ui'),
       '@': resolve(__dirname, './src')
     }
   },
+  define: {
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    exclude: ['@tanstack/router-core']
+  },
+  ssr: {
+    noExternal: ['@tanstack/router-core'],
+  },
   build: {
     rollupOptions: {
-      external: ['@web-std/file']
+      external: ['node:stream', 'stream'],
     }
   }
 })

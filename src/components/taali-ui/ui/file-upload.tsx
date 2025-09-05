@@ -30,24 +30,24 @@ type UploadedFile = {
 
 const fileTypeDetails: Record<FileType, { icon: JSX.Element; color: string; darkColor: string }> = {
     'application/pdf': {
-        icon: <File className="size-4 text-gray-600 dark:text-white" />,
-        color: 'bg-gray-50',
-        darkColor: 'dark:bg-gray-800'
+        icon: <File className="size-4 text-muted-foreground" />,
+        color: 'bg-muted',
+        darkColor: ''
     },
     'image/jpeg': {
-        icon: <ImageIcon className="size-4 text-gray-600 dark:text-white" />,
-        color: 'bg-gray-50',
-        darkColor: 'dark:bg-gray-800'
+        icon: <ImageIcon className="size-4 text-muted-foreground" />,
+        color: 'bg-muted',
+        darkColor: ''
     },
     'image/png': {
-        icon: <ImageIcon className="size-4 text-gray-600 dark:text-white" />,
-        color: 'bg-gray-50',
-        darkColor: 'dark:bg-gray-800'
+        icon: <ImageIcon className="size-4 text-muted-foreground" />,
+        color: 'bg-muted',
+        darkColor: ''
     },
     'default': {
-        icon: <File className="size-4 text-gray-600 dark:text-white" />,
-        color: 'bg-gray-50',
-        darkColor: 'dark:bg-gray-800'
+        icon: <File className="size-4 text-muted-foreground" />,
+        color: 'bg-muted',
+        darkColor: ''
     }
 }
 

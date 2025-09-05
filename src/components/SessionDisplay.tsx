@@ -1,9 +1,10 @@
 import { Button } from '@/components/taali-ui/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/taali-ui/ui/card'
 import { authClient } from '@/lib/auth-client'
+import { useSession } from '@/lib/auth-hooks'
 
 export function SessionDisplay() {
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending } = useSession()
 
   const handleSignOut = async () => {
     try {
@@ -16,7 +17,7 @@ export function SessionDisplay() {
   if (isPending) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -34,14 +35,14 @@ export function SessionDisplay() {
         <CardContent className="space-y-6">
           <div>
             <h3 className="font-semibold mb-2">User</h3>
-            <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto">
+            <pre className="bg-muted p-3 rounded text-sm overflow-auto">
               {JSON.stringify(session.user, null, 2)}
             </pre>
           </div>
 
           <div>
             <h3 className="font-semibold mb-2">Session</h3>
-            <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto">
+            <pre className="bg-muted p-3 rounded text-sm overflow-auto">
               {JSON.stringify(session.session, null, 2)}
             </pre>
           </div>

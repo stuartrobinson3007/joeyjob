@@ -1,11 +1,43 @@
 import { serverOnly } from '@tanstack/react-start'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { organization } from 'better-auth/plugins'
+import { organization, magicLink, admin, emailOTP } from 'better-auth/plugins'
+import { createAccessControl } from 'better-auth/plugins/access'
+import { defaultStatements, adminAc } from 'better-auth/plugins/organization/access'
 import { reactStartCookies } from 'better-auth/react-start'
 import { db } from './db'
 import { redis } from './redis'
+import { sendMagicLinkEmail, sendInvitationEmail, sendOTPEmail } from './email'
 import * as schema from '../database/schema'
+
+// Use default statements and add our custom resource
+const statement = {
+  ...defaultStatements,  // Includes invitation permissions needed for invites to work
+  todos: ["create", "read", "update", "delete", "assign"]
+} as const
+
+// Create access control instance
+const ac = createAccessControl(statement)
+
+// Define roles with specific permissions
+const viewer = ac.newRole({
+  todos: ["read"]
+})
+
+const member = ac.newRole({
+  todos: ["create", "read", "update"]
+})
+
+const orgAdmin = ac.newRole({
+  organization: ["update"],
+  member: ["create", "delete"],
+  todos: ["create", "read", "update", "delete", "assign"]
+})
+
+const owner = ac.newRole({
+  ...adminAc.statements,  // Inherit default permissions including invitation
+  todos: ["create", "read", "update", "delete", "assign"]
+})
 
 const getAuthConfig = serverOnly(() =>
   betterAuth({
@@ -15,14 +47,33 @@ const getAuthConfig = serverOnly(() =>
       schema: schema
     }),
 
-    session: {
-      cookieCache: {
-        enabled: true,
-        maxAge: 5 * 60, // 5 minutes
-      },
-      expiresIn: 60 * 60 * 24 * 7, // 7 days
-      updateAge: 60 * 60 * 24 // 1 day
+
+    user: {
+      additionalFields: {
+        firstName: {
+          type: "string",
+          required: false
+        },
+        lastName: {
+          type: "string",
+          required: false
+        },
+        onboardingCompleted: {
+          type: "boolean",
+          defaultValue: false,
+          required: false
+        }
+      }
     },
+
+    // session: {
+    //   cookieCache: {
+    //     enabled: true,
+    //     maxAge: 5 * 60, // 5 minutes
+    //   },
+    //   expiresIn: 60 * 60 * 24 * 7, // 7 days
+    //   updateAge: 60 * 60 * 24 // 1 day
+    // },
 
     secondaryStorage: {
       get: async (key) => {
@@ -44,40 +95,53 @@ const getAuthConfig = serverOnly(() =>
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      }
+      },
+      ...(process.env.GITHUB_CLIENT_ID && {
+        github: {
+          clientId: process.env.GITHUB_CLIENT_ID,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+        }
+      })
     },
 
     plugins: [
+      magicLink({
+        sendMagicLink: async ({ email, url }) => {
+          await sendMagicLinkEmail(email, url)
+        },
+        expiresIn: 60 * 5 // 5 minutes
+      }),
+      emailOTP({
+        async sendVerificationOTP({ email, otp, type }) {
+          await sendOTPEmail(email, otp, type)
+        },
+        disableSignUp: false // Allow automatic account creation for invitations
+      }),
+      admin({
+        adminRoles: ["superadmin"], // TODO: Not sure if this actually does anything. We keep the superadmin role in the user db for quick checks
+        adminUserIds: ["gkJm4zjuCPVTbnIvKdtmWEA0r5Fz2P6V"] // But its this that actually makes a user an admin (superadmin as we call it)
+      }),
       organization({
         allowUserToCreateOrganization: true,
-        organizationLimit: 5,
+        organizationLimit: 99,
+        invitationExpiresIn: 60 * 60 * 48, // 48 hours
+        cancelPendingInvitationsOnReInvite: false,
+        requireEmailVerificationOnInvitation: false,
+        sendInvitationEmail: async (data) => {
+          const inviteUrl = `${process.env.BETTER_AUTH_URL}/invite/${data.id}`
+          await sendInvitationEmail(
+            data.email,
+            data.inviter?.user?.name || 'A team member',
+            data.organization.name,
+            inviteUrl
+          )
+        },
+        ac,
         roles: {
-          owner: { permissions: ['*'] },
-          admin: {
-            permissions: [
-              'organization:read',
-              'organization:update',
-              'member:read',
-              'member:invite',
-              'member:remove',
-              'todos:*'
-            ]
-          },
-          member: {
-            permissions: [
-              'organization:read',
-              'member:read',
-              'todos:read',
-              'todos:write'
-            ]
-          },
-          viewer: {
-            permissions: [
-              'organization:read',
-              'member:read',
-              'todos:read'
-            ]
-          }
+          owner,
+          admin: orgAdmin,
+          member,
+          viewer
         }
       }),
       reactStartCookies() // Must be last plugin
@@ -86,3 +150,4 @@ const getAuthConfig = serverOnly(() =>
 )
 
 export const auth = getAuthConfig()
+export { ac }
