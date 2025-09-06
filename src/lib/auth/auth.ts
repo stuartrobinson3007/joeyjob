@@ -2,7 +2,9 @@ import { serverOnly } from '@tanstack/react-start'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { organization, magicLink, admin, emailOTP } from 'better-auth/plugins'
+import { stripe as stripePlugin } from '@better-auth/stripe'
 import { createAccessControl } from 'better-auth/plugins/access'
+import Stripe from 'stripe'
 import { defaultStatements, adminAc } from 'better-auth/plugins/organization/access'
 import { reactStartCookies } from 'better-auth/react-start'
 import { db } from '@/lib/db/db'
@@ -10,10 +12,16 @@ import { redis } from '@/lib/db/redis'
 import { sendMagicLinkEmail, sendInvitationEmail, sendOTPEmail } from '@/lib/utils/email'
 import * as schema from '@/database/schema'
 
+// Initialize Stripe client
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2024-12-18.acacia'
+})
+
 // Use default statements and add our custom resource
 const statement = {
   ...defaultStatements,  // Includes invitation permissions needed for invites to work
-  todos: ["create", "read", "update", "delete", "assign"]
+  todos: ["create", "read", "update", "delete", "assign"],
+  billing: ["view", "manage"] // Add billing permissions
 } as const
 
 // Create access control instance
@@ -21,22 +29,33 @@ const ac = createAccessControl(statement)
 
 // Define roles with specific permissions
 const viewer = ac.newRole({
-  todos: ["read"]
+  todos: ["read"],
+  member: ["read"],
+  invitation: ["read"],
+  billing: ["view"]
 })
 
 const member = ac.newRole({
-  todos: ["create", "read", "update", "delete"]
+  todos: ["create", "read", "update", "delete"],
+  member: ["read"],
+  invitation: ["read"],
+  billing: ["view"]
 })
 
 const orgAdmin = ac.newRole({
   organization: ["update"],
-  member: ["create", "delete"],
-  todos: ["create", "read", "update", "delete", "assign"]
+  member: ["create", "read", "update", "delete"],
+  invitation: ["create", "read", "delete"],
+  todos: ["create", "read", "update", "delete", "assign"],
+  billing: ["view", "manage"]
 })
 
 const owner = ac.newRole({
   ...adminAc.statements,  // Inherit default permissions including invitation
-  todos: ["create", "read", "update", "delete", "assign"]
+  todos: ["create", "read", "update", "delete", "assign"],
+  member: ["create", "read", "update", "delete"],
+  invitation: ["create", "read", "delete"],
+  billing: ["view", "manage"]
 })
 
 const getAuthConfig = serverOnly(() =>
@@ -121,6 +140,13 @@ const getAuthConfig = serverOnly(() =>
         adminRoles: ["superadmin"], // TODO: Not sure if this actually does anything. We keep the superadmin role in the user db for quick checks
         adminUserIds: ["gkJm4zjuCPVTbnIvKdtmWEA0r5Fz2P6V"] // But its this that actually makes a user an admin (superadmin as we call it)
       }),
+      stripePlugin({
+        stripeClient: stripe,
+        stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+        createCustomerOnSignUp: false, // We'll create on org creation
+        successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
+        cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
+      }),
       organization({
         allowUserToCreateOrganization: true,
         organizationLimit: 99,
@@ -150,4 +176,10 @@ const getAuthConfig = serverOnly(() =>
 )
 
 export const auth = getAuthConfig()
+export const roles = {
+  owner,
+  admin: orgAdmin,
+  member,
+  viewer
+}
 export { ac }

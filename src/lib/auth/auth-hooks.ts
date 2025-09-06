@@ -20,5 +20,6 @@ export const {
     useRevokeDeviceSession,
     useDeletePasskey,
     useAuthQuery,
-    useAuthMutation
+    useAuthMutation,
+    useListOrganizations
 } = authHooks

@@ -21,7 +21,7 @@ function SignInPage() {
   }
 
   if (session) {
-    return <Navigate to="/todos" />
+    return <Navigate to="/" />
   }
 
   return (

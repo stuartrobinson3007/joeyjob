@@ -38,12 +38,13 @@ import { Skeleton } from '@/components/taali-ui/ui/skeleton';
 import { authClient } from '@/lib/auth/auth-client';
 import { useActiveOrganization } from '@/features/organization/lib/organization-context';
 import { useSuperAdminWrapper } from '../../admin/components/super-admin-wrapper';
+import { useListOrganizations } from '@/lib/auth/auth-hooks';
 
 // Memoized OrganizationSwitcher to prevent re-renders on form state changes
 const OrganizationSwitcher = memo(function OrganizationSwitcher() {
   const [open, setOpen] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  
+
   // Form state for creating new organizations
   const [formData, setFormData] = useState({
     name: '',
@@ -54,17 +55,17 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Use better-auth organization hooks (organizations = workspaces in our UI)
-  const { data: organizations, isPending: isLoading } = authClient.useListOrganizations();
+  const { data: organizations, isPending: isLoading } = useListOrganizations();
   const { activeOrganization, setActiveOrganization, isLoading: orgContextLoading } = useActiveOrganization();
-  
+
   // Track switching state
   const [isSwitching, setIsSwitching] = useState(false);
   const [switchingToWorkspace, setSwitchingToWorkspace] = useState<string | null>(null);
-  
+
   // Check superadmin context for disable logic
   const { shouldShowSuperAdminFrame, isImpersonating } = useSuperAdminWrapper();
   const shouldDisableOrganizationSwitcher = shouldShowSuperAdminFrame && !isImpersonating;
-  
+
   // Memoized event handlers to prevent breaking memoization
   const handleCreateWorkspace = useCallback(async () => {
     if (!formData.name.trim()) {
@@ -89,19 +90,19 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
       if (result) {
         // Switch to the newly created organization
         setActiveOrganization(result.id);
-        
+
         // Reset form and close dialog
         setFormData({ name: '', description: '', industry: '' });
         setShowCreateDialog(false);
-        
+
         // Show success toast
         toast.success(`Workspace "${result.name}" created successfully`);
       }
     } catch (error: any) {
       console.error('Failed to create workspace:', error);
       const errorMessage = error?.message || 'Failed to create workspace';
-      setValidationErrors({ 
-        name: errorMessage 
+      setValidationErrors({
+        name: errorMessage
       });
       toast.error(errorMessage);
     } finally {
@@ -118,10 +119,10 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
     try {
       setIsSwitching(true);
       setSwitchingToWorkspace(organizationId);
-      
+
       await setActiveOrganization(organizationId);
       setOpen(false);
-      
+
       // Show success toast
       const targetOrg = organizations?.find(org => org.id === organizationId);
       if (targetOrg) {

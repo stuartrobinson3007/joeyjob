@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate, useRouterState, Link } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate, useRouterState, Link, useMatches } from '@tanstack/react-router'
 import React, { useEffect } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -8,6 +8,7 @@ import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout
 import { Separator } from '@/components/taali-ui/ui/separator'
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbLink, BreadcrumbSeparator } from '@/components/taali-ui/ui/breadcrumb'
 import { usePageContext } from '@/lib/hooks/page-context'
+import { authClient } from '@/lib/auth/auth-client'
 
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout
@@ -95,6 +96,7 @@ function AppHeader() {
 function AuthenticatedLayout() {
   const { data: session, isPending } = useSession()
   const navigate = useNavigate()
+  const matches = useMatches()
 
   // Get SuperAdminWrapper props for overlay
   const superAdminProps = useSuperAdminWrapper()
@@ -106,6 +108,11 @@ function AuthenticatedLayout() {
   })
   const isSuperAdminRoute = currentPath.startsWith('/superadmin')
 
+  // Check current route staticData for sidebar preference
+  // Default to true (show sidebar) if not specified
+  const currentMatch = matches[matches.length - 1]
+  const showSidebar = currentMatch?.staticData?.sidebar !== false
+
   useEffect(() => {
     if (!isPending) {
       if (!session) {
@@ -113,12 +120,31 @@ function AuthenticatedLayout() {
         return
       }
 
-      if (!session.user.onboardingCompleted) {
+      // Don't redirect to onboarding if we're already on the onboarding page
+      if (!session.user.onboardingCompleted && currentPath !== '/onboarding') {
         navigate({ to: '/onboarding' })
         return
       }
     }
-  }, [session, isPending, navigate])
+  }, [session, isPending, navigate, currentPath])
+
+  // End impersonation when navigating to superadmin routes
+  useEffect(() => {
+    const endImpersonationIfNeeded = async () => {
+      if (isSuperAdminRoute && session?.session?.impersonatedBy) {
+        try {
+          await authClient.admin.stopImpersonating()
+          window.location.reload()
+        } catch (error) {
+          console.error('Failed to stop impersonation:', error)
+        }
+      }
+    }
+
+    if (!isPending && session) {
+      endImpersonationIfNeeded()
+    }
+  }, [isSuperAdminRoute, session, isPending])
 
   if (isPending) {
     return (
@@ -126,10 +152,6 @@ function AuthenticatedLayout() {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     )
-  }
-
-  if (!session || !session.user.onboardingCompleted) {
-    return null // Will redirect via useEffect
   }
 
   if (isSuperAdminRoute) {
@@ -143,7 +165,19 @@ function AuthenticatedLayout() {
     )
   }
 
-  // For regular routes, use AppSidebar
+  // Routes without sidebar (controlled by staticData)
+  if (!showSidebar) {
+    return (
+      <>
+        <div className="min-h-screen">
+          <Outlet />
+        </div>
+        <SuperAdminWrapper {...superAdminProps} />
+      </>
+    )
+  }
+
+  // Regular routes with sidebar
   return (
     <>
       <SidebarProvider>

@@ -5,7 +5,7 @@ import { Toaster } from 'sonner'
 
 import appCss from '../styles.css?url'
 import { Providers } from '@/lib/hooks/providers'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider, useTheme } from 'next-themes'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -46,10 +46,11 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const { theme } = useTheme()
   return (
     <Providers>
       <Outlet />
-      <Toaster position="bottom-right" />
+      <Toaster position="bottom-right" theme={theme as 'light' | 'dark' | 'system'} />
     </Providers>
   )
 }

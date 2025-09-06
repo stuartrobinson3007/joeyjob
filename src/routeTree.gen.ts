@@ -11,38 +11,37 @@
 import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
-import { Route as AuthenticatedTodosRouteImport } from './routes/_authenticated/todos'
 import { Route as AuthenticatedTeamsRouteImport } from './routes/_authenticated/teams'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
 import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
+import { ServerRoute as ApiStripeWebhookServerRouteImport } from './routes/api/stripe/webhook'
+import { ServerRoute as ApiAvatarsUploadServerRouteImport } from './routes/api/avatars/upload'
+import { ServerRoute as ApiAvatarsDeleteServerRouteImport } from './routes/api/avatars/delete'
+import { ServerRoute as ApiAvatarsSplatServerRouteImport } from './routes/api/avatars/$'
 import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api/auth/$'
 
 const rootServerRouteImport = createServerRootRoute()
 
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const InviteInvitationIdRoute = InviteInvitationIdRouteImport.update({
   id: '/invite/$invitationId',
@@ -53,11 +52,6 @@ const AuthSigninRoute = AuthSigninRouteImport.update({
   id: '/auth/signin',
   path: '/auth/signin',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedTodosRoute = AuthenticatedTodosRouteImport.update({
-  id: '/todos',
-  path: '/todos',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTeamsRoute = AuthenticatedTeamsRouteImport.update({
   id: '/teams',
@@ -72,6 +66,16 @@ const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
@@ -107,6 +111,26 @@ const ApiHealthServerRoute = ApiHealthServerRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootServerRouteImport,
 } as any)
+const ApiStripeWebhookServerRoute = ApiStripeWebhookServerRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
+const ApiAvatarsUploadServerRoute = ApiAvatarsUploadServerRouteImport.update({
+  id: '/api/avatars/upload',
+  path: '/api/avatars/upload',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
+const ApiAvatarsDeleteServerRoute = ApiAvatarsDeleteServerRouteImport.update({
+  id: '/api/avatars/delete',
+  path: '/api/avatars/delete',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
+const ApiAvatarsSplatServerRoute = ApiAvatarsSplatServerRouteImport.update({
+  id: '/api/avatars/$',
+  path: '/api/avatars/$',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
 const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -114,47 +138,47 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/onboarding': typeof OnboardingRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/teams': typeof AuthenticatedTeamsRoute
-  '/todos': typeof AuthenticatedTodosRoute
   '/auth/signin': typeof AuthSigninRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
+  '/': typeof AuthenticatedIndexRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/superadmin/': typeof AuthenticatedSuperadminIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/onboarding': typeof OnboardingRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/teams': typeof AuthenticatedTeamsRoute
-  '/todos': typeof AuthenticatedTodosRoute
   '/auth/signin': typeof AuthSigninRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
+  '/': typeof AuthenticatedIndexRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/superadmin': typeof AuthenticatedSuperadminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/onboarding': typeof OnboardingRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/_authenticated/teams': typeof AuthenticatedTeamsRoute
-  '/_authenticated/todos': typeof AuthenticatedTodosRoute
   '/auth/signin': typeof AuthSigninRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/_authenticated/superadmin/': typeof AuthenticatedSuperadminIndexRoute
@@ -162,93 +186,119 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/onboarding'
     | '/billing'
     | '/members'
+    | '/onboarding'
+    | '/profile'
     | '/settings'
     | '/superadmin'
     | '/teams'
-    | '/todos'
     | '/auth/signin'
     | '/invite/$invitationId'
+    | '/'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/superadmin/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/onboarding'
     | '/billing'
     | '/members'
+    | '/onboarding'
+    | '/profile'
     | '/settings'
     | '/teams'
-    | '/todos'
     | '/auth/signin'
     | '/invite/$invitationId'
+    | '/'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/superadmin'
   id:
     | '__root__'
-    | '/'
     | '/_authenticated'
-    | '/onboarding'
     | '/_authenticated/billing'
     | '/_authenticated/members'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/profile'
     | '/_authenticated/settings'
     | '/_authenticated/superadmin'
     | '/_authenticated/teams'
-    | '/_authenticated/todos'
     | '/auth/signin'
     | '/invite/$invitationId'
+    | '/_authenticated/'
     | '/_authenticated/superadmin/users'
     | '/_authenticated/superadmin/workspaces'
     | '/_authenticated/superadmin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  OnboardingRoute: typeof OnboardingRoute
   AuthSigninRoute: typeof AuthSigninRoute
   InviteInvitationIdRoute: typeof InviteInvitationIdRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/health': typeof ApiHealthServerRoute
   '/api/auth/$': typeof ApiAuthSplatServerRoute
+  '/api/avatars/$': typeof ApiAvatarsSplatServerRoute
+  '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
+  '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
 }
 export interface FileServerRoutesByTo {
   '/api/health': typeof ApiHealthServerRoute
   '/api/auth/$': typeof ApiAuthSplatServerRoute
+  '/api/avatars/$': typeof ApiAvatarsSplatServerRoute
+  '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
+  '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
 }
 export interface FileServerRoutesById {
   __root__: typeof rootServerRouteImport
   '/api/health': typeof ApiHealthServerRoute
   '/api/auth/$': typeof ApiAuthSplatServerRoute
+  '/api/avatars/$': typeof ApiAvatarsSplatServerRoute
+  '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
+  '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
 }
 export interface FileServerRouteTypes {
   fileServerRoutesByFullPath: FileServerRoutesByFullPath
-  fullPaths: '/api/health' | '/api/auth/$'
+  fullPaths:
+    | '/api/health'
+    | '/api/auth/$'
+    | '/api/avatars/$'
+    | '/api/avatars/delete'
+    | '/api/avatars/upload'
+    | '/api/stripe/webhook'
   fileServerRoutesByTo: FileServerRoutesByTo
-  to: '/api/health' | '/api/auth/$'
-  id: '__root__' | '/api/health' | '/api/auth/$'
+  to:
+    | '/api/health'
+    | '/api/auth/$'
+    | '/api/avatars/$'
+    | '/api/avatars/delete'
+    | '/api/avatars/upload'
+    | '/api/stripe/webhook'
+  id:
+    | '__root__'
+    | '/api/health'
+    | '/api/auth/$'
+    | '/api/avatars/$'
+    | '/api/avatars/delete'
+    | '/api/avatars/upload'
+    | '/api/stripe/webhook'
   fileServerRoutesById: FileServerRoutesById
 }
 export interface RootServerRouteChildren {
   ApiHealthServerRoute: typeof ApiHealthServerRoute
   ApiAuthSplatServerRoute: typeof ApiAuthSplatServerRoute
+  ApiAvatarsSplatServerRoute: typeof ApiAvatarsSplatServerRoute
+  ApiAvatarsDeleteServerRoute: typeof ApiAvatarsDeleteServerRoute
+  ApiAvatarsUploadServerRoute: typeof ApiAvatarsUploadServerRoute
+  ApiStripeWebhookServerRoute: typeof ApiStripeWebhookServerRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -256,12 +306,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/invite/$invitationId': {
       id: '/invite/$invitationId'
@@ -276,13 +326,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/signin'
       preLoaderRoute: typeof AuthSigninRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/todos': {
-      id: '/_authenticated/todos'
-      path: '/todos'
-      fullPath: '/todos'
-      preLoaderRoute: typeof AuthenticatedTodosRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/teams': {
       id: '/_authenticated/teams'
@@ -303,6 +346,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/members': {
@@ -351,6 +408,34 @@ declare module '@tanstack/react-start/server' {
       preLoaderRoute: typeof ApiHealthServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/avatars/upload': {
+      id: '/api/avatars/upload'
+      path: '/api/avatars/upload'
+      fullPath: '/api/avatars/upload'
+      preLoaderRoute: typeof ApiAvatarsUploadServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/avatars/delete': {
+      id: '/api/avatars/delete'
+      path: '/api/avatars/delete'
+      fullPath: '/api/avatars/delete'
+      preLoaderRoute: typeof ApiAvatarsDeleteServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/avatars/$': {
+      id: '/api/avatars/$'
+      path: '/api/avatars/$'
+      fullPath: '/api/avatars/$'
+      preLoaderRoute: typeof ApiAvatarsSplatServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -383,19 +468,23 @@ const AuthenticatedSuperadminRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRouteWithChildren
   AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
-  AuthenticatedTodosRoute: typeof AuthenticatedTodosRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRouteWithChildren,
   AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
-  AuthenticatedTodosRoute: AuthenticatedTodosRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -403,9 +492,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  OnboardingRoute: OnboardingRoute,
   AuthSigninRoute: AuthSigninRoute,
   InviteInvitationIdRoute: InviteInvitationIdRoute,
 }
@@ -415,6 +502,10 @@ export const routeTree = rootRouteImport
 const rootServerRouteChildren: RootServerRouteChildren = {
   ApiHealthServerRoute: ApiHealthServerRoute,
   ApiAuthSplatServerRoute: ApiAuthSplatServerRoute,
+  ApiAvatarsSplatServerRoute: ApiAvatarsSplatServerRoute,
+  ApiAvatarsDeleteServerRoute: ApiAvatarsDeleteServerRoute,
+  ApiAvatarsUploadServerRoute: ApiAvatarsUploadServerRoute,
+  ApiStripeWebhookServerRoute: ApiStripeWebhookServerRoute,
 }
 export const serverRouteTree = rootServerRouteImport
   ._addFileChildren(rootServerRouteChildren)

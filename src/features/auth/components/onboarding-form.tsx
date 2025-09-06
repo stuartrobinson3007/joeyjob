@@ -1,9 +1,10 @@
 import { useState, FormEvent } from 'react'
-import { useSession } from '@/lib/auth/auth-hooks'
+import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
 import { completeOnboarding } from '@/features/organization/lib/onboarding.server'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { User, Building2 } from 'lucide-react'
+import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 
 interface OnboardingFormProps {
   invitationId?: string
@@ -11,7 +12,8 @@ interface OnboardingFormProps {
 }
 
 export function OnboardingForm({ invitationId, organizationName }: OnboardingFormProps) {
-  const { data: session, refetch } = useSession()
+  const { data: session, refetch: refetchSession } = useSession()
+  const { refetch: refetchOrganizations } = useListOrganizations()
 
   const navigate = useNavigate()
 
@@ -43,11 +45,8 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
       })
 
       if (result.success) {
-        // Store the organization ID in sessionStorage and localStorage
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('activeOrganizationId', result.organizationId)
-          localStorage.setItem('activeOrganizationId', result.organizationId)
-        }
+        // Set the active organization using utility function
+        setActiveOrganizationId(result.organizationId)
 
         toast.success(
           result.isInvite
@@ -56,13 +55,13 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
         )
 
         // Refetch session to get updated user data
-        await refetch()
+        await refetchSession()
+        await refetchOrganizations()
 
         // Navigate to home
         await navigate({ to: '/' })
       }
     } catch (error) {
-      console.error('Onboarding error:', error)
       toast.error('Failed to complete setup. Please try again.')
     } finally {
       setIsSubmitting(false)

@@ -1,11 +1,8 @@
 /**
- * App Sidebar
- * 
- * Main navigation sidebar for the application.
- * Integrates with better-auth and organization system.
+ * App Sidebar with role-based access control
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useRouterState, Link } from '@tanstack/react-router';
 import { CheckSquare, Users, Settings, CreditCard } from 'lucide-react';
 import {
@@ -23,11 +20,12 @@ import { UserTile } from '@/components/user-tile';
 import { OrganizationSwitcher } from '@/features/organization/components/organization-switcher';
 import { authClient } from '@/lib/auth/auth-client';
 import { useSession } from '@/lib/auth/auth-hooks';
+import { useActiveOrganization } from '@/features/organization/lib/organization-context';
 
 const baseNavigationItems = [
   {
     title: "Todos",
-    url: "/todos",
+    url: "/",
     icon: CheckSquare,
     requiresPermission: null, // Everyone can access
   },
@@ -41,60 +39,84 @@ const baseNavigationItems = [
     title: "Billing",
     url: "/billing",
     icon: CreditCard,
-    requiresPermission: 'billing', // Admin only
+    requiresPermission: 'billing',
   },
   {
-    title: "Workspace Settings",
+    title: "Settings",
     url: "/settings",
     icon: Settings,
-    requiresPermission: 'workspace', // Admin only
+    requiresPermission: 'workspace',
   },
 ];
 
-// SuperAdmin navigation is handled separately - not in AppSidebar
-
-// Helper functions to check permissions based on better-auth organization roles (workspaces in our UI)
-function canAdminBilling(userRoles: string[], isOwner: boolean): boolean {
-  return isOwner || userRoles.includes('admin') || userRoles.includes('owner');
-}
-
-function canAdminWorkspace(userRoles: string[], isOwner: boolean): boolean {
-  return isOwner || userRoles.includes('admin') || userRoles.includes('owner');
-}
+// Permission helper functions
+const hasAdminPermission = (role: string | null): boolean => {
+  return role === 'owner' || role === 'admin';
+};
 
 export function AppSidebar() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { activeOrganizationId } = useActiveOrganization();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [memberRole, setMemberRole] = useState<string | null>(null);
 
-  // Use useRouterState for reactive pathname updates
   const currentPath = useRouterState({
     select: (state) => state.location.pathname
   });
 
   const user = session?.user;
+  const isImpersonating = !!(session as any)?.session?.impersonatedBy;
 
-  // For now, skip membership check to avoid breaking the app
-  // TODO: Implement proper membership role checking
-  const membership = null as { role?: string } | null;
+  // Get the user's role in the active organization
+  useEffect(() => {
+    async function fetchMemberRole() {
+      if (!activeOrganizationId || !user?.id) {
+        setMemberRole(null);
+        return;
+      }
 
-  // Determine user permissions in current workspace
-  const userRoles: string[] = membership?.role ? [membership.role] : [];
-  const isOwner: boolean = membership?.role === 'owner';
+      try {
+        const response = await authClient.organization.listMembers({
+          query: { organizationId: activeOrganizationId }
+        });
 
-  // Filter navigation items based on user permissions in current workspace
+        // Handle different response structures from Better Auth
+        let membersArray: any[] = [];
+        
+        if (response && 'members' in response) {
+          // Response has members property
+          membersArray = response.members || [];
+        } else if (response && 'data' in response) {
+          // Response has data property
+          const data = response.data;
+          if (Array.isArray(data)) {
+            membersArray = data;
+          } else if (data && 'members' in data) {
+            membersArray = data.members || [];
+          }
+        } else if (Array.isArray(response)) {
+          // Response is directly an array
+          membersArray = response;
+        }
+
+        // Find the current user's membership
+        const currentUserMember = membersArray.find((m: any) => m.userId === user.id);
+        setMemberRole(currentUserMember?.role || null);
+      } catch (error) {
+        setMemberRole(null);
+      }
+    }
+
+    fetchMemberRole();
+  }, [activeOrganizationId, user?.id]);
+
+  // Filter navigation items based on user permissions
   const navigationItems = baseNavigationItems.filter(item => {
     if (!item.requiresPermission) return true;
-
-    if (item.requiresPermission === 'billing') {
-      return canAdminBilling(userRoles, isOwner);
-    }
-
-    if (item.requiresPermission === 'workspace') {
-      return canAdminWorkspace(userRoles, isOwner);
-    }
-
-    return false;
+    
+    // Billing and Settings require admin or owner role
+    return hasAdminPermission(memberRole);
   });
 
   const handleLogout = async () => {
@@ -190,7 +212,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <UserTile
-              user={user}
+              user={user ? { ...user, isImpersonating } : user}
               onLogout={handleLogout}
               isLoggingOut={isLoggingOut}
             />

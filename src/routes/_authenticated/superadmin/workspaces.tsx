@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
 import { Building2, Search, Users, Calendar, Trash2 } from 'lucide-react'
+import { useListOrganizations } from '@/lib/auth/auth-hooks'
 
 export const Route = createFileRoute('/_authenticated/superadmin/workspaces')({
   component: SuperAdminWorkspaces,
@@ -13,7 +14,7 @@ function SuperAdminWorkspaces() {
 
   // Note: This would need to be a proper admin API call in a real app
   // For now, we'll use the regular list organizations as a placeholder
-  const { data: organizations, isPending, refetch } = authClient.useListOrganizations()
+  const { data: organizations, isPending, refetch } = useListOrganizations()
 
   const handleDeleteOrganization = async (orgId: string, orgName: string) => {
     const confirmed = confirm(`Are you sure you want to delete "${orgName}"? This will permanently delete all data associated with this organization.`)
@@ -53,7 +54,7 @@ function SuperAdminWorkspaces() {
     <div>
       <h1 className="text-3xl font-bold mb-8">Organization Management</h1>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-card rounded-lg shadow">
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
@@ -117,7 +118,7 @@ function SuperAdminWorkspaces() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success/10 text-success">
                       Active
                     </span>
                   </td>
@@ -125,7 +126,7 @@ function SuperAdminWorkspaces() {
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => handleDeleteOrganization(org.id, org.name)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-destructive hover:text-destructive/80"
                         title="Delete organization"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -147,21 +148,21 @@ function SuperAdminWorkspaces() {
 
       {/* Organization Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-lg font-medium mb-2">Total Organizations</h3>
           <p className="text-3xl font-bold text-primary">{organizations?.length || 0}</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-lg font-medium mb-2">Total Members</h3>
-          <p className="text-3xl font-bold text-green-600">
+          <p className="text-3xl font-bold text-success">
             {organizations?.length || 0}
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-lg font-medium mb-2">Avg Members per Org</h3>
-          <p className="text-3xl font-bold text-purple-600">
+          <p className="text-3xl font-bold text-primary">
             {organizations?.length ?
               organizations.length > 0 ? 1 : 0
               : 0

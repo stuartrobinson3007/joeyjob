@@ -8,7 +8,10 @@ const searchSchema = z.object({
   invite: z.string().optional()
 })
 
-export const Route = createFileRoute('/onboarding')({
+export const Route = createFileRoute('/_authenticated/onboarding')({
+  staticData: {
+    sidebar: false
+  },
   validateSearch: searchSchema,
   loader: async ({ location }) => {
     const searchParams = location.search as { invite?: string }
@@ -31,25 +34,9 @@ export const Route = createFileRoute('/onboarding')({
 })
 
 function OnboardingPage() {
-  const { data: session, isPending } = useSession()
+  const { data: session } = useSession()
   const { invitation } = Route.useLoaderData()
   const search = Route.useSearch()
-
-  if (isPending) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    )
-  }
-
-  // If not logged in, redirect to signin
-  if (!session) {
-    const redirectUrl = search.invite
-      ? `/auth/signin?redirect=/onboarding?invite=${search.invite}`
-      : '/auth/signin?redirect=/onboarding'
-    return <Navigate to={redirectUrl} />
-  }
 
   // If already onboarded, redirect to home
   if (session?.user?.onboardingCompleted) {

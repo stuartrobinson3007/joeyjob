@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import * as React from "react";
 
 import { Badge } from "./badge";
+import { Checkbox } from "./checkbox";
 import {
   Command,
   CommandEmpty,
@@ -252,16 +253,13 @@ function FacetedItem(props: FacetedItemProps) {
       onSelect={() => onItemSelect(value)}
       {...itemProps}
     >
-      <span
-        className={cn(
-          "flex size-4 items-center justify-center rounded-sm border border-primary",
-          isSelected
-            ? "bg-primary text-primary-foreground"
-            : "opacity-50 [&_svg]:invisible",
-        )}
-      >
-        <Check className="size-4" />
-      </span>
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={() => onItemSelect(value)}
+        aria-label={`Select ${value}`}
+        className="[&_svg]:text-primary-foreground!"
+      />
+      x
       {children}
     </CommandItem>
   );

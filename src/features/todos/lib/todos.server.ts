@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getWebRequest } from '@tanstack/react-start/server'
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { checkPermission } from '@/lib/utils/permissions'
 import { auth } from '@/lib/auth/auth'
@@ -113,15 +112,6 @@ export const updateTodo = createServerFn({ method: 'POST' })
     }
 
     // Check permissions
-    const request = getWebRequest()
-    const member = await auth.api.getActiveMember({
-      headers: request.headers
-    })
-
-    if (!member) {
-      throw new PermissionError()
-    }
-
     await checkPermission('todos', ['update'], orgId)
 
     const { id, ...updateData } = data
@@ -144,6 +134,12 @@ export const deleteTodo = createServerFn({ method: 'POST' })
   .validator((data: unknown) => todoIdSchema.parse(data))
   .handler(async ({ data, context }: { data: any; context: any }) => {
     const orgId = context.organizationId
+    console.log('[DELETE_TODO] Starting delete with:', {
+      todoId: data.id,
+      orgId,
+      hasUser: !!context.user,
+      userId: context.user?.id
+    })
 
     // Check if todo exists and belongs to organization
     const existingTodo = await db
@@ -159,16 +155,13 @@ export const deleteTodo = createServerFn({ method: 'POST' })
       throw new AppError('Todo not found', 'Todo not found', 404)
     }
 
-    // Check permissions
-    const request = getWebRequest()
-    const member = await auth.api.getActiveMember({
-      headers: request.headers
+    console.log('[DELETE_TODO] Todo found:', {
+      todoId: existingTodo[0].id,
+      todoOrgId: existingTodo[0].organizationId,
+      createdBy: existingTodo[0].createdBy
     })
 
-    if (!member) {
-      throw new PermissionError()
-    }
-
+    // Check permissions
     await checkPermission('todos', ['delete'], orgId)
 
     await db
@@ -200,15 +193,6 @@ export const toggleTodo = createServerFn({ method: 'POST' })
     }
 
     // Check permissions
-    const request = getWebRequest()
-    const member = await auth.api.getActiveMember({
-      headers: request.headers
-    })
-
-    if (!member) {
-      throw new PermissionError()
-    }
-
     await checkPermission('todos', ['update'], orgId)
 
     const updated = await db

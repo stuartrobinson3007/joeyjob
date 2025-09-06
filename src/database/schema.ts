@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core'
 import { nanoid } from 'nanoid'
 
 export const user = pgTable("user", {
@@ -74,6 +74,16 @@ export const organization = pgTable("organization", {
   name: text("name").notNull(),
   slug: text("slug").unique(),
   logo: text("logo"),
+  
+  // Billing fields
+  currentPlan: text("current_plan").default("free").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  planLimits: jsonb("plan_limits").$type<{
+    todos?: number,
+    members?: number,
+    storage?: number
+  }>(),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   metadata: text("metadata"),
@@ -105,6 +115,27 @@ export const invitation = pgTable("invitation", {
     .references(() => user.id, { onDelete: "cascade" }),
 });
 
+
+// Better Auth Stripe subscription table
+export const subscription = pgTable("subscription", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripePriceId: text("stripe_price_id"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeCurrentPeriodEnd: timestamp("stripe_current_period_end"),
+  stripeCurrentPeriodStart: timestamp("stripe_current_period_start"),
+  stripeCancelAt: timestamp("stripe_cancel_at"),
+  stripeCancelAtPeriodEnd: boolean("stripe_cancel_at_period_end"),
+  stripeTrialStart: timestamp("stripe_trial_start"),
+  stripeTrialEnd: timestamp("stripe_trial_end"),
+  referenceId: text("reference_id"), // This will be organizationId
+  seats: integer("seats"),
+  status: text("status"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // Custom todos table
 export const todos = pgTable('todos', {

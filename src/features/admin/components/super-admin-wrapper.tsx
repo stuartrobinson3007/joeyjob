@@ -74,7 +74,6 @@ export interface SuperAdminWrapperProps {
 }
 
 export const SuperAdminWrapper = memo(function SuperAdminWrapper({
-  isSuperAdmin,
   isImpersonating = false,
   impersonatedUser,
   onExitImpersonation,
@@ -82,13 +81,11 @@ export const SuperAdminWrapper = memo(function SuperAdminWrapper({
 }: SuperAdminWrapperProps) {
 
   // Show frame when superadmin is impersonating a user
-  const shouldShowFrame = isSuperAdmin && isImpersonating;
+  const shouldShowFrame = isImpersonating;
 
   if (!shouldShowFrame) {
     return null;
   }
-
-  console.log('🎭 [SuperAdminWrapper] Should show super admin frame')
 
   const displayName = `${impersonatedUser?.firstName || ''} ${impersonatedUser?.lastName || ''}`.trim() || impersonatedUser?.email;
 
@@ -172,7 +169,7 @@ export function useSuperAdminWrapper() {
     impersonatedUser: isImpersonating ? session?.user : undefined,
     user: session?.user,
     onExitImpersonation: handleExitImpersonation,
-    shouldShowSuperAdminFrame: isSuperAdmin && isImpersonating,
+    shouldShowSuperAdminFrame: isImpersonating,
     superAdminBarHeight: 40,
   }), [
     isSuperAdmin,

@@ -5,7 +5,8 @@ import { OTPSignIn } from '@/features/auth/components/otp-sign-in'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Building2, Mail, UserPlus, AlertCircle } from 'lucide-react'
-import { useSession } from '@/lib/auth/auth-hooks'
+import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
+import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 
 export const Route = createFileRoute('/invite/$invitationId')({
   loader: async ({ params }) => {
@@ -25,7 +26,8 @@ export const Route = createFileRoute('/invite/$invitationId')({
 function InvitationPage() {
   const { invitationId } = Route.useParams()
   const { invitation } = Route.useLoaderData()
-  const { data: session, isPending: sessionPending } = useSession()
+  const { data: session, isPending: sessionPending, refetch: refetchSession } = useSession()
+  const { refetch: refetchOrganizations } = useListOrganizations()
   const navigate = useNavigate()
   const [isAccepting, setIsAccepting] = useState(false)
   const [showOTPForm, setShowOTPForm] = useState(false)
@@ -71,14 +73,24 @@ function InvitationPage() {
         })
 
         if (result.data) {
-          // Set as active organization
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('activeOrganizationId', (result as any).organizationId)
-            localStorage.setItem('activeOrganizationId', (result as any).organizationId)
+          // Get the organization ID from the result
+          const organizationId = (result as any).organizationId || (result as any).data?.organizationId || result.data.organizationId
+
+          // Set as active organization using utility function
+          if (organizationId) {
+            setActiveOrganizationId(organizationId)
           }
 
+          // Force a session refetch to get updated organization list
+          await refetchSession()
+          await refetchOrganizations()
+
           toast.success(`Welcome to ${invitation?.organizationName}!`)
-          await navigate({ to: '/' })
+
+          // Small delay to ensure state updates propagate
+          setTimeout(() => {
+            navigate({ to: '/' })
+          }, 100)
         } else {
           throw new Error('Failed to accept invitation')
         }
@@ -128,9 +140,60 @@ function InvitationPage() {
         <div className="bg-card rounded-xl shadow-lg p-8 w-full max-w-md">
           <OTPSignIn
             email={invitation.email}
-            onSuccess={() => {
-              setShowOTPForm(false)
-              toast.success('Successfully signed in! You can now accept the invitation.')
+            onSuccess={async () => {
+              // Refetch session to get the updated authentication state
+              const { data: newSession } = await refetchSession()
+
+              if (newSession) {
+                setShowOTPForm(false)
+
+                // Check if user needs onboarding
+                if (!newSession.user.onboardingCompleted) {
+                  toast.success('Signed in! Please complete your profile to continue.')
+                  // Redirect to onboarding with invitation
+                  await navigate({
+                    to: '/onboarding',
+                    search: { invite: invitationId }
+                  })
+                } else {
+                  // User is already onboarded, accept invitation directly
+                  toast.success('Signed in! Accepting invitation...')
+
+                  try {
+                    const result = await authClient.organization.acceptInvitation({
+                      invitationId
+                    })
+
+                    if (result.data) {
+                      // Get the organization ID from the result
+                      const organizationId = (result as any).organizationId || (result as any).data?.organizationId || result.data.organizationId
+
+                      // Set as active organization using utility function
+                      if (organizationId) {
+                        setActiveOrganizationId(organizationId)
+                      }
+
+                      // Force a session refetch to get updated organization list
+                      await refetchSession()
+                      await refetchOrganizations()
+
+                      toast.success(`Welcome to ${invitation.organizationName}!`)
+
+                      // Small delay to ensure state updates propagate
+                      setTimeout(() => {
+                        navigate({ to: '/' })
+                      }, 100)
+                    } else {
+                      throw new Error('Failed to accept invitation')
+                    }
+                  } catch (error) {
+                    toast.error('Failed to accept invitation. Please try again.')
+                    setShowOTPForm(false)
+                  }
+                }
+              } else {
+                toast.error('Authentication failed. Please try again.')
+              }
             }}
             onBack={() => setShowOTPForm(false)}
           />

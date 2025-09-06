@@ -11,8 +11,7 @@ import {
   Users,
   Building2,
   ShieldUser,
-  ArrowLeft,
-  BarChart3
+  ArrowLeft
 } from 'lucide-react';
 import {
   Sidebar,
@@ -42,11 +41,6 @@ const superAdminNavItems = [
     url: "/superadmin/workspaces",
     icon: Building2,
   },
-  {
-    title: "Analytics",
-    url: "/superadmin/analytics",
-    icon: BarChart3,
-  },
 ];
 
 interface SuperAdminSidebarProps {
@@ -64,8 +58,8 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
   });
 
   const handleReturnToApp = () => {
-    // Navigate back to the main app - typically todos or main dashboard
-    router.navigate({ to: '/todos' });
+    // Navigate back to the main app - home page
+    router.navigate({ to: '/' });
   };
 
   const handleLogout = async () => {
@@ -125,6 +119,7 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
   };
 
   const user = session?.user;
+  const isImpersonating = !!(session as any)?.session?.impersonatedBy;
 
   return (
     <Sidebar className={cn("border-r", className)}>
@@ -185,7 +180,7 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <UserTile
-              user={user}
+              user={user ? { ...user, isImpersonating } : user}
               onLogout={handleLogout}
               isLoggingOut={isLoggingOut}
             />

@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { authClient } from '@/lib/auth/auth-client'
+import { getActiveOrganizationId, setActiveOrganizationId as setOrgId } from './organization-utils'
+import { useListOrganizations } from '@/lib/auth/auth-hooks'
 
 interface OrganizationContextValue {
   activeOrganizationId: string | null
@@ -11,18 +13,13 @@ interface OrganizationContextValue {
 const OrganizationContext = createContext<OrganizationContextValue | undefined>(undefined)
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
-  const { data: organizations, isPending } = authClient.useListOrganizations()
+  const { data: organizations, isPending } = useListOrganizations()
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null)
 
   // Initialize active organization from storage
   useEffect(() => {
-
     if (typeof window !== 'undefined') {
-      // Priority: sessionStorage (tab-specific) → localStorage (fallback)
-      const sessionOrgId = sessionStorage.getItem('activeOrganizationId')
-      const localOrgId = localStorage.getItem('activeOrganizationId')
-      const orgId = sessionOrgId || localOrgId
-
+      const orgId = getActiveOrganizationId()
 
       if (orgId) {
         setActiveOrganizationId(orgId)
@@ -30,9 +27,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         // If no stored org, use the first available
         const firstOrgId = organizations[0].id
         setActiveOrganizationId(firstOrgId)
-        sessionStorage.setItem('activeOrganizationId', firstOrgId)
-        localStorage.setItem('activeOrganizationId', firstOrgId)
-      } else {
+        setOrgId(firstOrgId) // Use the utility function to set it in storage
       }
     }
   }, [organizations])
@@ -63,16 +58,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setActiveOrganization = (orgId: string) => {
-
-    if (typeof window !== 'undefined') {
-      // Update both storages
-      sessionStorage.setItem('activeOrganizationId', orgId)
-      localStorage.setItem('activeOrganizationId', orgId)
-
-      // Notify other components in same tab
-      window.dispatchEvent(new CustomEvent('org-changed', { detail: orgId }))
-    }
-
+    // Use the utility function to handle storage and event dispatch
+    setOrgId(orgId)
     setActiveOrganizationId(orgId)
   }
 

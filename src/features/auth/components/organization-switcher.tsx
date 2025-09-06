@@ -11,9 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/ui/dropdown-menu'
+import { useListOrganizations } from '@/lib/auth/auth-hooks'
 
 export function OrganizationSwitcher() {
-  const { data: organizations, isPending } = authClient.useListOrganizations()
+  const { data: organizations, isPending } = useListOrganizations()
   const { activeOrganization, setActiveOrganization } = useActiveOrganization()
   const [isCreating, setIsCreating] = useState(false)
   const [newOrgName, setNewOrgName] = useState('')
@@ -121,7 +122,7 @@ export function OrganizationSwitcher() {
       <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuLabel>Organizations</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         {organizations.map((org) => (
           <DropdownMenuItem
             key={org.id}
@@ -144,9 +145,9 @@ export function OrganizationSwitcher() {
             </div>
           </DropdownMenuItem>
         ))}
-        
+
         <DropdownMenuSeparator />
-        
+
         {isCreating ? (
           <div className="p-2 space-y-2">
             <input

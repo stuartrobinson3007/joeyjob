@@ -32,7 +32,6 @@ interface User {
   role?: string | null;
   isSuperAdmin?: boolean;
   isImpersonating?: boolean;
-  avatarUrl?: string;
 }
 
 interface UserTileProps {
@@ -102,7 +101,7 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
           <Avatar className="h-6 w-6">
-            <AvatarImage src={user.avatarUrl || user.image || undefined} />
+            <AvatarImage src={user.image || undefined} />
             <AvatarFallback>
               {getUserInitials(user)}
             </AvatarFallback>
@@ -120,7 +119,7 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" align="end" className="w-56">
-        <DropdownMenuItem onClick={() => navigate({ to: '/' })}>
+        <DropdownMenuItem onClick={() => navigate({ to: '/profile' })}>
           <User />
           Profile
         </DropdownMenuItem>
