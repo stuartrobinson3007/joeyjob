@@ -18,20 +18,18 @@ export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
         return new Response('Invalid file path', { status: 400 })
       }
 
-      // Only allow serving from avatars directory
-      if (!filePath.startsWith('avatars/')) {
-        return new Response('Forbidden', { status: 403 })
-      }
+      // Add avatars/ prefix to match storage structure
+      const storageFilePath = `avatars/${filePath}`
 
       // Check if file exists
-      const exists = await storage.fileExists(filePath)
+      const exists = await storage.fileExists(storageFilePath)
       if (!exists) {
         return new Response('File not found', { status: 404 })
       }
 
       // Get file and metadata
-      const buffer = await storage.getFile(filePath)
-      const metadata = await storage.getFileMetadata(filePath)
+      const buffer = await storage.getFile(storageFilePath)
+      const metadata = await storage.getFileMetadata(storageFilePath)
       
       // Determine content type
       const ext = path.extname(filePath).toLowerCase()

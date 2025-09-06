@@ -32,7 +32,7 @@ export function DataTableNumberFilter<TData, TValue>({
 }: DataTableNumberFilterProps<TData, TValue>) {
   const [open, setOpen] = React.useState(false)
   const value = column?.getFilterValue() as number | [number, number] | undefined
-  
+
   const [localValue, setLocalValue] = React.useState<number | [number, number]>(
     value || (isRange ? [min, max] : min)
   )
@@ -54,13 +54,13 @@ export function DataTableNumberFilter<TData, TValue>({
 
   const displayValue = React.useMemo(() => {
     if (!value) return title || "Set value"
-    
+
     if (isRange && Array.isArray(value)) {
       return `${value[0]} - ${value[1]}`
     } else if (typeof value === "number") {
       return value.toString()
     }
-    
+
     return title || "Set value"
   }, [value, title, isRange])
 
@@ -73,8 +73,7 @@ export function DataTableNumberFilter<TData, TValue>({
           variant="outline"
           size="sm"
           className={cn(
-            "h-8 border-dashed",
-            !hasValue && "text-muted-foreground"
+            "h-8 border-dashed"
           )}
         >
           {displayValue}
@@ -155,9 +154,9 @@ export function DataTableNumberFilter<TData, TValue>({
           </div>
           <div className="flex justify-end space-x-2">
             {hasValue && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleClear}
                 className="justify-center"
               >

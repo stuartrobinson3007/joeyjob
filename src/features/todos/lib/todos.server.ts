@@ -13,7 +13,7 @@ import { nanoid } from 'nanoid'
 const createTodoSchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  priority: z.number().min(1).max(5).default(3),
   dueDate: z.string().optional(),
   assignedTo: z.string().optional()
 })
@@ -22,7 +22,7 @@ const updateTodoSchema = z.object({
   id: z.string(),
   title: z.string().min(1).max(500).optional(),
   description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high']).optional(),
+  priority: z.number().min(1).max(5).optional(),
   dueDate: z.string().optional(),
   assignedTo: z.string().optional(),
   completed: z.boolean().optional()

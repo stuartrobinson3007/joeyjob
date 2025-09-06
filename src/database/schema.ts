@@ -151,8 +151,8 @@ export const todos = pgTable('todos', {
   assignedTo: text('assigned_to')
     .references(() => user.id, { onDelete: 'set null' }),
   completed: boolean('completed').default(false).notNull(),
-  priority: text('priority', { enum: ['low', 'medium', 'high'] })
-    .default('medium')
+  priority: integer('priority')
+    .default(3)
     .notNull(),
   dueDate: timestamp('due_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

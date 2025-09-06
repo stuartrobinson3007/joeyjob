@@ -63,7 +63,7 @@ const descriptions = [
   null
 ]
 
-const priorities: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high']
+const priorities: number[] = [1, 2, 3, 4, 5]
 
 function getRandomElement<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)]
@@ -146,18 +146,22 @@ async function seedTodos() {
     
     // Show summary
     const completedCount = todosToCreate.filter(t => t.completed).length
-    const highPriorityCount = todosToCreate.filter(t => t.priority === 'high').length
-    const mediumPriorityCount = todosToCreate.filter(t => t.priority === 'medium').length
-    const lowPriorityCount = todosToCreate.filter(t => t.priority === 'low').length
+    const priority1Count = todosToCreate.filter(t => t.priority === 1).length
+    const priority2Count = todosToCreate.filter(t => t.priority === 2).length
+    const priority3Count = todosToCreate.filter(t => t.priority === 3).length
+    const priority4Count = todosToCreate.filter(t => t.priority === 4).length
+    const priority5Count = todosToCreate.filter(t => t.priority === 5).length
     const withDueDateCount = todosToCreate.filter(t => t.dueDate).length
     
     console.log('\n📊 Summary:')
     console.log(`  Total todos: 500`)
     console.log(`  Completed: ${completedCount}`)
     console.log(`  Pending: ${500 - completedCount}`)
-    console.log(`  High priority: ${highPriorityCount}`)
-    console.log(`  Medium priority: ${mediumPriorityCount}`)
-    console.log(`  Low priority: ${lowPriorityCount}`)
+    console.log(`  Priority 1: ${priority1Count}`)
+    console.log(`  Priority 2: ${priority2Count}`)
+    console.log(`  Priority 3: ${priority3Count}`)
+    console.log(`  Priority 4: ${priority4Count}`)
+    console.log(`  Priority 5: ${priority5Count}`)
     console.log(`  With due dates: ${withDueDateCount}`)
     
     process.exit(0)

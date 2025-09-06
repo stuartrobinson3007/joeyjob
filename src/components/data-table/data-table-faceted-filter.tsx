@@ -58,7 +58,7 @@ export function DataTableFacetedFilter<TData, TValue>({
     >
       <FacetedTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 border-dashed">
-          <PlusCircle className="mr-2 h-4 w-4" />
+          <PlusCircle className="mr-1" />
           {title}
           {normalizedValues.length > 0 && (
             <>

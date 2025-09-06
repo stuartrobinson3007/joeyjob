@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useMemo } from 'react'
 import { ColumnDef } from "@tanstack/react-table"
 import { format } from 'date-fns'
-import { MoreHorizontal, Check, Clock, ArrowUpDown, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Check, Clock, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { useSetPageMeta } from '@/lib/hooks/page-context'
 import { DataTable } from '@/components/data-table/data-table'
@@ -29,7 +29,7 @@ interface Todo {
   id: string
   title: string
   description: string | null
-  priority: 'low' | 'medium' | 'high'
+  priority: number
   completed: boolean
   dueDate: Date | null
   createdAt: Date
@@ -131,6 +131,30 @@ export function TodosTablePage() {
     setClearSelectionFn(() => clearSelection)
   }, [])
 
+  // Sortable header component
+  const SortableHeader = React.useCallback(({ column, children }: { column: any, children: React.ReactNode }) => {
+    const sortDirection = column.getIsSorted()
+    
+    return (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(sortDirection === "asc")}
+        className="h-auto p-0 hover:bg-transparent"
+      >
+        {children}
+        <div className="ml-2 h-4 w-4">
+          {sortDirection === "asc" ? (
+            <ArrowUp className="h-4 w-4" />
+          ) : sortDirection === "desc" ? (
+            <ArrowDown className="h-4 w-4" />
+          ) : (
+            <ArrowUpDown className="h-4 w-4 opacity-50" />
+          )}
+        </div>
+      </Button>
+    )
+  }, [])
+
   const columns: ColumnDef<Todo>[] = useMemo(() => [
     {
       id: "select",
@@ -161,16 +185,9 @@ export function TodosTablePage() {
       cell: ({ row }) => {
         const completed = row.getValue("completed") as boolean
         return (
-          <button
-            onClick={() => handleToggle(row.original.id)}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-              completed
-                ? 'bg-primary border-primary'
-                : 'border-input hover:border-ring'
-            }`}
-          >
-            {completed && <Check className="w-3 h-3 text-white" />}
-          </button>
+          <Badge variant={completed ? "default" : "secondary"}>
+            {completed ? "Done" : "Pending"}
+          </Badge>
         )
       },
       meta: {
@@ -178,25 +195,19 @@ export function TodosTablePage() {
           type: "select",
           title: "Status",
           options: [
-            { label: "Completed", value: "true" },
-            { label: "Incomplete", value: "false" },
+            { label: "Done", value: "true" },
+            { label: "Pending", value: "false" },
           ],
         },
       } as DataTableColumnMeta,
     },
     {
       accessorKey: "title",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Title
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <SortableHeader column={column}>
+          Title
+        </SortableHeader>
+      ),
       enableSorting: true,
       cell: ({ row }) => {
         return (
@@ -213,57 +224,34 @@ export function TodosTablePage() {
     },
     {
       accessorKey: "priority",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Priority
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <SortableHeader column={column}>
+          Priority
+        </SortableHeader>
+      ),
       enableColumnFilter: true,
       enableSorting: true,
       cell: ({ row }) => {
-        const priority = row.getValue("priority") as string
-        const variant = 
-          priority === "high" ? "destructive" :
-          priority === "medium" ? "default" :
-          "secondary"
-        
-        return (
-          <Badge variant={variant as any}>
-            {priority}
-          </Badge>
-        )
+        const priority = row.getValue("priority") as number
+        return <span className="font-mono">{priority}</span>
       },
       meta: {
         filterConfig: {
-          type: "multiSelect",
+          type: "numberRange",
           title: "Priority",
-          options: [
-            { label: "Low", value: "low" },
-            { label: "Medium", value: "medium" },
-            { label: "High", value: "high" },
-          ],
+          min: 1,
+          max: 5,
+          step: 1,
         },
       } as DataTableColumnMeta,
     },
     {
       accessorKey: "dueDate",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Due Date
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <SortableHeader column={column}>
+          Due Date
+        </SortableHeader>
+      ),
       enableColumnFilter: true,
       enableSorting: true,
       cell: ({ row }) => {
@@ -286,17 +274,11 @@ export function TodosTablePage() {
     },
     {
       accessorKey: "createdAt",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Created
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
+      header: ({ column }) => (
+        <SortableHeader column={column}>
+          Created
+        </SortableHeader>
+      ),
       enableColumnFilter: true,
       enableSorting: true,
       cell: ({ row }) => {
@@ -308,6 +290,25 @@ export function TodosTablePage() {
           title: "Created Date",
         },
       } as DataTableColumnMeta,
+    },
+    {
+      id: "markDone",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const completed = row.original.completed
+        if (completed) return null
+        
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleToggle(row.original.id)}
+            className="h-7"
+          >
+            Mark as Done
+          </Button>
+        )
+      },
     },
     {
       id: "actions",
@@ -339,7 +340,7 @@ export function TodosTablePage() {
         )
       },
     },
-  ], [handleToggle, handleDelete])
+  ], [handleToggle, handleDelete, SortableHeader])
 
   const bulkActions: BulkAction[] = useMemo(() => [
     {
