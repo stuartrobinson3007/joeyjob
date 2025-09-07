@@ -3,7 +3,8 @@ import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
-import { Ban, UserCheck, Eye, MoreHorizontal, LogOut, Monitor, X, User, Shield, Trash2 } from 'lucide-react'
+import { Ban, UserCheck, Eye, MoreHorizontal, LogOut, Monitor, X, User, Shield, Trash2, Loader2 } from 'lucide-react'
+import { formatDate, formatDateTime } from '@/lib/utils/date'
 import { Badge } from '@/components/taali-ui/ui/badge'
 import {
   DropdownMenu,
@@ -22,7 +23,8 @@ import {
   SheetTitle,
 } from '@/components/taali-ui/ui/sheet'
 import { DataTable, DataTableHeader, useTableQuery, DataTableConfig, DataTableColumnMeta } from '@/components/taali-ui/data-table'
-import { getAdminUsersTable, type AdminUser } from '@/features/admin/lib/admin-users.server'
+import { getAdminUsersTable, getAdminUserStats, type AdminUser } from '@/features/admin/lib/admin-users.server'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/_authenticated/superadmin/users')({
   component: SuperAdminUsers,
@@ -34,6 +36,13 @@ function SuperAdminUsers() {
   const [sessionsLoading, setSessionsLoading] = React.useState(false)
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [currentFilters, setCurrentFilters] = React.useState({})
+
+  // Query for total stats (independent of filters)
+  const { data: stats } = useQuery({
+    queryKey: ['admin', 'users', 'stats'],
+    queryFn: () => getAdminUserStats(),
+    refetchInterval: 30000 // Refresh every 30 seconds
+  })
 
   // Use the table query hook
   const {
@@ -146,6 +155,27 @@ function SuperAdminUsers() {
   // Column definitions
   const columns = React.useMemo<ColumnDef<AdminUser>[]>(() => [
     {
+      accessorKey: "id",
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          ID
+        </DataTableHeader>
+      ),
+      enableSorting: true,
+      size: 100,
+      cell: ({ row }) => {
+        const user = row.original
+        return (
+          <div className="text-xs font-mono text-muted-foreground">
+            {user.id}
+          </div>
+        )
+      },
+      meta: {
+        enableTextTruncation: true,
+      } as DataTableColumnMeta,
+    },
+    {
       id: "user",
       header: ({ column }) => (
         <DataTableHeader column={column} sortable>
@@ -185,7 +215,7 @@ function SuperAdminUsers() {
           <Badge
             variant={user.role === 'superadmin' ? 'destructive' : user.role === 'admin' ? 'primary' : 'muted'}
             style="soft"
-            startIcon={user.role === 'superadmin' ? <Shield className="w-4 h-4" /> : user.role === 'admin' ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
+            startIcon={user.role === 'superadmin' ? <Shield /> : user.role === 'admin' ? <Shield /> : <User />}
           >
             {user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'User'}
           </Badge>
@@ -253,7 +283,7 @@ function SuperAdminUsers() {
         const user = row.original
         return (
           <span className="text-sm text-muted-foreground">
-            {new Date(user.createdAt).toLocaleDateString()}
+            {formatDate(user.createdAt)}
           </span>
         )
       },
@@ -267,8 +297,9 @@ function SuperAdminUsers() {
     },
     {
       id: "actions",
-      header: () => <span className="text-right">Actions</span>,
+      header: () => null,
       size: 50,
+      enableResizing: false,
       cell: ({ row }) => {
         const user = row.original
         return (
@@ -280,26 +311,25 @@ function SuperAdminUsers() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => handleImpersonate(user.id)}>
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Eye />
                   Impersonate
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleBanUser(user.id, !user.banned)}>
                   {user.banned ? (
                     <>
-                      <UserCheck className="w-4 h-4 mr-2" />
+                      <UserCheck />
                       Unban
                     </>
                   ) : (
                     <>
-                      <Ban className="w-4 h-4 mr-2" />
+                      <Ban />
                       Ban
                     </>
                   )}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleViewSessions(user)}>
-                  <Monitor className="w-4 h-4 mr-2" />
+                  <Monitor />
                   View All Sessions
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -317,7 +347,8 @@ function SuperAdminUsers() {
   // DataTable configuration
   const config = React.useMemo<DataTableConfig<AdminUser>>(() => ({
     searchConfig: {
-      placeholder: "Search users..."
+      placeholder: "Search users by name, email, or ID...",
+      searchableColumns: ["name", "email", "id"]
     },
     enableColumnFilters: true,
     enableSorting: true,
@@ -341,20 +372,20 @@ function SuperAdminUsers() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-card rounded-lg border p-4">
             <h3 className="text-sm font-medium mb-1">Total Users</h3>
-            <p className="text-2xl font-bold">{totalCount || 0}</p>
+            <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
           </div>
 
           <div className="bg-card rounded-lg border p-4">
             <h3 className="text-sm font-medium mb-1">Active Users</h3>
             <p className="text-2xl font-bold">
-              {data?.filter(user => !user.banned).length || 0}
+              {stats?.activeUsers || 0}
             </p>
           </div>
 
           <div className="bg-card rounded-lg border p-4">
             <h3 className="text-sm font-medium mb-1">Banned Users</h3>
             <p className="text-2xl font-bold">
-              {data?.filter(user => user.banned).length || 0}
+              {stats?.bannedUsers || 0}
             </p>
           </div>
         </div>
@@ -390,7 +421,7 @@ function SuperAdminUsers() {
             <div className="px-6 py-6">
               {sessionsLoading ? (
                 <div className="flex justify-center items-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  <Loader2 className="size-6 animate-spin" />
                 </div>
               ) : userSessions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -411,7 +442,7 @@ function SuperAdminUsers() {
                         <div className="grid gap-1">
                           <div className="text-sm font-medium">Created</div>
                           <div className="text-sm text-muted-foreground">
-                            {session.createdAt ? new Date(session.createdAt).toLocaleString() : 'Unknown'}
+                            {session.createdAt ? formatDateTime(session.createdAt) : 'Unknown'}
                           </div>
                         </div>
 
@@ -419,7 +450,7 @@ function SuperAdminUsers() {
                           <div className="grid gap-1">
                             <div className="text-sm font-medium">Expires</div>
                             <div className="text-sm text-muted-foreground">
-                              {new Date(session.expiresAt).toLocaleString()}
+                              {formatDateTime(session.expiresAt)}
                             </div>
                           </div>
                         )}

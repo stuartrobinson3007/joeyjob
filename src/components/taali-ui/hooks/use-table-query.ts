@@ -55,13 +55,6 @@ export function useTableQuery<TData>({
     
     // Use global filter for search - clean and generic
     const searchValue = debouncedState.search || ''
-    
-    console.log('[useTableQuery] serverParams calculation:', {
-      searchValue,
-      debouncedSearch: debouncedState.search,
-      columnFiltersCount: debouncedState.columnFilters.length,
-      timestamp: new Date().toISOString()
-    })
 
     return {
       search: searchValue,

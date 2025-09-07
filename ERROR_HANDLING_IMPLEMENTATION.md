@@ -80,7 +80,7 @@ export function DataTableError({ error, onRetry, className }: DataTableErrorProp
         <div className="flex gap-3 justify-center">
           {error.retryable && onRetry && (
             <Button onClick={onRetry} variant="default">
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw  />
               Try Again
             </Button>
           )}
@@ -1299,12 +1299,12 @@ export function OfflineIndicator({ className }: { className?: string }) {
     >
       {!isOnline ? (
         <div className="flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg shadow-lg">
-          <WifiOff className="w-4 h-4" />
+          <WifiOff />
           <span className="text-sm font-medium">You're offline</span>
         </div>
       ) : showReconnected ? (
         <div className="flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-lg shadow-lg">
-          <Wifi className="w-4 h-4" />
+          <Wifi />
           <span className="text-sm font-medium">Back online</span>
         </div>
       ) : null}
@@ -1382,7 +1382,7 @@ export function TodosTable() {
           description="Create your first todo to get started"
           action={
             <Button onClick={() => navigate('/todos/new')}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus  />
               Create Todo
             </Button>
           }

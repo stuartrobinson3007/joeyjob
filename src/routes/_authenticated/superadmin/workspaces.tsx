@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 import { Building2, Users, Calendar, Trash2, MoreHorizontal } from 'lucide-react'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 import { DataTable, DataTableHeader, useTableQuery, DataTableConfig, DataTableColumnMeta } from '@/components/taali-ui/data-table'
-import { getAdminWorkspacesTable, type AdminWorkspace } from '@/features/admin/lib/admin-workspaces.server'
+import { getAdminWorkspacesTable, getAdminWorkspaceStats, type AdminWorkspace } from '@/features/admin/lib/admin-workspaces.server'
+import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/taali-ui/ui/badge'
 import { Button } from '@/components/taali-ui/ui/button'
 import {
@@ -23,6 +24,13 @@ export const Route = createFileRoute('/_authenticated/superadmin/workspaces')({
 
 function SuperAdminWorkspaces() {
   const [currentFilters, setCurrentFilters] = React.useState({})
+
+  // Query for total stats (independent of filters)
+  const { data: stats } = useQuery({
+    queryKey: ['admin', 'workspaces', 'stats'],
+    queryFn: () => getAdminWorkspaceStats(),
+    refetchInterval: 30000 // Refresh every 30 seconds
+  })
 
   // Use the table query hook
   const {
@@ -65,6 +73,27 @@ function SuperAdminWorkspaces() {
 
   // Column definitions
   const columns = React.useMemo<ColumnDef<AdminWorkspace>[]>(() => [
+    {
+      accessorKey: "id",
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          ID
+        </DataTableHeader>
+      ),
+      enableSorting: true,
+      size: 100,
+      cell: ({ row }) => {
+        const org = row.original
+        return (
+          <div className="text-xs font-mono text-muted-foreground">
+            {org.id}
+          </div>
+        )
+      },
+      meta: {
+        enableTextTruncation: true,
+      } as DataTableColumnMeta,
+    },
     {
       id: "organization",
       header: ({ column }) => (
@@ -130,7 +159,7 @@ function SuperAdminWorkspaces() {
         const org = row.original
         return (
           <div className="flex items-center text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4 mr-2" />
+            <Calendar />
             {new Date(org.createdAt).toLocaleDateString()}
           </div>
         )
@@ -161,8 +190,9 @@ function SuperAdminWorkspaces() {
     },
     {
       id: "actions",
-      header: () => <span className="text-right">Actions</span>,
+      header: () => null,
       size: 50,
+      enableResizing: false,
       cell: ({ row }) => {
         const org = row.original
         return (
@@ -174,12 +204,10 @@ function SuperAdminWorkspaces() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => handleDeleteOrganization(org.id, org.name)}
-                  className="text-destructive"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 />
                   Delete Organization
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -197,7 +225,8 @@ function SuperAdminWorkspaces() {
   // DataTable configuration
   const config = React.useMemo<DataTableConfig<AdminWorkspace>>(() => ({
     searchConfig: {
-      placeholder: "Search organizations..."
+      placeholder: "Search organizations by name, slug, or ID...",
+      searchableColumns: ["name", "slug", "id"]
     },
     enableColumnFilters: true,
     enableSorting: true,
@@ -221,20 +250,20 @@ function SuperAdminWorkspaces() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-card rounded-lg border p-4">
             <h3 className="text-sm font-medium mb-1">Total Organizations</h3>
-            <p className="text-2xl font-bold">{totalCount || 0}</p>
+            <p className="text-2xl font-bold">{stats?.totalOrganizations || 0}</p>
           </div>
 
           <div className="bg-card rounded-lg border p-4">
             <h3 className="text-sm font-medium mb-1">Total Members</h3>
             <p className="text-2xl font-bold">
-              {data?.reduce((sum, org) => sum + (org.memberCount || 0), 0) || 0}
+              {stats?.totalMembers || 0}
             </p>
           </div>
 
           <div className="bg-card rounded-lg border p-4">
             <h3 className="text-sm font-medium mb-1">Avg Members per Org</h3>
             <p className="text-2xl font-bold">
-              {totalCount ? Math.round((data?.reduce((sum, org) => sum + (org.memberCount || 0), 0) || 0) / totalCount) : 0}
+              {stats?.avgMembersPerOrg || 0}
             </p>
           </div>
         </div>

@@ -115,7 +115,7 @@ export const SuperAdminWrapper = memo(function SuperAdminWrapper({
       >
         {/* Left side - Super Admin indicator */}
         <div className="flex items-center gap-2 text-sm">
-          <ShieldUser className='size-5' />
+          <ShieldUser className='size-6' />
           <div className="flex items-center gap-2 bg-purple-950 py-1 px-2.5 rounded-md text-purple-50">
             <span className="font-medium">Impersonating {displayName}</span>
           </div>

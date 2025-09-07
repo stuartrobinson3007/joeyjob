@@ -26,7 +26,7 @@ This document outlines a comprehensive plan to refactor the entire codebase to i
 |------|---------------|------------------|
 | `/src/features/todos/lib/todos.server.ts` | Uses basic `AppError`, inconsistent patterns | • Implement full `ApiError` class<br>• Add validation error transformation<br>• Use error middleware wrapper |
 | `/src/features/todos/lib/todos-table.server.ts` | Missing error handling | • Add error middleware<br>• Implement pagination error handling<br>• Add field validation |
-| `/src/features/teams/lib/teams.server.ts` | Basic error throwing | • Use `ApiError` for all errors<br>• Add permission errors<br>• Implement invitation errors |
+| `/src/features/team/lib/team.server.ts` | Basic error throwing | • Use `ApiError` for all errors<br>• Add permission errors<br>• Implement invitation errors |
 | `/src/features/organization/lib/members.server.ts` | Inconsistent error messages | • Standardize member errors<br>• Add role validation errors<br>• Implement permission checks |
 | `/src/features/organization/lib/onboarding.server.ts` | Missing validation | • Add validation errors<br>• Implement state transition errors<br>• Add completion checks |
 | `/src/features/billing/lib/billing.server.ts` | Try/catch without transformation | • Add Stripe error transformation<br>• Implement limit exceeded errors<br>• Add subscription state errors |
@@ -57,7 +57,7 @@ This document outlines a comprehensive plan to refactor the entire codebase to i
 |------|---------------|------------------|
 | `/src/routes/_authenticated.tsx` | Basic error handling | • Add error boundary<br>• Implement auth errors<br>• Add navigation errors |
 | `/src/routes/_authenticated/profile.tsx` | Try/catch in mutations | • Use `useSafeMutation`<br>• Add profile validation<br>• Implement avatar errors |
-| `/src/routes/_authenticated/teams.tsx` | Multiple toast.error calls | • Centralize error handling<br>• Add invitation errors<br>• Implement role errors |
+| `/src/routes/_authenticated/team.tsx` | Multiple toast.error calls | • Centralize error handling<br>• Add invitation errors<br>• Implement role errors |
 | `/src/routes/_authenticated/onboarding.tsx` | Inline error handling | • Add step validation<br>• Implement completion errors<br>• Add navigation guards |
 | `/src/routes/_authenticated/billing.tsx` | Missing error handling | • Add subscription errors<br>• Implement payment errors<br>• Add plan limit errors |
 | `/src/routes/_authenticated/superadmin/*.tsx` | No error handling | • Add admin permission errors<br>• Implement data access errors<br>• Add audit errors |
@@ -129,7 +129,7 @@ This document outlines a comprehensive plan to refactor the entire codebase to i
 
 1. **Day 1-2**: Core Server Functions
    - [ ] Refactor `todos.server.ts` with full error system
-   - [ ] Update `teams.server.ts` with ApiError
+   - [ ] Update `team.server.ts` with ApiError
    - [ ] Refactor `members.server.ts` with validation
    - [ ] Update `onboarding.server.ts` with state errors
 

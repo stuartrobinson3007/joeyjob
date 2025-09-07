@@ -2,6 +2,7 @@ import { Button } from '@/components/taali-ui/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/taali-ui/ui/card'
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
+import { Loader2 } from 'lucide-react'
 
 export function SessionDisplay() {
   const { data: session, isPending } = useSession()
@@ -17,7 +18,7 @@ export function SessionDisplay() {
   if (isPending) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <Loader2 className="size-6 animate-spin" />
       </div>
     )
   }

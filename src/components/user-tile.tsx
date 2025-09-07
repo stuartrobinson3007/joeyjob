@@ -5,8 +5,8 @@
  * Used in sidebars and admin interfaces.
  */
 
-import { useNavigate } from '@tanstack/react-router';
-import { LogOut, User, MoreVertical, Check, Sun, Moon, Monitor, ShieldUser, Loader2 } from 'lucide-react';
+import { useNavigate, useLocation } from '@tanstack/react-router';
+import { LogOut, User, MoreVertical, Check, Sun, Moon, Monitor, ShieldUser, Loader2, ArrowLeft } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/taali-ui/ui/avatar';
 import {
@@ -65,9 +65,11 @@ function getUserInitials(user: User | null | undefined): string {
 
 export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
 
   const isSuperAdmin = useMemo(() => user?.role === 'superadmin', [user]);
+  const isInSuperAdminPanel = useMemo(() => location.pathname.startsWith('/superadmin'), [location.pathname]);
 
   if (!user) {
     return (
@@ -148,9 +150,24 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
         {isSuperAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate({ to: '/superadmin/users' })}>
-              <ShieldUser className="h-4 w-4 mr-2" />
-              Super Admin
+            <DropdownMenuItem onClick={() => {
+              if (isInSuperAdminPanel) {
+                navigate({ to: '/' });
+              } else {
+                navigate({ to: '/superadmin/users' });
+              }
+            }}>
+              {isInSuperAdminPanel ? (
+                <>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Leave Super Admin
+                </>
+              ) : (
+                <>
+                  <ShieldUser className="h-4 w-4 mr-2" />
+                  Super Admin
+                </>
+              )}
             </DropdownMenuItem>
           </>
         )}

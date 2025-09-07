@@ -112,7 +112,7 @@ export function OrganizationSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent">
-          <Building2 className="w-4 h-4" />
+          <Building2 />
           <span className="font-medium">
             {activeOrganization?.name || 'Select Organization'}
           </span>
@@ -131,7 +131,7 @@ export function OrganizationSwitcher() {
           >
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4" />
+                <Building2 />
                 <div>
                   <p className="font-medium">{org.name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -188,7 +188,7 @@ export function OrganizationSwitcher() {
             onClick={() => setIsCreating(true)}
             className="cursor-pointer"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus />
             Create New Organization
           </DropdownMenuItem>
         )}

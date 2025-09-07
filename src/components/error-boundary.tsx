@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('Error caught by boundary:', error, errorInfo)
-    
+
     const errorDetails = handleError(error)
     toast.error(errorDetails.userMessage)
   }
@@ -41,10 +41,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
+          <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
           <p className="text-muted-foreground mb-6 text-center max-w-md">
-            {isAppError(this.state.error) 
-              ? this.state.error.userMessage 
+            {isAppError(this.state.error)
+              ? this.state.error.userMessage
               : 'An unexpected error occurred. Please try refreshing the page.'}
           </p>
           <button

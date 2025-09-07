@@ -6,7 +6,7 @@ import { PageContextProvider } from "./page-context"
 
 
 // Create a client
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             staleTime: 1000 * 60

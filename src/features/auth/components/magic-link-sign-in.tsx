@@ -92,7 +92,7 @@ export function MagicLinkSignIn() {
           </>
         ) : (
           <>
-            <Mail className="w-4 h-4" />
+            <Mail />
             Send Magic Link
           </>
         )}

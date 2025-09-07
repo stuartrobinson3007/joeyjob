@@ -485,7 +485,7 @@ export function DataTableError({ error, onRetry, className }: DataTableErrorProp
         <div className="flex gap-3 justify-center">
           {error.retryable && onRetry && (
             <Button onClick={onRetry} variant="default">
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw  />
               Try Again
             </Button>
           )}
@@ -1185,7 +1185,7 @@ export function FormErrorSummary({ error }: { error: unknown }) {
    - Handle pagination errors
    - Add filter validation
 
-3. **`src/features/teams/lib/teams.server.ts`**
+3. **`src/features/team/lib/team.server.ts`**
    - Standardize error messages
    - Add invitation-specific errors
    - Handle member role errors
@@ -1234,7 +1234,7 @@ export function FormErrorSummary({ error }: { error: unknown }) {
    - Add `DataTableError` component
    - Use `useSafeMutation` for actions
 
-2. **`src/routes/_authenticated/teams.tsx`**
+2. **`src/routes/_authenticated/team.tsx`**
    - Centralize error handling
    - Add form validation display
    - Use error hooks

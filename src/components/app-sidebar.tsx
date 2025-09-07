@@ -21,6 +21,7 @@ import { OrganizationSwitcher } from '@/features/organization/components/organiz
 import { authClient } from '@/lib/auth/auth-client';
 import { useSession } from '@/lib/auth/auth-hooks';
 import { useActiveOrganization } from '@/features/organization/lib/organization-context';
+import { queryClient } from '@/lib/hooks/providers';
 
 const baseNavigationItems = [
   {
@@ -30,8 +31,8 @@ const baseNavigationItems = [
     requiresPermission: null, // Everyone can access
   },
   {
-    title: "Teams",
-    url: "/teams",
+    title: "Team",
+    url: "/team",
     icon: Users,
     requiresPermission: null, // Everyone can access (with different capabilities)
   },
@@ -83,7 +84,7 @@ export function AppSidebar() {
 
         // Handle different response structures from Better Auth
         let membersArray: any[] = [];
-        
+
         if (response && 'members' in response) {
           // Response has members property
           membersArray = response.members || [];
@@ -114,7 +115,7 @@ export function AppSidebar() {
   // Filter navigation items based on user permissions
   const navigationItems = baseNavigationItems.filter(item => {
     if (!item.requiresPermission) return true;
-    
+
     // Billing and Settings require admin or owner role
     return hasAdminPermission(memberRole);
   });
@@ -129,7 +130,7 @@ export function AppSidebar() {
     try {
       await authClient.signOut({
         fetchOptions: {
-          onSuccess: () => {
+          onSuccess: async () => {
             // Clear local storage items
             if (typeof window !== 'undefined') {
               const itemsToClear = [
@@ -152,6 +153,10 @@ export function AppSidebar() {
                 console.error('Error clearing sessionStorage:', error);
               }
             }
+
+            // IMPORTANT: Invalidate all queries to clear cached session
+            await queryClient.invalidateQueries();
+            await queryClient.clear();
 
             // Navigate to signin
             router.navigate({

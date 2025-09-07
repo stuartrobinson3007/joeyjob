@@ -22,7 +22,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 const statement = {
   ...defaultStatements,  // Includes invitation permissions needed for invites to work
   todos: ["create", "read", "update", "delete", "assign"],
-  billing: ["view", "manage"] // Add billing permissions
+  billing: ["view", "manage"], // Add billing permissions
+  invitation: ["create", "read", "delete", "cancel"] // Add cancel permission for Better Auth compatibility
 } as const
 
 // Create access control instance
@@ -46,16 +47,16 @@ const member = ac.newRole({
 const orgAdmin = ac.newRole({
   organization: ["update"],
   member: ["create", "read", "update", "delete"],
-  invitation: ["create", "read", "delete"],
+  invitation: ["create", "read", "delete", "cancel"],
   todos: ["create", "read", "update", "delete", "assign"],
   billing: ["view", "manage"]
 })
 
 const owner = ac.newRole({
-  ...adminAc.statements,  // Inherit default permissions including invitation
-  todos: ["create", "read", "update", "delete", "assign"],
+  organization: ["update", "delete"],
   member: ["create", "read", "update", "delete"],
-  invitation: ["create", "read", "delete"],
+  invitation: ["create", "read", "delete", "cancel"],
+  todos: ["create", "read", "update", "delete", "assign"],
   billing: ["view", "manage"]
 })
 

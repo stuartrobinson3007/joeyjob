@@ -3,8 +3,8 @@
 import * as React from 'react'
 import { useMemo } from 'react'
 import { ColumnDef } from "@tanstack/react-table"
-import { format } from 'date-fns'
-import { MoreHorizontal, Clock, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Plus, Loader2 } from 'lucide-react'
+import { formatDate } from '@/lib/utils/date'
+import { MoreHorizontal, Clock, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Plus, Loader2, Undo2, Check } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
@@ -225,8 +225,8 @@ export function TodosTablePage() {
         cell: ({ row }) => {
           const completed = row.getValue("completed") as boolean
           return (
-            <Badge 
-              variant={completed ? "success" : "warning"} 
+            <Badge
+              variant={completed ? "success" : "warning"}
               style="soft"
               status={completed}
             >
@@ -313,7 +313,7 @@ export function TodosTablePage() {
           return (
             <div className="flex items-center gap-1">
               <Clock className="min-w-3 h-3" />
-              {format(new Date(dueDate), "MMM d, yyyy")}
+              {formatDate(dueDate)}
             </div>
           )
         },
@@ -336,7 +336,7 @@ export function TodosTablePage() {
         enableSorting: true,
         size: 120,
         cell: ({ row }) => {
-          return format(new Date(row.getValue("createdAt")), "MMM d, yyyy")
+          return formatDate(row.getValue("createdAt"))
         },
         meta: {
           filterConfig: {
@@ -402,6 +402,7 @@ export function TodosTablePage() {
       },
       {
         id: "actions",
+        header: () => null,
         enableHiding: false,
         enableResizing: false,
         size: 50,
@@ -426,21 +427,28 @@ export function TodosTablePage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {canUpdate && (
                   <>
                     <DropdownMenuItem
                       onClick={() => handleToggle(row.original.id)}
                       disabled={isLoading}
                     >
-                      {row.original.completed ? "Mark incomplete" : "Mark complete"}
+                      {row.original.completed ?
+                        <>
+                          <Undo2 />
+                          <>Mark incomplete</>
+                        </> :
+                        <>
+                          <Check />
+                          <>Mark complete</>
+                        </>
+                      }
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => navigate({ to: `/todos/${row.original.id}/edit` })}
                       disabled={isLoading}
                     >
-                      <Edit2 className="w-4 h-4 mr-2" />
+                      <Edit2 />
                       Edit
                     </DropdownMenuItem>
                   </>
@@ -450,10 +458,9 @@ export function TodosTablePage() {
                     {canUpdate && <DropdownMenuSeparator />}
                     <DropdownMenuItem
                       onClick={() => handleDelete(row.original.id)}
-                      className="text-destructive"
                       disabled={isLoading}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 />
                       Delete
                     </DropdownMenuItem>
                   </>
@@ -526,7 +533,7 @@ export function TodosTablePage() {
             onClick={handleCreateTodo}
             disabled={isCreating}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus />
             {isCreating ? 'Creating...' : 'Add Todo'}
           </Button>
         ) : undefined}
@@ -534,22 +541,48 @@ export function TodosTablePage() {
 
       {/* Main Content */}
       <div className="flex-1 p-4">
-        <DataTable
-        columns={columns}
-        data={data}
-        config={config}
-        totalCount={totalCount}
-        onStateChange={onStateChange}
-        onSelectionChange={handleSelectionChange}
-        onSelectAll={handleSelectAll}
-        currentFilters={currentFilters}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        loadingRows={loadingTodos}
-        getRowIdProp={(row) => row.id}
-        onRowClick={handleRowClick}
-        className='max-h-[600px]'
-      />
+        {(!data || data.length === 0) && !isLoading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed rounded-lg p-8">
+            <div className="text-center space-y-4">
+              <div className="bg-muted rounded-full p-4 w-16 h-16 mx-auto flex items-center justify-center">
+                <Plus className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Create your first to-do</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Get started by creating your first to-do item
+                </p>
+              </div>
+              {canCreateTodo() && (
+                <Button
+                  onClick={handleCreateTodo}
+                  disabled={isCreating}
+                  className="mt-4"
+                >
+                  <Plus />
+                  {isCreating ? 'Creating...' : 'Add your first to-do'}
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={data}
+            config={config}
+            totalCount={totalCount}
+            onStateChange={onStateChange}
+            onSelectionChange={handleSelectionChange}
+            onSelectAll={handleSelectAll}
+            currentFilters={currentFilters}
+            isLoading={isLoading}
+            isFetching={isFetching}
+            loadingRows={loadingTodos}
+            getRowIdProp={(row) => row.id}
+            onRowClick={handleRowClick}
+            className='max-h-[600px]'
+          />
+        )}
       </div>
     </div>
   )

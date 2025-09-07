@@ -66,7 +66,8 @@ export const getAdminUsersTable = createServerFn({ method: 'POST' })
         conditions.push(
           or(
             ilike(user.email, `%${searchTerm}%`),
-            ilike(user.name, `%${searchTerm}%`)
+            ilike(user.name, `%${searchTerm}%`),
+            ilike(user.id, `%${searchTerm}%`)
           )
         )
       }
@@ -119,6 +120,9 @@ export const getAdminUsersTable = createServerFn({ method: 'POST' })
         const sortFn = sort.desc ? desc : asc
         
         switch (sort.id) {
+          case 'id':
+            usersQuery = usersQuery.orderBy(sortFn(user.id))
+            break
           case 'user':
           case 'name':
             usersQuery = usersQuery.orderBy(sortFn(user.name))
@@ -189,6 +193,38 @@ export const getAdminUsersTable = createServerFn({ method: 'POST' })
         data: [],
         totalCount: 0,
         pageCount: 0
+      }
+    }
+  })
+
+export const getAdminUserStats = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(async () => {
+    try {
+      // Get total users count
+      const totalUsersResult = await db.select({ count: count() }).from(user)
+      
+      // Get active users count (not banned)
+      const activeUsersResult = await db.select({ count: count() })
+        .from(user)
+        .where(eq(user.banned, false))
+      
+      // Get banned users count
+      const bannedUsersResult = await db.select({ count: count() })
+        .from(user)
+        .where(eq(user.banned, true))
+      
+      return {
+        totalUsers: Number(totalUsersResult[0]?.count || 0),
+        activeUsers: Number(activeUsersResult[0]?.count || 0),
+        bannedUsers: Number(bannedUsersResult[0]?.count || 0)
+      }
+    } catch (error) {
+      console.error('[getAdminUserStats] Error loading user stats:', error)
+      return {
+        totalUsers: 0,
+        activeUsers: 0,
+        bannedUsers: 0
       }
     }
   })

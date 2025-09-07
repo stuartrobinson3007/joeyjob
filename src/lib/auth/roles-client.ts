@@ -10,7 +10,8 @@ import { defaultStatements, adminAc } from 'better-auth/plugins/organization/acc
 const statement = {
   ...defaultStatements,
   todos: ["create", "read", "update", "delete", "assign"],
-  billing: ["view", "manage"]
+  billing: ["view", "manage"],
+  invitation: ["create", "read", "delete", "cancel"] // Add cancel permission for Better Auth compatibility
 } as const
 
 // Create access control instance
@@ -34,16 +35,16 @@ export const member = ac.newRole({
 export const admin = ac.newRole({
   organization: ["update"],
   member: ["create", "read", "update", "delete"],
-  invitation: ["create", "read", "delete"],
+  invitation: ["create", "read", "delete", "cancel"],
   todos: ["create", "read", "update", "delete", "assign"],
   billing: ["view", "manage"]
 })
 
 export const owner = ac.newRole({
-  ...adminAc.statements,
-  todos: ["create", "read", "update", "delete", "assign"],
+  organization: ["create", "read", "update", "delete"],
   member: ["create", "read", "update", "delete"],
-  invitation: ["create", "read", "delete"],
+  invitation: ["create", "read", "delete", "cancel"],
+  todos: ["create", "read", "update", "delete", "assign"],
   billing: ["view", "manage"]
 })
 

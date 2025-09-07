@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Mail, User, Shield, Calendar, Edit2, Save, X, Monitor, Smartphone, AlertCircle, Globe, Clock, Trash2, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Mail, User, Shield, Calendar, Edit2, Save, X, Monitor, Smartphone, AlertCircle, Globe, Clock, Trash2, ShieldAlert, Loader2 } from 'lucide-react'
 import { useSession, useListSessions, useRevokeSession, useRevokeOtherSessions } from '@/lib/auth/auth-hooks'
 import { authClient } from '@/lib/auth/auth-client'
 import { Button } from '@/components/taali-ui/ui/button'
@@ -34,7 +34,7 @@ function ProfileScreen() {
   const { data: sessions, isPending: isLoadingSessions, refetch: refetchSessions } = useListSessions()
   const revokeSessionMutation = useRevokeSession()
   const revokeOtherSessionsMutation = useRevokeOtherSessions()
-  
+
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState({
@@ -52,7 +52,7 @@ function ProfileScreen() {
   if (isPending) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <Loader2 className="size-6 animate-spin" />
       </div>
     )
   }
@@ -110,7 +110,7 @@ function ProfileScreen() {
 
   const confirmRevokeSession = async () => {
     if (!sessionToRevoke) return
-    
+
     try {
       await revokeSessionMutation.mutateAsync({
         token: sessionToRevoke.token
@@ -151,25 +151,25 @@ function ProfileScreen() {
     const ua = userAgent.toLowerCase()
     let browser = 'Unknown Browser'
     let os = 'Unknown OS'
-    
+
     if (ua.includes('chrome')) browser = 'Chrome'
     else if (ua.includes('firefox')) browser = 'Firefox'
     else if (ua.includes('safari')) browser = 'Safari'
     else if (ua.includes('edge')) browser = 'Edge'
-    
+
     if (ua.includes('windows')) os = 'Windows'
     else if (ua.includes('mac')) os = 'macOS'
     else if (ua.includes('linux')) os = 'Linux'
     else if (ua.includes('android')) os = 'Android'
     else if (ua.includes('iphone') || ua.includes('ipad')) os = 'iOS'
-    
+
     return `${browser} on ${os}`
   }
 
   const isCurrentSession = (sessionItem: any) => {
     // BetterAuth: Compare the session tokens directly
     if (!session?.session) return false
-    
+
     // The session list returns sessions with 'token' field
     // Current session also has 'token' field
     return sessionItem.token === session.session.token
@@ -202,160 +202,160 @@ function ProfileScreen() {
 
           <TabsContent value="basic" className="space-y-6">
             <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Personal Information</CardTitle>
-                  <CardDescription>Update your personal details and account information</CardDescription>
-                </div>
-                {!isEditing && (
-                  <Button variant="outline" size="sm" onClick={handleEdit}>
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-6">
-                <AvatarUploadDialog
-                  currentAvatarUrl={user.image}
-                  userName={getUserDisplayName()}
-                />
-
-                <div className="flex-1 space-y-4">
-                  {isEditing ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            value={formData.firstName}
-                            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                            placeholder="Enter first name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            value={formData.lastName}
-                            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                            placeholder="Enter last name"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="Enter email address"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleSave} disabled={isSaving}>
-                          <Save className="h-4 w-4 mr-2" />
-                          {isSaving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                        <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
-                          <X className="h-4 w-4 mr-2" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground">Full Name</Label>
-                        <p className="text-lg font-medium">{getUserDisplayName()}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground">Email</Label>
-                        <p className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          {user.email}
-                        </p>
-                      </div>
-                    </>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription>Update your personal details and account information</CardDescription>
+                  </div>
+                  {!isEditing && (
+                    <Button variant="outline" size="sm" onClick={handleEdit}>
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-6">
+                  <AvatarUploadDialog
+                    currentAvatarUrl={user.image}
+                    userName={getUserDisplayName()}
+                  />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Details</CardTitle>
-              <CardDescription>View your account status and metadata</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-muted-foreground">User ID</Label>
+                  <div className="flex-1 space-y-4">
+                    {isEditing ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="firstName">First Name</Label>
+                            <Input
+                              id="firstName"
+                              value={formData.firstName}
+                              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                              placeholder="Enter first name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="lastName">Last Name</Label>
+                            <Input
+                              id="lastName"
+                              value={formData.lastName}
+                              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                              placeholder="Enter last name"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            placeholder="Enter email address"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handleSave} disabled={isSaving}>
+                            <Save className="h-4 w-4 mr-2" />
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                          </Button>
+                          <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Full Name</Label>
+                          <p className="text-lg font-medium">{getUserDisplayName()}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Email</Label>
+                          <p className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            {user.email}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <p className="font-mono text-sm">{user.id}</p>
-              </div>
-              {user.role && (
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Details</CardTitle>
+                <CardDescription>View your account status and metadata</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-muted-foreground">Role</Label>
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-muted-foreground">User ID</Label>
                   </div>
-                  <p className="capitalize">{user.role}</p>
+                  <p className="font-mono text-sm">{user.id}</p>
                 </div>
-              )}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-muted-foreground">Account Created</Label>
+                {user.role && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-muted-foreground" />
+                      <Label className="text-muted-foreground">Role</Label>
+                    </div>
+                    <p className="capitalize">{user.role}</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-muted-foreground">Account Created</Label>
+                  </div>
+                  <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
                 </div>
-                <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-muted-foreground">Email Verified</Label>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-muted-foreground">Email Verified</Label>
+                  </div>
+                  <p>{user.emailVerified ? 'Yes' : 'No'}</p>
                 </div>
-                <p>{user.emailVerified ? 'Yes' : 'No'}</p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Manage your account security settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground">
-                    {user.twoFactorEnabled
-                      ? 'Two-factor authentication is enabled for your account'
-                      : 'Add an extra layer of security to your account'}
-                  </p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Security</CardTitle>
+                <CardDescription>Manage your account security settings</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Two-Factor Authentication</p>
+                    <p className="text-sm text-muted-foreground">
+                      {user.twoFactorEnabled
+                        ? 'Two-factor authentication is enabled for your account'
+                        : 'Add an extra layer of security to your account'}
+                    </p>
+                  </div>
+                  <Button variant="outline" disabled>
+                    {user.twoFactorEnabled ? 'Manage' : 'Enable'}
+                  </Button>
                 </div>
-                <Button variant="outline" disabled>
-                  {user.twoFactorEnabled ? 'Manage' : 'Enable'}
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Change Password</p>
-                  <p className="text-sm text-muted-foreground">Update your password regularly for better security</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Change Password</p>
+                    <p className="text-sm text-muted-foreground">Update your password regularly for better security</p>
+                  </div>
+                  <Button variant="outline" disabled>
+                    Change
+                  </Button>
                 </div>
-                <Button variant="outline" disabled>
-                  Change
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="sessions" className="space-y-6">
@@ -375,8 +375,8 @@ function ProfileScreen() {
                     <CardDescription>Manage your active sessions across different devices</CardDescription>
                   </div>
                   {sessions && sessions.length > 1 && (
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       size="sm"
                       onClick={() => setRevokeAllDialogOpen(true)}
                       disabled={revokeOtherSessionsMutation.isPending}
@@ -390,7 +390,7 @@ function ProfileScreen() {
               <CardContent>
                 {isLoadingSessions ? (
                   <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                    <Loader2 className="size-6 animate-spin" />
                   </div>
                 ) : !sessions || sessions.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No active sessions found</p>
@@ -401,11 +401,10 @@ function ProfileScreen() {
                       return (
                         <div
                           key={sessionItem.token}
-                          className={`relative flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                            isCurrent 
-                              ? 'bg-primary/5 border-primary/50 ring-2 ring-primary/20' 
+                          className={`relative flex items-center justify-between p-4 rounded-lg border transition-colors ${isCurrent
+                              ? 'bg-primary/5 border-primary/50 ring-2 ring-primary/20'
                               : 'bg-card hover:bg-accent/5'
-                          }`}
+                            }`}
                         >
                           {isCurrent && (
                             <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-r" />
@@ -424,8 +423,8 @@ function ProfileScreen() {
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   <span>
-                                    Created: {sessionItem.createdAt 
-                                      ? new Date(sessionItem.createdAt).toLocaleString() 
+                                    Created: {sessionItem.createdAt
+                                      ? new Date(sessionItem.createdAt).toLocaleString()
                                       : 'Unknown'}
                                   </span>
                                 </div>

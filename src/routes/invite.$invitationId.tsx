@@ -4,7 +4,7 @@ import { getInvitationDetails } from '@/features/organization/lib/onboarding.ser
 import { OTPSignIn } from '@/features/auth/components/otp-sign-in'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Building2, Mail, UserPlus, AlertCircle } from 'lucide-react'
+import { Building2, Mail, UserPlus, AlertCircle, Loader2 } from 'lucide-react'
 import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
 import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 
@@ -53,6 +53,12 @@ function InvitationPage() {
       } catch (error) {
         toast.error('Failed to send verification code')
       }
+      return
+    }
+
+    // Check if the logged-in user's email matches the invitation email
+    if (session.user.email !== invitation?.email) {
+      toast.error('This invitation is for a different email address')
       return
     }
 
@@ -106,7 +112,7 @@ function InvitationPage() {
   if (sessionPending) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <Loader2 className="size-6 animate-spin" />
       </div>
     )
   }
@@ -115,8 +121,8 @@ function InvitationPage() {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4">
         <div className="bg-card rounded-xl shadow-lg p-8 w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-            <AlertCircle className="w-8 h-8 text-red-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-destructive/10 rounded-full mb-4">
+            <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Invitation</h1>
           <p className="text-muted-foreground mb-6">
@@ -240,24 +246,60 @@ function InvitationPage() {
 
         <div className="space-y-3">
           {session ? (
-            <>
-              <p className="text-sm text-muted-foreground text-center mb-4">
-                Signed in as <strong>{session.user.email}</strong>
-              </p>
-              <button
-                onClick={handleAcceptInvitation}
-                disabled={isAccepting}
-                className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAccepting ? 'Accepting...' : 'Accept Invitation'}
-              </button>
-              <button
-                onClick={() => authClient.signOut()}
-                className="w-full px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent"
-              >
-                Sign in with Different Account
-              </button>
-            </>
+            session.user.email === invitation.email ? (
+              // User is logged in with the correct email
+              <>
+                <p className="text-sm text-muted-foreground text-center mb-4">
+                  Signed in as <strong>{session.user.email}</strong>
+                </p>
+                <button
+                  onClick={handleAcceptInvitation}
+                  disabled={isAccepting}
+                  className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAccepting ? 'Accepting...' : 'Accept Invitation'}
+                </button>
+                <button
+                  onClick={() => authClient.signOut()}
+                  className="w-full px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent"
+                >
+                  Sign in with Different Account
+                </button>
+              </>
+            ) : (
+              // User is logged in but with a different email
+              <>
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
+                        This invitation is for another user
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        This invitation was sent to <strong>{invitation.email}</strong>, but you're signed in as <strong>{session.user.email}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    await authClient.signOut()
+                    // Reload the page to show the sign-in form
+                    window.location.reload()
+                  }}
+                  className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90"
+                >
+                  Sign Out and Use Invitation
+                </button>
+                <button
+                  onClick={() => navigate({ to: '/' })}
+                  className="w-full px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent"
+                >
+                  Go to Home
+                </button>
+              </>
+            )
           ) : (
             <>
               <button

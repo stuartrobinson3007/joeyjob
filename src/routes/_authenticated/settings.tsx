@@ -85,67 +85,67 @@ function OrganizationSettings() {
       <div className="flex-1 p-6">
         <div className="max-w-2xl mx-auto w-full">
 
-      <div className="bg-card rounded-lg shadow-sm border p-6 space-y-6">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-            Organization Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
-            placeholder="Enter organization name"
-          />
-        </div>
+          <div className="bg-card rounded-lg shadow-sm border p-6 space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
+                Organization Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
+                placeholder="Enter organization name"
+              />
+            </div>
 
-        <div>
-          <label htmlFor="slug" className="block text-sm font-medium text-foreground mb-2">
-            Organization Slug
-          </label>
-          <input
-            id="slug"
-            type="text"
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-            className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
-            placeholder="organization-slug"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Used in URLs and API endpoints. Use lowercase letters, numbers, and hyphens only.
-          </p>
-        </div>
+            <div>
+              <label htmlFor="slug" className="block text-sm font-medium text-foreground mb-2">
+                Organization Slug
+              </label>
+              <input
+                id="slug"
+                type="text"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
+                placeholder="organization-slug"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Used in URLs and API endpoints. Use lowercase letters, numbers, and hyphens only.
+              </p>
+            </div>
 
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={handleUpdateOrganization}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={handleUpdateOrganization}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Save />
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
 
-      {/* Danger Zone */}
-      <div className="bg-card rounded-lg shadow-sm border border-destructive/30 p-6 mt-8">
-        <h3 className="text-lg font-semibold text-destructive mb-4">Danger Zone</h3>
-        <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
-          <h4 className="font-medium text-destructive mb-2">Delete Organization</h4>
-          <p className="text-sm text-destructive/90 mb-4">
-            Once you delete an organization, there is no going back. This will permanently delete all todos, members, and data associated with this organization.
-          </p>
-          <button
-            onClick={handleDeleteOrganization}
-            className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-lg hover:bg-destructive/90"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete Workspace
-          </button>
-        </div>
-      </div>
+          {/* Danger Zone */}
+          <div className="bg-card rounded-lg shadow-sm border border-destructive/30 p-6 mt-8">
+            <h3 className="text-lg font-semibold text-destructive mb-4">Danger Zone</h3>
+            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
+              <h4 className="font-medium text-destructive mb-2">Delete Organization</h4>
+              <p className="text-sm text-destructive/90 mb-4">
+                Once you delete an organization, there is no going back. This will permanently delete all todos, members, and data associated with this organization.
+              </p>
+              <button
+                onClick={handleDeleteOrganization}
+                className="flex items-center gap-2 px-4 py-2 bg-destructive text-primary-foreground rounded-lg hover:bg-destructive/90"
+              >
+                <Trash2 />
+                Delete Workspace
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

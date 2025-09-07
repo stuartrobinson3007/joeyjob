@@ -28,7 +28,7 @@ export interface DataTableSearchConfig {
 
 ### Current Issue
 Each table defines its own `TableHeader` component with nearly identical code:
-- Teams: lines 203-222
+- Team: lines 203-222
 - Users: lines 147-166  
 - Workspaces: lines 67-86
 - Todos: lines 206-215
@@ -95,7 +95,7 @@ header: ({ column }) => (
 ### Changes Required
 Add `size` property to all column definitions:
 
-**Teams table columns:**
+**Team table columns:**
 - member: 300
 - email: 250
 - role: 120

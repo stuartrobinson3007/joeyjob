@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { getRoleByName } from '@/lib/auth/roles-client'
+import { getRoleByName, roles } from '@/lib/auth/roles-client'
 
 export function usePermissions() {
   const { data: session } = useSession()
@@ -64,25 +64,30 @@ export function usePermissions() {
 
   // Create permission checking functions
   const permissions = useMemo(() => {
-    const role = getRoleByName(memberRole)
+    const roleConfig = getRoleByName(memberRole)
 
-    // Check specific permission using Better Auth's checkRolePermission
+    // Check specific permission synchronously using local role definitions
     const hasPermission = (resource: string, action: string | string[]): boolean => {
-      if (!memberRole) return false
+      if (!memberRole || !roleConfig) {
+        return false
+      }
       
       const actions = Array.isArray(action) ? action : [action]
       
-      try {
-        return authClient.organization.checkRolePermission({
-          role: memberRole,
-          permissions: {
-            [resource]: actions
-          }
-        })
-      } catch (error) {
-        console.error('Permission check failed:', error)
+      // Check if the role has the required permissions
+      const roleStatements = roleConfig.statements
+      const resourcePermissions = roleStatements[resource as keyof typeof roleStatements]
+      
+      if (!resourcePermissions) {
         return false
       }
+      
+      // Check if all required actions are allowed
+      const hasAllPermissions = actions.every(requiredAction => 
+        Array.isArray(resourcePermissions) && resourcePermissions.includes(requiredAction as any)
+      )
+      
+      return hasAllPermissions
     }
 
     // Todo-specific permissions
@@ -95,6 +100,7 @@ export function usePermissions() {
     // Member management permissions
     const canManageMembers = () => hasPermission('member', ['create', 'update', 'delete'])
     const canInviteMembers = () => hasPermission('invitation', 'create')
+    const canCancelInvitations = () => hasPermission('invitation', 'cancel')
 
     // Billing permissions
     const canViewBilling = () => hasPermission('billing', 'view')
@@ -122,6 +128,7 @@ export function usePermissions() {
       // Member permissions
       canManageMembers,
       canInviteMembers,
+      canCancelInvitations,
       
       // Billing permissions
       canViewBilling,

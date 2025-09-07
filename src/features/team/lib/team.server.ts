@@ -40,6 +40,11 @@ const cancelInvitationSchema = z.object({
   organizationId: z.string()
 })
 
+const resendInvitationSchema = z.object({
+  invitationId: z.string(),
+  organizationId: z.string()
+})
+
 export type TeamMember = {
   id: string
   type: 'member' | 'invitation'
@@ -197,7 +202,7 @@ export const inviteTeamMember = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator((data: unknown) => inviteMemberSchema.parse(data))
   .handler(async ({ data }) => {
-    await checkPermission('member', ['create'], data.organizationId)
+    await checkPermission('invitation', ['create'], data.organizationId)
 
     const request = getWebRequest()
 
@@ -314,7 +319,7 @@ export const cancelTeamInvitation = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator((data: unknown) => cancelInvitationSchema.parse(data))
   .handler(async ({ data }) => {
-    await checkPermission('invitation', ['delete'], data.organizationId)
+    await checkPermission('invitation', ['cancel'], data.organizationId)
 
     const request = getWebRequest()
 
@@ -338,6 +343,60 @@ export const cancelTeamInvitation = createServerFn({ method: 'POST' })
 
     if (!result) {
       throw new Error('Failed to cancel invitation')
+    }
+
+    return result
+  })
+
+export const resendTeamInvitation = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => resendInvitationSchema.parse(data))
+  .handler(async ({ data }) => {
+    // Check both required permissions for resending
+    await checkPermission('invitation', ['create'], data.organizationId)
+    await checkPermission('invitation', ['cancel'], data.organizationId)
+
+    const request = getWebRequest()
+
+    // Verify the invitation belongs to this organization and get details
+    const invite = await db
+      .select()
+      .from(invitation)
+      .where(eq(invitation.id, data.invitationId))
+      .limit(1)
+
+    if (!invite[0] || invite[0].organizationId !== data.organizationId) {
+      throw new Error('Invitation not found')
+    }
+
+    if (invite[0].status !== 'pending') {
+      throw new Error('Can only resend pending invitations')
+    }
+
+    // Cancel the existing invitation
+    const cancelResult = await auth.api.cancelInvitation({
+      headers: request.headers,
+      body: {
+        invitationId: data.invitationId
+      }
+    })
+
+    if (!cancelResult) {
+      throw new Error('Failed to cancel existing invitation')
+    }
+
+    // Create a new invitation with the same details
+    const result = await auth.api.createInvitation({
+      headers: request.headers,
+      body: {
+        organizationId: data.organizationId,
+        email: invite[0].email,
+        role: invite[0].role || 'member'
+      }
+    })
+
+    if (!result) {
+      throw new Error('Failed to create new invitation')
     }
 
     return result

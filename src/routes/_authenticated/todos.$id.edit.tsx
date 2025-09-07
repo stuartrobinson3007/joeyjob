@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { getTodoById, updateTodo, deleteTodo } from '@/features/todos/lib/todos.server'
 import { todoKeys } from '@/features/todos/lib/query-keys'
+import { formatDateTime } from '@/lib/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useFormAutosave } from '@/lib/hooks/use-form-autosave'
@@ -24,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/taali-ui/ui/alert-dialog'
 import { toast } from 'sonner'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Loader2 } from 'lucide-react'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import type { EditTodoFormData } from '@/types/todos'
@@ -230,7 +231,7 @@ function EditTodoPage() {
   if (isLoading || permissionsLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <Loader2 className="size-6 animate-spin" />
       </div>
     )
   }
@@ -316,7 +317,10 @@ function EditTodoPage() {
             {/* Done Button */}
             <Button
               size="sm"
-              onClick={() => navigate({ to: '/' })}
+              onClick={async () => {
+                await saveNow()
+                navigate({ to: '/' })
+              }}
             >
               Done
             </Button>
@@ -411,8 +415,8 @@ function EditTodoPage() {
               {/* Metadata */}
               <div className="pt-4 border-t">
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>Created: {new Date(todo.createdAt).toLocaleString()}</p>
-                  <p>Last updated: {new Date(todo.updatedAt).toLocaleString()}</p>
+                  <p>Created: {formatDateTime(todo.createdAt)}</p>
+                  <p>Last updated: {formatDateTime(todo.updatedAt)}</p>
                   {todo.completed && (
                     <p className="text-green-600 font-medium">✓ Completed</p>
                   )}

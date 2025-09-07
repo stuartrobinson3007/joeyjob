@@ -4,7 +4,7 @@ import { useActiveOrganization } from '@/features/organization/lib/organization-
 import { useSetPageMeta } from '@/lib/hooks/page-context'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { Plus, Trash2, Check, Clock, AlertCircle, Edit2 } from 'lucide-react'
+import { Plus, Trash2, Check, Clock, AlertCircle, Edit2, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useLoadingItems } from '@/lib/hooks/use-loading-state'
 import { LoadingOverlay } from '@/components/loading-overlay'
@@ -28,7 +28,7 @@ export function TodosPage() {
         disabled={isCreating}
         className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
       >
-        <Plus className="w-4 h-4" />
+        <Plus />
         {isCreating ? 'Creating...' : 'New Todo'}
       </button>
     )
@@ -142,7 +142,7 @@ export function TodosPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <Loader2 className="size-6 animate-spin" />
       </div>
     )
   }
@@ -203,18 +203,18 @@ export function TodosPage() {
                         <button
                           onClick={() => navigate({ to: `/todos/${todo.id}/edit` })}
                           disabled={isLoading}
-                          className={`text-blue-600 hover:text-blue-700 p-1 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`p-1 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                           title="Edit todo"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 />
                         </button>
                         <button
                           onClick={() => handleDelete(todo.id)}
                           disabled={isLoading}
-                          className={`text-red-600 hover:text-red-700 p-1 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`p-1 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                           title="Delete todo"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 />
                         </button>
                       </div>
                     </div>

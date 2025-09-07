@@ -7,6 +7,7 @@ import { useSession } from '@/lib/auth/auth-hooks'
 import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout'
 import { Separator } from '@/components/taali-ui/ui/separator'
 import { authClient } from '@/lib/auth/auth-client'
+import { Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout
@@ -69,7 +70,7 @@ function AuthenticatedLayout() {
   if (isPending) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <Loader2 className="size-6 animate-spin" />
       </div>
     )
   }

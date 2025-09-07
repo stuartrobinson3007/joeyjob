@@ -105,12 +105,6 @@ export function DataTableToolbar<TData>({
     })
   }, [table])
 
-  console.log('[DataTableToolbar] Rendering input with value:', { 
-    searchValue, 
-    placeholder: searchConfig?.placeholder || "Search...",
-    timestamp: new Date().toISOString()
-  })
-
   return (
     <div className={cn("flex items-center justify-between", className)}>
       <div className="flex flex-1 items-center space-x-2">
@@ -118,11 +112,6 @@ export function DataTableToolbar<TData>({
           placeholder={searchConfig?.placeholder || "Search..."}
           value={searchValue}
           onChange={(event) => {
-            console.log('[DataTableToolbar] Input onChange fired:', {
-              newValue: event.target.value,
-              currentSearchValue: searchValue,
-              timestamp: new Date().toISOString()
-            })
             handleSearch(event.target.value)
           }}
           className="h-8 w-[150px] lg:w-[250px]"

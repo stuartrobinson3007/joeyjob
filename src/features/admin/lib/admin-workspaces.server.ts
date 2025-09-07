@@ -65,7 +65,8 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
         conditions.push(
           or(
             ilike(organization.name, `%${searchTerm}%`),
-            ilike(organization.slug, `%${searchTerm}%`)
+            ilike(organization.slug, `%${searchTerm}%`),
+            ilike(organization.id, `%${searchTerm}%`)
           )
         )
       }
@@ -112,6 +113,9 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
         const sortFn = sort.desc ? desc : asc
         
         switch (sort.id) {
+          case 'id':
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.id))
+            break
           case 'organization':
           case 'name':
             workspacesQuery = workspacesQuery.orderBy(sortFn(organization.name))
@@ -167,6 +171,35 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
         data: [],
         totalCount: 0,
         pageCount: 0
+      }
+    }
+  })
+
+export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(async () => {
+    try {
+      // Get total organizations count
+      const totalOrgsResult = await db.select({ count: count() }).from(organization)
+      
+      // Get total members count across all organizations
+      const totalMembersResult = await db.select({ count: count() }).from(member)
+      
+      const totalOrgs = Number(totalOrgsResult[0]?.count || 0)
+      const totalMembers = Number(totalMembersResult[0]?.count || 0)
+      const avgMembersPerOrg = totalOrgs > 0 ? Math.round(totalMembers / totalOrgs) : 0
+      
+      return {
+        totalOrganizations: totalOrgs,
+        totalMembers: totalMembers,
+        avgMembersPerOrg: avgMembersPerOrg
+      }
+    } catch (error) {
+      console.error('[getAdminWorkspaceStats] Error loading workspace stats:', error)
+      return {
+        totalOrganizations: 0,
+        totalMembers: 0,
+        avgMembersPerOrg: 0
       }
     }
   })
