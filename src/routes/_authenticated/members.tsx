@@ -2,10 +2,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { authClient } from '@/lib/auth/auth-client'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { useSetPageMeta } from '@/lib/hooks/page-context'
+import { PageHeader } from '@/components/page-header'
 import { inviteMember, removeMember, updateMemberRole } from '@/features/organization/lib/members.server'
 import { toast } from 'sonner'
 import { UserPlus, Mail, Trash2, Crown, Shield, User as UserIcon } from 'lucide-react'
+import { Badge } from '@/components/taali-ui/ui/badge'
 
 export const Route = createFileRoute('/_authenticated/members')({
   component: OrganizationMembers,
@@ -20,19 +21,6 @@ function OrganizationMembers() {
   const [invitations, setInvitations] = useState<any[]>([])
   const [membersLoading, setMembersLoading] = useState(true)
 
-  // Set page metadata
-  useSetPageMeta({
-    title: 'Members',
-    actions: !isInviting ? (
-      <button
-        onClick={() => setIsInviting(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-      >
-        <UserPlus className="w-4 h-4" />
-        Invite Member
-      </button>
-    ) : null
-  }, [isInviting])
 
   const loadData = async () => {
     if (!activeOrganizationId) return
@@ -151,7 +139,23 @@ function OrganizationMembers() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="flex flex-col h-full">
+      <PageHeader
+        title="Members"
+        actions={!isInviting ? (
+          <button
+            onClick={() => setIsInviting(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite Member
+          </button>
+        ) : undefined}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 p-6">
+        <div className="max-w-4xl mx-auto w-full">
 
         {/* Invite Form */}
         {isInviting && (
@@ -280,9 +284,9 @@ function OrganizationMembers() {
                     </>
                   )}
                   {member.role === 'owner' && (
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    <Badge variant="warning" style="soft">
                       Owner
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -295,6 +299,8 @@ function OrganizationMembers() {
             </div>
           )}
         </div>
+        </div>
+      </div>
     </div>
   )
 }

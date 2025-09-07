@@ -55,7 +55,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Use better-auth organization hooks (organizations = workspaces in our UI)
-  const { data: organizations, isPending: isLoading } = useListOrganizations();
+  const { data: organizations, isPending: isLoading, refetch: refetchOrganizations } = useListOrganizations();
   const { activeOrganization, setActiveOrganization, isLoading: orgContextLoading } = useActiveOrganization();
 
   // Track switching state
@@ -90,6 +90,9 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
       if (result) {
         // Switch to the newly created organization
         setActiveOrganization(result.id);
+
+        // Refresh the organizations list to show the new organization
+        refetchOrganizations();
 
         // Reset form and close dialog
         setFormData({ name: '', description: '', industry: '' });

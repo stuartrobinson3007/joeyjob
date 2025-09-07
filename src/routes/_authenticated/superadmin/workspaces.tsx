@@ -1,22 +1,47 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import * as React from 'react'
+import { ColumnDef } from '@tanstack/react-table'
 import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
-import { Building2, Search, Users, Calendar, Trash2 } from 'lucide-react'
+import { Building2, Users, Calendar, Trash2, MoreHorizontal } from 'lucide-react'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
+import { DataTable, DataTableHeader, useTableQuery, DataTableConfig, DataTableColumnMeta } from '@/components/taali-ui/data-table'
+import { getAdminWorkspacesTable, type AdminWorkspace } from '@/features/admin/lib/admin-workspaces.server'
+import { Badge } from '@/components/taali-ui/ui/badge'
+import { Button } from '@/components/taali-ui/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/taali-ui/ui/dropdown-menu'
 
 export const Route = createFileRoute('/_authenticated/superadmin/workspaces')({
   component: SuperAdminWorkspaces,
 })
 
 function SuperAdminWorkspaces() {
-  const [searchTerm, setSearchTerm] = useState('')
+  const [currentFilters, setCurrentFilters] = React.useState({})
 
-  // Note: This would need to be a proper admin API call in a real app
-  // For now, we'll use the regular list organizations as a placeholder
-  const { data: organizations, isPending, refetch } = useListOrganizations()
+  // Use the table query hook
+  const {
+    data,
+    totalCount,
+    isLoading,
+    isFetching,
+    onStateChange,
+    refetch,
+  } = useTableQuery<AdminWorkspace>({
+    queryKey: ['admin', 'workspaces', 'table'],
+    queryFn: (params) => {
+      setCurrentFilters(params)
+      return getAdminWorkspacesTable({ data: params })
+    },
+    enabled: true,
+  })
 
-  const handleDeleteOrganization = async (orgId: string, orgName: string) => {
+  const handleDeleteOrganization = React.useCallback(async (orgId: string, orgName: string) => {
     const confirmed = confirm(`Are you sure you want to delete "${orgName}"? This will permanently delete all data associated with this organization.`)
     if (!confirmed) return
 
@@ -35,140 +60,198 @@ function SuperAdminWorkspaces() {
     } catch (error) {
       toast.error('Failed to delete organization')
     }
-  }
+  }, [refetch])
 
-  const filteredOrganizations = organizations?.filter(org =>
-    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.slug?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
 
-  if (isPending) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    )
-  }
+  // Column definitions
+  const columns = React.useMemo<ColumnDef<AdminWorkspace>[]>(() => [
+    {
+      id: "organization",
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          Organization
+        </DataTableHeader>
+      ),
+      enableSorting: true,
+      size: 300,
+      cell: ({ row }) => {
+        const org = row.original
+        return (
+          <div className="flex items-center">
+            <Building2 className="w-5 h-5 text-muted-foreground mr-3" />
+            <div>
+              <div className="text-sm font-medium text-foreground">
+                {org.name}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {org.slug || 'No slug'}
+              </div>
+            </div>
+          </div>
+        )
+      },
+      meta: {
+        enableTextTruncation: true,
+      } as DataTableColumnMeta,
+    },
+    {
+      accessorKey: "memberCount",
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          Members
+        </DataTableHeader>
+      ),
+      enableSorting: true,
+      size: 120,
+      cell: ({ row }) => {
+        const org = row.original
+        return (
+          <div className="flex items-center text-sm text-foreground">
+            <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+            {org.memberCount || 0} members
+          </div>
+        )
+      },
+      meta: {
+        enableTextTruncation: false,
+      } as DataTableColumnMeta,
+    },
+    {
+      accessorKey: "createdAt",
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          Created
+        </DataTableHeader>
+      ),
+      enableColumnFilter: true,
+      enableSorting: true,
+      size: 150,
+      cell: ({ row }) => {
+        const org = row.original
+        return (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Calendar className="w-4 h-4 mr-2" />
+            {new Date(org.createdAt).toLocaleDateString()}
+          </div>
+        )
+      },
+      meta: {
+        filterConfig: {
+          type: "dateRange",
+          title: "Created Date",
+        },
+        enableTextTruncation: false,
+      } as DataTableColumnMeta,
+    },
+    {
+      id: "status",
+      header: () => <span>Status</span>,
+      size: 100,
+      cell: () => {
+        return (
+          <Badge variant="success" style="soft" status>
+            Active
+          </Badge>
+        )
+      },
+      enableSorting: false,
+      meta: {
+        enableTextTruncation: false,
+      } as DataTableColumnMeta,
+    },
+    {
+      id: "actions",
+      header: () => <span className="text-right">Actions</span>,
+      size: 50,
+      cell: ({ row }) => {
+        const org = row.original
+        return (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem 
+                  onClick={() => handleDeleteOrganization(org.id, org.name)}
+                  className="text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Organization
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )
+      },
+      enableSorting: false,
+      meta: {
+        enableTextTruncation: false,
+      } as DataTableColumnMeta,
+    },
+  ], [handleDeleteOrganization])
+
+  // DataTable configuration
+  const config = React.useMemo<DataTableConfig<AdminWorkspace>>(() => ({
+    searchConfig: {
+      placeholder: "Search organizations..."
+    },
+    enableColumnFilters: true,
+    enableSorting: true,
+    enableRowSelection: false,
+    manualFiltering: true,
+    manualPagination: true,
+    manualSorting: true,
+    paginationConfig: {
+      pageSizeOptions: [10, 20, 30, 50],
+      defaultPageSize: 10,
+    },
+    resizingConfig: {
+      enableColumnResizing: true,
+    },
+  }), [])
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Organization Management</h1>
+    <div className="flex flex-col h-full">
+      <div className="p-6 pb-0">
+        {/* Organization Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-card rounded-lg border p-4">
+            <h3 className="text-sm font-medium mb-1">Total Organizations</h3>
+            <p className="text-2xl font-bold">{totalCount || 0}</p>
+          </div>
 
-      <div className="bg-card rounded-lg shadow">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search organizations by name or slug..."
-              className="w-full pl-10 pr-4 py-2 border-input border rounded-lg focus:ring-2 focus:ring-ring"
-            />
+          <div className="bg-card rounded-lg border p-4">
+            <h3 className="text-sm font-medium mb-1">Total Members</h3>
+            <p className="text-2xl font-bold">
+              {data?.reduce((sum, org) => sum + (org.memberCount || 0), 0) || 0}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-lg border p-4">
+            <h3 className="text-sm font-medium mb-1">Avg Members per Org</h3>
+            <p className="text-2xl font-bold">
+              {totalCount ? Math.round((data?.reduce((sum, org) => sum + (org.memberCount || 0), 0) || 0) / totalCount) : 0}
+            </p>
           </div>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Organization
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Members
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredOrganizations.map((org) => (
-                <tr key={org.id} className="hover:bg-accent">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Building2 className="w-5 h-5 text-muted-foreground mr-3" />
-                      <div>
-                        <div className="text-sm font-medium text-foreground">
-                          {org.name}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {org.slug || 'No slug'}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-foreground">
-                      <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                      - members
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      {new Date(org.createdAt).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success/10 text-success">
-                      Active
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => handleDeleteOrganization(org.id, org.name)}
-                        className="text-destructive hover:text-destructive/80"
-                        title="Delete organization"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredOrganizations.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            {searchTerm ? 'No organizations found matching your search' : 'No organizations found'}
-          </div>
-        )}
       </div>
 
-      {/* Organization Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        <div className="bg-card rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium mb-2">Total Organizations</h3>
-          <p className="text-3xl font-bold text-primary">{organizations?.length || 0}</p>
-        </div>
-
-        <div className="bg-card rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium mb-2">Total Members</h3>
-          <p className="text-3xl font-bold text-success">
-            {organizations?.length || 0}
-          </p>
-        </div>
-
-        <div className="bg-card rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium mb-2">Avg Members per Org</h3>
-          <p className="text-3xl font-bold text-primary">
-            {organizations?.length ?
-              organizations.length > 0 ? 1 : 0
-              : 0
-            }
-          </p>
-        </div>
+      <div className="flex-1 px-6 pb-6">
+        <DataTable
+          columns={columns}
+          data={data}
+          config={config}
+          totalCount={totalCount}
+          onStateChange={onStateChange}
+          currentFilters={currentFilters}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          getRowIdProp={(row) => row.id}
+        />
       </div>
     </div>
   )

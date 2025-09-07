@@ -29,3 +29,11 @@ export interface UpdateTodoInput {
   dueDate?: string
   assignedTo?: string
 }
+
+export interface EditTodoFormData {
+  title: string
+  description: string
+  priority: 'low' | 'medium' | 'high'
+  dueDate: string
+  assignedTo: string
+}

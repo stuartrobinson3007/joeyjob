@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, Circle } from "lucide-react";
 import * as React from "react";
 
 import { Badge } from "./badge";
@@ -177,7 +177,7 @@ function FacetedBadgeList(props: FacetedBadgeListProps) {
     >
       {values.length > max ? (
         <Badge
-          variant="secondary"
+          variant="muted"
           className={cn("rounded-sm px-1 font-normal", badgeClassName)}
         >
           {values.length} selected
@@ -186,7 +186,7 @@ function FacetedBadgeList(props: FacetedBadgeListProps) {
         values.map((value) => (
           <Badge
             key={value}
-            variant="secondary"
+            variant="muted"
             className={cn("rounded-sm px-1 font-normal", badgeClassName)}
           >
             <span className="truncate">{getLabel(value)}</span>
@@ -253,13 +253,33 @@ function FacetedItem(props: FacetedItemProps) {
       onSelect={() => onItemSelect(value)}
       {...itemProps}
     >
-      <Checkbox
-        checked={isSelected}
-        onCheckedChange={() => onItemSelect(value)}
-        aria-label={`Select ${value}`}
-        className="[&_svg]:text-primary-foreground!"
-      />
-      x
+      {context.multiple ? (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onItemSelect(value)}
+          aria-label={`Select ${value}`}
+          className="[&_svg]:text-primary-foreground!"
+        />
+      ) : (
+        <div
+          role="radio"
+          aria-checked={isSelected}
+          className={cn(
+            "size-4 shrink-0 rounded-full border border-input shadow-xs transition-[color,box-shadow]",
+            "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            isSelected && "border-primary",
+            "flex items-center justify-center"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onItemSelect(value);
+          }}
+        >
+          {isSelected && (
+            <Circle className="size-2 fill-primary text-primary" />
+          )}
+        </div>
+      )}
       {children}
     </CommandItem>
   );

@@ -1,4 +1,5 @@
 import { createMiddleware } from '@tanstack/react-start'
+import { getWebRequest } from '@tanstack/react-start/server'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
 import { member } from '@/database/schema'
@@ -21,6 +22,7 @@ export const organizationMiddleware = createMiddleware({ type: 'function' })
     })
   })
   .server(async ({ next, context }) => {
+    const request = getWebRequest()
     
     let validatedOrgId: string | null = null
     
@@ -54,7 +56,8 @@ export const organizationMiddleware = createMiddleware({ type: 'function' })
     return next({
       context: {
         ...context,  // Preserve existing context from auth middleware
-        organizationId: validatedOrgId
+        organizationId: validatedOrgId,
+        headers: request.headers  // Add headers for BetterAuth API calls
       }
     })
   })

@@ -25,6 +25,7 @@ import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
+import { Route as AuthenticatedTodosIdEditRouteImport } from './routes/_authenticated/todos.$id.edit'
 import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
 import { ServerRoute as ApiStripeWebhookServerRouteImport } from './routes/api/stripe/webhook'
 import { ServerRoute as ApiAvatarsUploadServerRouteImport } from './routes/api/avatars/upload'
@@ -106,6 +107,12 @@ const AuthenticatedSuperadminUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSuperadminRoute,
   } as any)
+const AuthenticatedTodosIdEditRoute =
+  AuthenticatedTodosIdEditRouteImport.update({
+    id: '/todos/$id/edit',
+    path: '/todos/$id/edit',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiHealthServerRoute = ApiHealthServerRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/superadmin/': typeof AuthenticatedSuperadminIndexRoute
+  '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingRoute
@@ -165,6 +173,7 @@ export interface FileRoutesByTo {
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/superadmin': typeof AuthenticatedSuperadminIndexRoute
+  '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -182,6 +191,7 @@ export interface FileRoutesById {
   '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/_authenticated/superadmin/': typeof AuthenticatedSuperadminIndexRoute
+  '/_authenticated/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/superadmin/'
+    | '/todos/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/billing'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/superadmin'
+    | '/todos/$id/edit'
   id:
     | '__root__'
     | '/_authenticated'
@@ -229,6 +241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/superadmin/users'
     | '/_authenticated/superadmin/workspaces'
     | '/_authenticated/superadmin/'
+    | '/_authenticated/todos/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -397,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperadminUsersRouteImport
       parentRoute: typeof AuthenticatedSuperadminRoute
     }
+    '/_authenticated/todos/$id/edit': {
+      id: '/_authenticated/todos/$id/edit'
+      path: '/todos/$id/edit'
+      fullPath: '/todos/$id/edit'
+      preLoaderRoute: typeof AuthenticatedTodosIdEditRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 declare module '@tanstack/react-start/server' {
@@ -474,6 +494,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRouteWithChildren
   AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedTodosIdEditRoute: typeof AuthenticatedTodosIdEditRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -485,6 +506,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRouteWithChildren,
   AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedTodosIdEditRoute: AuthenticatedTodosIdEditRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

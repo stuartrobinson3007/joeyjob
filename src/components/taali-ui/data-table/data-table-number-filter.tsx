@@ -3,15 +3,15 @@
 import { Column } from "@tanstack/react-table"
 import * as React from "react"
 
-import { Button } from "@/components/taali-ui/ui/button"
-import { Input } from "@/components/taali-ui/ui/input"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/taali-ui/ui/popover"
-import { Slider } from "@/components/taali-ui/ui/slider"
-import { cn } from "@/components/taali-ui/lib/utils"
+} from "../ui/popover"
+import { Slider } from "../ui/slider"
+import { cn } from "../lib/utils"
 
 interface DataTableNumberFilterProps<TData, TValue> {
   column?: Column<TData, TValue>

@@ -1,7 +1,6 @@
 import * as React from "react"
 
 import { cn } from "../lib/utils"
-import { useStickyState } from "../hooks/use-sticky-state"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
@@ -21,21 +20,13 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   )
 }
 
-const StickyContext = React.createContext<{ isSticky: boolean }>({ isSticky: false });
-
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  const headerRef = React.useRef<HTMLTableSectionElement>(null);
-  const { isSticky } = useStickyState(headerRef as React.RefObject<HTMLElement>);
-
   return (
-    <StickyContext.Provider value={{ isSticky }}>
-      <thead
-        ref={headerRef}
-        data-slot="table-header"
-        className={cn("[&_tr]:border-b sticky top-0 z-10", className)}
-        {...props}
-      />
-    </StickyContext.Provider>
+    <thead
+      data-slot="table-header"
+      className={cn("[&_tr]:border-b sticky top-0 z-10", className)}
+      {...props}
+    />
   )
 }
 
@@ -76,15 +67,11 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
-  const { isSticky } = React.useContext(StickyContext);
-
   return (
     <th
       data-slot="table-head"
       className={cn(
-        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] bg-card",
-        // Add rounded corners only when not sticky
-        !isSticky && "first:rounded-tl-md last:rounded-tr-md ",
+        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap overflow-hidden [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] bg-card",
         className
       )}
       {...props}
@@ -97,7 +84,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "p-2 align-middle whitespace-nowrap overflow-hidden [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

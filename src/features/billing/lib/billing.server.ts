@@ -4,41 +4,77 @@ import { organizationMiddleware } from '@/features/organization/lib/organization
 import { checkPermission } from '@/lib/utils/permissions'
 import { db } from '@/lib/db/db'
 import { organization, subscription, todos, member } from '@/database/schema'
-import { eq, and, count } from 'drizzle-orm'
+import { eq, count, desc } from 'drizzle-orm'
 import { auth } from '@/lib/auth/auth'
 import { BILLING_PLANS } from './plans.config'
 
-// Get current subscription
+// Get current subscription using BetterAuth API
 export const getSubscription = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
   .handler(async ({ context }) => {
-    const orgId = context.organizationId
+    const orgId = context.organizationId!  // organizationMiddleware ensures this exists
+    console.log('[BILLING SERVER] getSubscription called for org:', orgId)
     
     // Get organization with current plan
     const [org] = await db.select().from(organization).where(eq(organization.id, orgId))
+    console.log('[BILLING SERVER] Organization found:', !!org, 'Plan:', org?.currentPlan, 'StripeCustomerId:', org?.stripeCustomerId)
 
     if (!org) {
       throw new Error('Organization not found')
     }
 
-    // Get active subscription from Better Auth
-    const [subs] = await db.select().from(subscription).where(
-      and(
-        eq(subscription.referenceId, orgId),
-        eq(subscription.status, 'active')
-      )
-    ).limit(1)
-
-    return {
-      organization: org,
-      subscription: subs,
-      currentPlan: org.currentPlan || 'free',
-      features: BILLING_PLANS[org.currentPlan as keyof typeof BILLING_PLANS]?.features,
-      limits: org.planLimits || BILLING_PLANS.free.limits,
+    // Use BetterAuth's API to list subscriptions
+    let activeSubscription: any = null
+    let allSubscriptions: any[] = []
+    
+    try {
+      const subscriptions = await auth.api.listActiveSubscriptions({
+        query: {
+          referenceId: orgId
+        },
+        headers: context.headers
+      })
+      
+      console.log('[BILLING SERVER] BetterAuth subscriptions found:', subscriptions?.length || 0)
+      
+      if (subscriptions && subscriptions.length > 0) {
+        allSubscriptions = subscriptions
+        // Find the most relevant subscription
+        activeSubscription = subscriptions.find(
+          sub => sub.status === 'active' || sub.status === 'trialing'
+        ) || subscriptions[0] // Fall back to most recent if none active
+        
+        console.log('[BILLING SERVER] Active subscription:', {
+          id: activeSubscription?.id,
+          status: activeSubscription?.status,
+          plan: activeSubscription?.plan
+        })
+      }
+    } catch (error) {
+      console.error('[BILLING SERVER] Error fetching subscriptions:', error)
+      // Continue without subscription data rather than failing entirely
     }
+
+    const result = {
+      organization: org,
+      subscription: activeSubscription,
+      allSubscriptions,
+      currentPlan: activeSubscription?.plan || org.currentPlan || 'free',
+      features: BILLING_PLANS[org.currentPlan as keyof typeof BILLING_PLANS]?.features,
+      limits: activeSubscription?.limits || org.planLimits || BILLING_PLANS.free.limits,
+      hasStripeCustomer: !!org.stripeCustomerId || !!activeSubscription?.stripeCustomerId || allSubscriptions.length > 0,
+    }
+    
+    console.log('[BILLING SERVER] Returning:', {
+      currentPlan: result.currentPlan,
+      hasStripeCustomer: result.hasStripeCustomer,
+      hasSubscription: !!activeSubscription
+    })
+    
+    return result
   })
 
-// Create checkout session
+// Create checkout session using BetterAuth
 const createCheckoutSchema = z.object({
   plan: z.enum(['pro', 'business']),
   interval: z.enum(['monthly', 'annual']),
@@ -47,111 +83,89 @@ const createCheckoutSchema = z.object({
 export const createCheckout = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .validator((data: unknown) => createCheckoutSchema.parse(data))
-  .handler(async ({ data, context, request }: { data: any; context: any; request: Request }) => {
+  .handler(async ({ data, context }) => {
     
-    const user = context.user
-    const orgId = context.organizationId
+    const orgId = context.organizationId!  // organizationMiddleware ensures this exists
     
     // Check billing permissions
     await checkPermission('billing', ['manage'], orgId)
     
     const { plan, interval } = data
     
-    // Get organization
-    const [org] = await db.select().from(organization).where(eq(organization.id, orgId)).limit(1)
-
-    if (!org) {
-      throw new Error('Organization not found')
-    }
-
-    const planConfig = BILLING_PLANS[plan]
-    const priceId = planConfig.stripePriceId[interval]
+    console.log('[BILLING] Creating checkout for:', { plan, interval, orgId })
     
-    
-    // For now, create a direct Stripe checkout session
-    // This bypasses Better Auth's plugin issues
-    const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY || '', {
-      apiVersion: '2024-12-18.acacia'
-    });
-    
-    const checkoutMetadata = {
-      organizationId: orgId,
-      plan,
-      interval,
-    };
-    
-    const result = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
+    try {
+      // Use BetterAuth's subscription upgrade API
+      const result = await auth.api.upgradeSubscription({
+        body: {
+          plan,
+          successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
+          cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
+          annual: interval === 'annual',
+          referenceId: orgId,
         },
-      ],
-      mode: 'subscription',
-      success_url: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
-      cancel_url: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
-      metadata: checkoutMetadata,
-      subscription_data: {
-        metadata: checkoutMetadata,
-      },
-      customer_email: user.email,
-    });
-    
-    console.log('[BILLING] Server: Direct Stripe result:', !!result.url);
-
-    if (!result?.url) {
-      throw new Error('Failed to create checkout session')
+        headers: context.headers
+      })
+      
+      console.log('[BILLING] BetterAuth upgrade result:', !!result)
+      
+      if (!result?.url) {
+        throw new Error('Failed to create checkout session - no URL returned')
+      }
+      
+      return { checkoutUrl: result.url }
+    } catch (error) {
+      console.error('[BILLING] Checkout creation error:', error)
+      throw new Error(`Failed to create checkout session: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
-
-    return { checkoutUrl: result.url }
   })
 
-// Cancel subscription
-export const cancelSubscription = createServerFn({ method: 'POST' })
-  .handler(async ({ request }) => {
-    const context = await billingAdminMiddleware({ request })
-    const orgId = context.organizationId
-    
-    // Find active subscription
-    const [activeSub] = await db.select().from(subscription).where(
-      and(
-        eq(subscription.referenceId, orgId),
-        eq(subscription.status, 'active')
-      )
-    ).limit(1)
-
-    if (!activeSub) {
-      throw new Error('No active subscription found')
-    }
-
-    // Use Better Auth to cancel
-    const result = await auth.api.subscription.cancel({
-      body: {
-        subscriptionId: activeSub.id
-      },
-      headers: context.headers
-    })
-
-    return { success: true }
-  })
 
 // Create billing portal session
 export const createBillingPortal = createServerFn({ method: 'POST' })
-  .handler(async ({ request }) => {
-    const context = await billingAdminMiddleware({ request })
-    const result = await auth.api.subscription.billingPortal({
-      body: {
-        referenceId: context.organizationId
-      },
-      headers: context.headers
-    })
-
-    if (!result?.data?.url) {
-      throw new Error('Failed to create billing portal session')
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }) => {
+    const orgId = context.organizationId!  // organizationMiddleware ensures this exists
+    
+    // Check billing permissions
+    await checkPermission('billing', ['manage'], orgId)
+    
+    console.log('[BILLING] createBillingPortal - Organization:', orgId)
+    
+    // Get organization to check for stripeCustomerId
+    const [org] = await db.select().from(organization).where(eq(organization.id, orgId)).limit(1)
+    
+    if (!org) {
+      throw new Error('Organization not found')
     }
+    
+    // Try to create portal session
+    // BetterAuth's billingPortal should work if there's a customer associated
+    try {
+      const result = await auth.api.subscription.billingPortal({
+        body: {
+          referenceId: orgId
+        },
+        headers: context.headers
+      })
 
-    return { portalUrl: result.data.url }
+      if (!result?.data?.url) {
+        console.error('[BILLING] Portal creation failed - no URL returned')
+        throw new Error('Failed to create billing portal session')
+      }
+
+      return { portalUrl: result.data.url }
+    } catch (error) {
+      console.error('[BILLING] Portal creation error:', error)
+      // If no customer exists, we need to handle this differently
+      if (org.stripeCustomerId) {
+        // Customer exists but portal failed - this is a real error
+        throw error
+      } else {
+        // No customer yet - they need to subscribe first
+        throw new Error('No billing history available. Please subscribe to a plan first.')
+      }
+    }
   })
 
 // Get usage statistics

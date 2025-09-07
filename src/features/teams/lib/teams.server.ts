@@ -7,6 +7,7 @@ import { member, invitation, user } from '@/database/schema'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { checkPermission } from '@/lib/utils/permissions'
+import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
 
 const getTeamMembersSchema = z.object({
   organizationId: z.string(),
@@ -340,4 +341,157 @@ export const cancelTeamInvitation = createServerFn({ method: 'POST' })
     }
 
     return result
+  })
+
+// DataTable-compatible server function
+export const getTeamMembersTable = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => {
+    const params = data as { organizationId: string } & ServerQueryParams
+    return {
+      organizationId: z.string().parse(params.organizationId),
+      ...params
+    }
+  })
+  .handler(async ({ data }) => {
+    await checkPermission('member', ['read'], data.organizationId)
+
+    const pageIndex = data.pagination?.pageIndex ?? 0
+    const pageSize = data.pagination?.pageSize ?? 10
+    const offset = pageIndex * pageSize
+
+    // Extract search from global search parameter
+    const searchTerm = data.search || ''
+
+    // Fetch members with user details
+    let membersQuery = db
+      .select({
+        id: member.id,
+        userId: member.userId,
+        role: member.role,
+        createdAt: member.createdAt,
+        userName: user.name,
+        userEmail: user.email,
+        userImage: user.image
+      })
+      .from(member)
+      .leftJoin(user, eq(member.userId, user.id))
+      .where(eq(member.organizationId, data.organizationId))
+
+    // Fetch invitations
+    let invitationsQuery = db
+      .select({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        inviterName: user.name
+      })
+      .from(invitation)
+      .leftJoin(user, eq(invitation.inviterId, user.id))
+      .where(
+        and(
+          eq(invitation.organizationId, data.organizationId),
+          eq(invitation.status, 'pending')
+        )
+      )
+
+    const [membersResult, invitationsResult] = await Promise.all([
+      membersQuery,
+      invitationsQuery
+    ])
+    
+    // Transform and merge data
+    let teamMembers: TeamMember[] = [
+      ...membersResult.map(m => ({
+        id: m.id,
+        type: 'member' as const,
+        email: m.userEmail || '',
+        name: m.userName,
+        role: m.role || 'member',
+        status: 'active' as const,
+        joinedAt: m.createdAt,
+        expiresAt: null,
+        avatar: m.userImage,
+        userId: m.userId
+      })),
+      ...invitationsResult.map(i => ({
+        id: i.id,
+        type: 'invitation' as const,
+        email: i.email,
+        name: null,
+        role: i.role || 'member',
+        status: 'pending' as const,
+        joinedAt: null,
+        expiresAt: i.expiresAt,
+        avatar: null,
+        userId: null
+      }))
+    ]
+
+    // Apply filters
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase()
+      teamMembers = teamMembers.filter(member => 
+        (member.name?.toLowerCase().includes(searchLower)) || 
+        member.email.toLowerCase().includes(searchLower)
+      )
+    }
+
+    // Apply role filter if specified
+    if (data.filters?.role) {
+      teamMembers = teamMembers.filter(member => member.role === data.filters.role)
+    }
+
+    // Apply status filter if specified
+    if (data.filters?.status) {
+      teamMembers = teamMembers.filter(member => member.status === data.filters.status)
+    }
+
+    // Apply sorting
+    if (data.sorting && data.sorting.length > 0) {
+      const sort = data.sorting[0]
+      teamMembers.sort((a, b) => {
+        let compareValue = 0
+        
+        switch (sort.id) {
+          case 'name':
+            const aName = a.name || a.email
+            const bName = b.name || b.email
+            compareValue = aName.localeCompare(bName)
+            break
+          case 'email':
+            compareValue = a.email.localeCompare(b.email)
+            break
+          case 'role':
+            const roleOrder = { owner: 0, admin: 1, member: 2, viewer: 3 }
+            compareValue = (roleOrder[a.role as keyof typeof roleOrder] || 99) - 
+                          (roleOrder[b.role as keyof typeof roleOrder] || 99)
+            break
+          case 'status':
+            compareValue = a.status.localeCompare(b.status)
+            break
+          case 'joinedAt':
+            const aDate = a.joinedAt || a.expiresAt || new Date(0)
+            const bDate = b.joinedAt || b.expiresAt || new Date(0)
+            compareValue = aDate.getTime() - bDate.getTime()
+            break
+        }
+        
+        return sort.desc ? -compareValue : compareValue
+      })
+    }
+
+    const totalCount = teamMembers.length
+    const pageCount = Math.ceil(totalCount / pageSize)
+    const paginatedMembers = teamMembers.slice(offset, offset + pageSize)
+
+    const response: ServerQueryResponse<TeamMember> = {
+      data: paginatedMembers,
+      totalCount,
+      pageCount
+    }
+
+    return response
   })

@@ -4,13 +4,14 @@ import { Table } from "@tanstack/react-table"
 import { X } from "lucide-react"
 import * as React from "react"
 
-import { Button } from "@/components/taali-ui/ui/button"
-import { Input } from "@/components/taali-ui/ui/input"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
+import { DataTableDynamicFacetedFilter } from "./data-table-dynamic-faceted-filter"
 import { DataTableDateFilter } from "./data-table-date-filter"
 import { DataTableNumberFilter } from "./data-table-number-filter"
 import { DataTableConfig, DataTableColumnMeta } from "./types"
-import { cn } from "@/components/taali-ui/lib/utils"
+import { cn } from "../lib/utils"
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -28,21 +29,14 @@ export function DataTableToolbar<TData>({
 
   const handleSearch = React.useCallback(
     (value: string) => {
-      if (searchConfig?.columnId) {
-        table.getColumn(searchConfig.columnId)?.setFilterValue(value)
-      } else {
-        table.setGlobalFilter(value)
-      }
+      table.setGlobalFilter(value)
     },
-    [searchConfig, table]
+    [table]
   )
 
   const searchValue = React.useMemo(() => {
-    if (searchConfig?.columnId) {
-      return (table.getColumn(searchConfig.columnId)?.getFilterValue() as string) ?? ""
-    }
-    return table.getState().globalFilter ?? ""
-  }, [searchConfig, table])
+    return (table.getState().globalFilter ?? "") as string
+  }, [table.getState().globalFilter])
 
   const renderFilter = (columnId: string) => {
     const column = table.getColumn(columnId)
@@ -62,6 +56,18 @@ export function DataTableToolbar<TData>({
             title={filterConfig.title || column.columnDef.header as string}
             options={filterConfig.options || []}
             multiple={filterConfig.type === "multiSelect"}
+          />
+        )
+      case "dynamicSelect":
+      case "dynamicMultiSelect":
+        if (!filterConfig.loadOptions) return null
+        return (
+          <DataTableDynamicFacetedFilter
+            key={columnId}
+            column={column}
+            title={filterConfig.title || column.columnDef.header as string}
+            loadOptions={filterConfig.loadOptions}
+            multiple={filterConfig.type === "dynamicMultiSelect"}
           />
         )
       case "date":
@@ -99,13 +105,26 @@ export function DataTableToolbar<TData>({
     })
   }, [table])
 
+  console.log('[DataTableToolbar] Rendering input with value:', { 
+    searchValue, 
+    placeholder: searchConfig?.placeholder || "Search...",
+    timestamp: new Date().toISOString()
+  })
+
   return (
     <div className={cn("flex items-center justify-between", className)}>
       <div className="flex flex-1 items-center space-x-2">
         <Input
           placeholder={searchConfig?.placeholder || "Search..."}
           value={searchValue}
-          onChange={(event) => handleSearch(event.target.value)}
+          onChange={(event) => {
+            console.log('[DataTableToolbar] Input onChange fired:', {
+              newValue: event.target.value,
+              currentSearchValue: searchValue,
+              timestamp: new Date().toISOString()
+            })
+            handleSearch(event.target.value)
+          }}
           className="h-8 w-[150px] lg:w-[250px]"
         />
         {columnsWithFilters.map((column) => renderFilter(column.id))}

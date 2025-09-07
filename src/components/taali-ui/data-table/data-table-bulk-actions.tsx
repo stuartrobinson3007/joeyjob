@@ -1,13 +1,12 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { Trash2, X } from "lucide-react"
-import * as React from "react"
+import { X } from "lucide-react"
 
-import { Button } from "@/components/taali-ui/ui/button"
-import { Badge } from "@/components/taali-ui/ui/badge"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
 import { SelectionState, BulkAction } from "./types"
-import { cn } from "@/components/taali-ui/lib/utils"
+import { cn } from "../lib/utils"
 
 interface DataTableBulkActionsProps {
   selection: SelectionState
@@ -83,6 +82,7 @@ export function DataTableBulkActions({
                   size="sm"
                   onClick={() => action.onClick(Array.from(selection.selectedIds), selection.isAllSelected)}
                   className="h-8"
+                  disabled={action.disabled}
                 >
                   {Icon && <Icon className="h-4 w-4 mr-1" />}
                   {action.label}

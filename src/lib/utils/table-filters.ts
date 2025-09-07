@@ -1,4 +1,4 @@
-import { SQL, and, or, eq, ne, gt, gte, lt, lte, like, inArray, notInArray, isNull, isNotNull, between } from "drizzle-orm"
+import { SQL, and, or, eq, ne, gt, gte, lt, lte, like, ilike, inArray, notInArray, isNull, isNotNull, between } from "drizzle-orm"
 import { PgColumn } from "drizzle-orm/pg-core"
 
 export type FilterOperator = 
@@ -44,11 +44,11 @@ export function buildColumnFilter(filter: ColumnFilter): SQL | undefined {
     case "ne":
       return ne(column, value)
     case "contains":
-      return like(column, `%${value}%`)
+      return ilike(column, `%${value}%`)
     case "startsWith":
-      return like(column, `${value}%`)
+      return ilike(column, `${value}%`)
     case "endsWith":
-      return like(column, `%${value}`)
+      return ilike(column, `%${value}`)
     case "gt":
       return gt(column, value)
     case "gte":
@@ -120,10 +120,6 @@ export function parseFilterValue(value: any): { operator: FilterOperator; value:
       const rangeEnd = new Date(endDate)
       rangeEnd.setHours(23, 59, 59, 999)
       
-      console.log(`[DATE_RANGE] Converting date range:`, {
-        original: [value[0], value[1]],
-        converted: [rangeStart.toISOString(), rangeEnd.toISOString()]
-      })
       
       return { operator: "between", value: [rangeStart, rangeEnd] }
     }
@@ -146,11 +142,6 @@ export function parseFilterValue(value: any): { operator: FilterOperator; value:
     const endOfDay = new Date(date)
     endOfDay.setHours(23, 59, 59, 999)
     
-    console.log(`[DATE_PARSE] Converting single date to range:`, {
-      originalDate: date.toISOString(),
-      startOfDay: startOfDay.toISOString(),
-      endOfDay: endOfDay.toISOString()
-    })
     
     return { operator: "between", value: [startOfDay, endOfDay] }
   }
@@ -163,10 +154,24 @@ export function buildSearchFilter(searchColumns: PgColumn[], searchValue: string
   if (!searchValue || searchColumns.length === 0) return undefined
 
   const searchConditions = searchColumns.map(column => 
-    like(column, `%${searchValue}%`)
+    ilike(column, `%${searchValue}%`)
   )
 
   return searchConditions.length === 1 
     ? searchConditions[0] 
     : or(...searchConditions)
+}
+
+export function preprocessFilterValue(columnId: string, value: any): any {
+  // Handle boolean columns
+  if (['completed', 'banned', 'status', 'emailVerified'].includes(columnId)) {
+    return value === 'true' || value === true
+  }
+  
+  // Handle date columns
+  if (['createdAt', 'updatedAt', 'dueDate', 'joinedAt'].includes(columnId)) {
+    return parseFilterValue(value)
+  }
+  
+  return value
 }

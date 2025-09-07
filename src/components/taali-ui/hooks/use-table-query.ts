@@ -1,6 +1,6 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query"
 import { useState, useCallback, useMemo, useEffect } from "react"
-import { DataTableState, ServerQueryParams, ServerQueryResponse } from "@/components/data-table/types"
+import { DataTableState, ServerQueryParams, ServerQueryResponse } from "../data-table/types"
 
 interface UseTableQueryOptions<TData> {
   queryKey: string[]
@@ -53,9 +53,15 @@ export function useTableQuery<TData>({
       }
     })
     
-    // Also check for global filter
-    const searchValue = debouncedState.search || 
-      (debouncedState.columnFilters.find(f => f.id === 'title')?.value as string) || ''
+    // Use global filter for search - clean and generic
+    const searchValue = debouncedState.search || ''
+    
+    console.log('[useTableQuery] serverParams calculation:', {
+      searchValue,
+      debouncedSearch: debouncedState.search,
+      columnFiltersCount: debouncedState.columnFilters.length,
+      timestamp: new Date().toISOString()
+    })
 
     return {
       search: searchValue,

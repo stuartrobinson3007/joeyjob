@@ -1,11 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { db } from '@/lib/db/db'
-import { todos } from '@/database/schema'
-import { eq, and, desc, asc, count, like, inArray } from 'drizzle-orm'
+import { todos, user } from '@/database/schema'
+import { eq, and, desc, asc, count, like, ilike, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
-import { buildColumnFilter, buildSearchFilter, parseFilterValue } from '@/lib/utils/table-filters'
-import { ServerQueryParams, ServerQueryResponse } from '@/components/data-table/types'
+import { buildColumnFilter, buildSearchFilter, parseFilterValue, preprocessFilterValue } from '@/lib/utils/table-filters'
+import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
 
 // Schema for query params
 const queryParamsSchema = z.object({
@@ -58,7 +58,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
 
       // Special handling for title filter which acts as search
       if (columnId === 'title' && typeof value === 'string') {
-        const titleFilter = like(todos.title, `%${value}%`)
+        const titleFilter = ilike(todos.title, `%${value}%`)
         conditions.push(titleFilter)
         return
       }
@@ -73,6 +73,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
         priority: todos.priority,
         completed: todos.completed,
         createdBy: todos.createdBy,
+        createdByName: todos.createdBy, // Filter by user ID when filtering by name
         assignedTo: todos.assignedTo,
         dueDate: todos.dueDate,
         createdAt: todos.createdAt,
@@ -81,23 +82,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
 
       const column = columnMap[columnId]
       if (column) {
-        // Special handling for boolean completed field
-        let processedValue = filterValue
-        if (columnId === 'completed') {
-          processedValue = filterValue === 'true' || filterValue === true
-        }
-        
-        // Debug date values
-        if (columnId === 'dueDate' || columnId === 'createdAt') {
-          console.log(`[DATE_FILTER] ${columnId}:`, {
-            originalValue: value,
-            operator,
-            filterValue,
-            processedValue,
-            isDate: processedValue instanceof Date,
-            isArray: Array.isArray(processedValue)
-          })
-        }
+        const processedValue = preprocessFilterValue(columnId, filterValue)
         
         const filter = buildColumnFilter({
           column,
@@ -115,6 +100,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
             title: todos.title,
             priority: todos.priority,
             completed: todos.completed,
+            createdByName: user.name,
             dueDate: todos.dueDate,
             createdAt: todos.createdAt,
             updatedAt: todos.updatedAt,
@@ -124,19 +110,37 @@ export const getTodosTable = createServerFn({ method: 'POST' })
         }).filter(Boolean) as any[]
       : [desc(todos.createdAt)]
 
+    // Check if we need user join for filtering
+    const needsUserJoin = Object.keys(filters).includes('createdByName')
+    
     // Get total count for pagination
-    const [{ totalCount }] = await db
-      .select({ totalCount: count() })
-      .from(todos)
-      .where(and(...conditions))
+    let countQuery = db.select({ totalCount: count() }).from(todos)
+    if (needsUserJoin) {
+      countQuery = countQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
+    }
+    const [{ totalCount }] = await countQuery.where(and(...conditions))
 
     // Get paginated data
     const { pageIndex, pageSize } = pagination
     const offset = pageIndex * pageSize
 
     const todoList = await db
-      .select()
+      .select({
+        id: todos.id,
+        title: todos.title,
+        description: todos.description,
+        priority: todos.priority,
+        completed: todos.completed,
+        dueDate: todos.dueDate,
+        createdAt: todos.createdAt,
+        updatedAt: todos.updatedAt,
+        createdBy: todos.createdBy,
+        createdByName: user.name,
+        assignedTo: todos.assignedTo,
+        organizationId: todos.organizationId,
+      })
       .from(todos)
+      .leftJoin(user, eq(todos.createdBy, user.id))
       .where(and(...conditions))
       .orderBy(...orderBy)
       .limit(pageSize)
@@ -195,6 +199,7 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
         priority: todos.priority,
         completed: todos.completed,
         createdBy: todos.createdBy,
+        createdByName: todos.createdBy, // Filter by user ID when filtering by name
         assignedTo: todos.assignedTo,
         dueDate: todos.dueDate,
         createdAt: todos.createdAt,
@@ -217,11 +222,15 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
       }
     })
 
+    // Check if we need user join for filtering
+    const needsUserJoin = Object.keys(filters).includes('createdByName')
+    
     // Get count
-    const [{ totalCount }] = await db
-      .select({ totalCount: count() })
-      .from(todos)
-      .where(and(...conditions))
+    let countQuery = db.select({ totalCount: count() }).from(todos)
+    if (needsUserJoin) {
+      countQuery = countQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
+    }
+    const [{ totalCount }] = await countQuery.where(and(...conditions))
 
     return { totalCount }
   })
@@ -270,6 +279,7 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
         priority: todos.priority,
         completed: todos.completed,
         createdBy: todos.createdBy,
+        createdByName: todos.createdBy, // Filter by user ID when filtering by name
         assignedTo: todos.assignedTo,
         dueDate: todos.dueDate,
         createdAt: todos.createdAt,
@@ -292,10 +302,15 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
       }
     })
 
+    // Check if we need user join for filtering
+    const needsUserJoin = Object.keys(filters).includes('createdByName')
+    
     // Get all IDs (limit to reasonable number for safety)
-    const allIds = await db
-      .select({ id: todos.id })
-      .from(todos)
+    let idsQuery = db.select({ id: todos.id }).from(todos)
+    if (needsUserJoin) {
+      idsQuery = idsQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
+    }
+    const allIds = await idsQuery
       .where(and(...conditions))
       .limit(10000) // Safety limit
 
@@ -331,4 +346,28 @@ export const bulkDeleteTodos = createServerFn({ method: 'POST' })
       ))
     
     return { success: true, deletedCount: ids.length }
+  })
+
+// Get users who have created todos (for dynamic filter options)
+export const getTodoCreators = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }: { context: any }) => {
+    const orgId = context.organizationId
+    if (!orgId) {
+      throw new Error('No organization ID in context')
+    }
+
+    // Get distinct users who have created todos in this organization
+    const creators = await db
+      .select({
+        value: user.id,
+        label: user.name,
+      })
+      .from(todos)
+      .innerJoin(user, eq(todos.createdBy, user.id))
+      .where(eq(todos.organizationId, orgId))
+      .groupBy(user.id, user.name)
+      .orderBy(asc(user.name))
+
+    return { options: creators }
   })

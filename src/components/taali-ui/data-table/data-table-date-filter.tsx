@@ -5,15 +5,15 @@ import { CalendarIcon, X } from "lucide-react"
 import * as React from "react"
 import { format } from "date-fns"
 
-import { Button } from "@/components/taali-ui/ui/button"
-import { Badge } from "@/components/taali-ui/ui/badge"
-import { Calendar } from "@/components/taali-ui/ui/calendar"
+import { Button } from "../ui/button"
+import { Badge } from "../ui/badge"
+import { Calendar } from "../ui/calendar"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/taali-ui/ui/popover"
-import { cn } from "@/components/taali-ui/lib/utils"
+} from "../ui/popover"
+import { cn } from "../lib/utils"
 
 interface DataTableDateFilterProps<TData, TValue> {
   column?: Column<TData, TValue>

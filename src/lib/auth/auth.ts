@@ -11,6 +11,7 @@ import { db } from '@/lib/db/db'
 import { redis } from '@/lib/db/redis'
 import { sendMagicLinkEmail, sendInvitationEmail, sendOTPEmail } from '@/lib/utils/email'
 import * as schema from '@/database/schema'
+import { and, eq } from 'drizzle-orm'
 
 // Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -138,7 +139,7 @@ const getAuthConfig = serverOnly(() =>
       }),
       admin({
         adminRoles: ["superadmin"], // TODO: Not sure if this actually does anything. We keep the superadmin role in the user db for quick checks
-        adminUserIds: ["gkJm4zjuCPVTbnIvKdtmWEA0r5Fz2P6V"] // But its this that actually makes a user an admin (superadmin as we call it)
+        adminUserIds: ["xCkr7sfb6x0GKsY2vCkQThP4IiSHjG7p"] // But its this that actually makes a user an admin (superadmin as we call it)
       }),
       stripePlugin({
         stripeClient: stripe,
@@ -146,6 +147,53 @@ const getAuthConfig = serverOnly(() =>
         createCustomerOnSignUp: false, // We'll create on org creation
         successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
         cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
+        subscription: {
+          enabled: true,
+          authorizeReference: async ({ user, referenceId, action }) => {
+            // Allow users to manage subscriptions for their organizations
+            // Check if user is a member of the organization with billing permissions
+            const membership = await db
+              .select()
+              .from(schema.member)
+              .where(and(
+                eq(schema.member.userId, user.id),
+                eq(schema.member.organizationId, referenceId)
+              ))
+              .limit(1)
+
+            if (membership.length === 0) {
+              return false // User is not a member of this organization
+            }
+
+            const member = membership[0]
+            // Allow owners and admins to manage billing
+            return member.role === 'owner' || member.role === 'admin'
+          },
+          plans: [
+            {
+              name: "pro",
+              priceId: process.env.STRIPE_PRO_MONTHLY_PRICE_ID!,
+              annualDiscountPriceId: process.env.STRIPE_PRO_ANNUAL_PRICE_ID!,
+              limits: {
+                todos: -1,
+                members: 10,
+                storage: 5000
+              },
+              seats: 10
+            },
+            {
+              name: "business",
+              priceId: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID!,
+              annualDiscountPriceId: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID!,
+              limits: {
+                todos: -1,
+                members: -1,
+                storage: -1
+              },
+              seats: 50
+            }
+          ]
+        }
       }),
       organization({
         allowUserToCreateOrganization: true,

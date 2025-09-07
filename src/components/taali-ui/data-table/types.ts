@@ -10,6 +10,8 @@ export type DataTableFilterType =
   | "multiSelect"
   | "boolean"
   | "numberRange"
+  | "dynamicSelect"
+  | "dynamicMultiSelect"
 
 export interface DataTableFilterOption {
   label: string
@@ -27,17 +29,18 @@ export interface DataTableFilterConfig {
   max?: number
   step?: number
   align?: "start" | "center" | "end"
+  loadOptions?: () => Promise<{ options: DataTableFilterOption[] }>
 }
 
 export interface DataTableColumnMeta {
   filterConfig?: DataTableFilterConfig
   headerClassName?: string
   cellClassName?: string
+  enableTextTruncation?: boolean
 }
 
 export interface DataTableSearchConfig {
   placeholder?: string
-  columnId: string
 }
 
 export interface DataTablePaginationConfig {
@@ -45,10 +48,23 @@ export interface DataTablePaginationConfig {
   defaultPageSize?: number
 }
 
+export interface DataTableResizingConfig {
+  enableColumnResizing?: boolean
+  columnResizeMode?: "onChange" | "onEnd"
+  columnResizeDirection?: "ltr" | "rtl"
+}
+
+export interface DataTableLoadingConfig {
+  skeletonRowCount?: number
+  showSkeletonOnRefetch?: boolean
+}
+
 export interface DataTableConfig<TData> {
   searchConfig?: DataTableSearchConfig
   paginationConfig?: DataTablePaginationConfig
   selectionConfig?: DataTableSelectionConfig
+  resizingConfig?: DataTableResizingConfig
+  loadingConfig?: DataTableLoadingConfig
   enableColumnFilters?: boolean
   enableSorting?: boolean
   enableRowSelection?: boolean
@@ -90,6 +106,7 @@ export interface BulkAction {
   icon?: React.ComponentType<{ className?: string }>
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
   onClick: (selectedIds: string[], isAllSelected: boolean) => void | Promise<void>
+  disabled?: boolean
 }
 
 export interface ServerQueryParams {

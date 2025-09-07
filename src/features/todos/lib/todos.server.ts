@@ -13,7 +13,7 @@ import { nanoid } from 'nanoid'
 const createTodoSchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().optional(),
-  priority: z.number().min(1).max(5).default(3),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
   dueDate: z.string().optional(),
   assignedTo: z.string().optional()
 })
@@ -21,12 +21,29 @@ const createTodoSchema = z.object({
 const updateTodoSchema = z.object({
   id: z.string(),
   title: z.string().min(1).max(500).optional(),
-  description: z.string().optional(),
-  priority: z.number().min(1).max(5).optional(),
-  dueDate: z.string().optional(),
-  assignedTo: z.string().optional(),
+  description: z.string().nullable().optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  dueDate: z.string().nullable().optional(),
+  assignedTo: z.string().nullable().optional(),
   completed: z.boolean().optional()
 })
+
+// Helper to convert priority string to number
+const priorityToNumber = (priority: 'low' | 'medium' | 'high'): number => {
+  switch (priority) {
+    case 'low': return 1
+    case 'medium': return 3
+    case 'high': return 5
+    default: return 3
+  }
+}
+
+// Helper to convert priority number to string
+const numberToPriority = (priority: number): 'low' | 'medium' | 'high' => {
+  if (priority <= 2) return 'low'
+  if (priority <= 4) return 'medium'
+  return 'high'
+}
 
 const todoIdSchema = z.object({
   id: z.string()
@@ -50,7 +67,38 @@ export const getTodos = createServerFn({ method: 'GET' })
       .where(eq(todos.organizationId, orgId))
       .orderBy(desc(todos.createdAt))
 
-    return todoList
+    // Convert priority numbers to strings
+    return todoList.map(todo => ({
+      ...todo,
+      priority: numberToPriority(todo.priority)
+    }))
+  })
+
+// Get single todo by ID
+export const getTodoById = createServerFn({ method: 'GET' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }: { data: any; context: any }) => {
+    const orgId = context.organizationId
+
+    const todo = await db
+      .select()
+      .from(todos)
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+      .limit(1)
+
+    if (!todo[0]) {
+      throw new AppError('Todo not found', 'Todo not found or access denied', 404)
+    }
+
+    // Convert priority number to string
+    return {
+      ...todo[0],
+      priority: numberToPriority(todo[0].priority)
+    }
   })
 
 // Create a new todo
@@ -77,17 +125,24 @@ export const createTodo = createServerFn({ method: 'POST' })
       .insert(todos)
       .values({
         id: nanoid(),
-        ...data,
+        title: data.title,
+        description: data.description,
+        priority: priorityToNumber(data.priority),
         organizationId: orgId,
         createdBy: user.id,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+        assignedTo: data.assignedTo,
         completed: false,
         createdAt: new Date(),
         updatedAt: new Date()
       })
       .returning()
 
-    return newTodo[0]
+    // Convert priority back to string
+    return {
+      ...newTodo[0],
+      priority: numberToPriority(newTodo[0].priority)
+    }
   })
 
 // Update a todo
@@ -114,18 +169,35 @@ export const updateTodo = createServerFn({ method: 'POST' })
     // Check permissions
     await checkPermission('todos', ['update'], orgId)
 
-    const { id, ...updateData } = data
+    const { id, priority, ...updateData } = data
+    
+    // Prepare update data
+    const updatePayload: any = {
+      ...updateData,
+      updatedAt: new Date()
+    }
+    
+    // Convert priority if provided
+    if (priority !== undefined) {
+      updatePayload.priority = priorityToNumber(priority)
+    }
+    
+    // Handle dueDate
+    if (updateData.dueDate !== undefined) {
+      updatePayload.dueDate = updateData.dueDate ? new Date(updateData.dueDate) : null
+    }
+    
     const updated = await db
       .update(todos)
-      .set({
-        ...updateData,
-        dueDate: updateData.dueDate ? new Date(updateData.dueDate) : undefined,
-        updatedAt: new Date()
-      })
+      .set(updatePayload)
       .where(eq(todos.id, id))
       .returning()
 
-    return updated[0]
+    // Convert priority back to string
+    return {
+      ...updated[0],
+      priority: numberToPriority(updated[0].priority)
+    }
   })
 
 // Delete a todo
@@ -204,5 +276,9 @@ export const toggleTodo = createServerFn({ method: 'POST' })
       .where(eq(todos.id, data.id))
       .returning()
 
-    return updated[0]
+    // Convert priority back to string
+    return {
+      ...updated[0],
+      priority: numberToPriority(updated[0].priority)
+    }
   })

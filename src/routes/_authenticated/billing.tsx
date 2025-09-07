@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useSetPageMeta } from '@/lib/hooks/page-context'
 import { BillingPage } from '@/features/billing/components/billing-page'
 
 export const Route = createFileRoute('/_authenticated/billing')({
@@ -7,10 +6,10 @@ export const Route = createFileRoute('/_authenticated/billing')({
 })
 
 function BillingPageWrapper() {
-  // Set page metadata
-  useSetPageMeta({
-    title: 'Billing'
-  })
 
-  return <BillingPage />
+  return (
+    <div className="flex flex-col h-full">
+      <BillingPage />
+    </div>
+  )
 }

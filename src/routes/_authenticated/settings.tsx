@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { authClient } from '@/lib/auth/auth-client'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { useSetPageMeta } from '@/lib/hooks/page-context'
+import { PageHeader } from '@/components/page-header'
 import { toast } from 'sonner'
 import { Save, Trash2 } from 'lucide-react'
 
@@ -21,10 +21,6 @@ function OrganizationSettings() {
 
   const [isLoading, setIsLoading] = useState(false)
 
-  // Set page metadata
-  useSetPageMeta({
-    title: 'Workspace Settings'
-  })
 
   const handleUpdateOrganization = async () => {
     if (!organization) return
@@ -82,7 +78,12 @@ function OrganizationSettings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto w-full">
+    <div className="flex flex-col h-full">
+      <PageHeader title="Settings" />
+
+      {/* Main Content */}
+      <div className="flex-1 p-6">
+        <div className="max-w-2xl mx-auto w-full">
 
       <div className="bg-card rounded-lg shadow-sm border p-6 space-y-6">
         <div>
@@ -143,6 +144,8 @@ function OrganizationSettings() {
             <Trash2 className="w-4 h-4" />
             Delete Workspace
           </button>
+        </div>
+      </div>
         </div>
       </div>
     </div>

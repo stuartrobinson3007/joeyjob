@@ -3,6 +3,7 @@
 import {
   ColumnDef,
   ColumnFiltersState,
+  ColumnSizingState,
   SortingState,
   VisibilityState,
   flexRender,
@@ -23,12 +24,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/taali-ui/ui/table"
+} from "../ui/table"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { DataTableBulkActions } from "./data-table-bulk-actions"
 import { DataTableConfig, SelectionState, ServerQueryParams } from "./types"
-import { cn } from "@/components/taali-ui/lib/utils"
+import { cn } from "../lib/utils"
+
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -40,6 +42,10 @@ interface DataTableProps<TData, TValue> {
   onSelectAll?: (filters: ServerQueryParams) => Promise<string[]>
   currentFilters?: ServerQueryParams
   isLoading?: boolean
+  isFetching?: boolean
+  loadingRows?: Set<string>
+  getRowIdProp?: (row: TData) => string
+  onRowClick?: (row: TData) => void
   className?: string
   toolbarClassName?: string
   containerClassName?: string
@@ -55,6 +61,10 @@ export function DataTable<TData, TValue>({
   onSelectAll,
   currentFilters,
   isLoading = false,
+  isFetching = false,
+  loadingRows,
+  getRowIdProp,
+  onRowClick,
   className,
   toolbarClassName,
   containerClassName,
@@ -64,7 +74,8 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
-  
+  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
+
   // Simplified ID-based selection state
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
   const [isAllSelected, setIsAllSelected] = React.useState(false)
@@ -78,7 +89,20 @@ export function DataTable<TData, TValue>({
     enableRowSelection = false,
     paginationConfig = {},
     selectionConfig = {},
+    resizingConfig = {},
+    loadingConfig = {},
   } = config
+
+  const {
+    enableColumnResizing = true,
+    columnResizeMode = "onChange",
+    columnResizeDirection = "ltr",
+  } = resizingConfig
+
+  const {
+    skeletonRowCount = 5,
+    showSkeletonOnRefetch = false,
+  } = loadingConfig
 
   // Get ID from row data - assumes 'id' property exists
   const getRowId = React.useCallback((row: any) => {
@@ -91,7 +115,7 @@ export function DataTable<TData, TValue>({
       // If all are selected, show all current page rows as selected
       return Object.fromEntries(data.map((_, index) => [index.toString(), true]))
     }
-    
+
     // Show only rows with IDs in selectedIds as selected
     const selection: Record<string, boolean> = {}
     data.forEach((row, index) => {
@@ -106,13 +130,13 @@ export function DataTable<TData, TValue>({
   // Handle row selection changes from TanStack Table
   const handleRowSelectionChange = React.useCallback((updater: any) => {
     const newIndexSelection = typeof updater === 'function' ? updater(currentPageRowSelection) : updater
-    
+
     // Check if this is a "select/deselect all" operation (all current page items)
     const currentPageSize = data.length
     const newSelectionSize = Object.keys(newIndexSelection).filter(key => newIndexSelection[key]).length
     const isSelectingAllCurrentPage = newSelectionSize === currentPageSize
     const isDeselectingAll = newSelectionSize === 0
-    
+
     if (isDeselectingAll) {
       // Deselect all - clear everything regardless of current mode
       setSelectedIds(new Set())
@@ -120,7 +144,7 @@ export function DataTable<TData, TValue>({
       setRowSelection({})
       return
     }
-    
+
     if (isSelectingAllCurrentPage && Object.keys(currentPageRowSelection).length === 0) {
       // Selecting all on current page - just add current page items
       const newSelectedIds = new Set(selectedIds)
@@ -135,20 +159,20 @@ export function DataTable<TData, TValue>({
       setRowSelection(newIndexSelection)
       return
     }
-    
+
     // Individual item selection/deselection
     const newSelectedIds = new Set(selectedIds)
-    
+
     // If we were in "all selected" mode, exit it when individual items are toggled
     if (isAllSelected) {
       setIsAllSelected(false)
     }
-    
+
     // Update selectedIds based on current page changes
     data.forEach((row, index) => {
       const id = getRowId(row)
       const indexStr = index.toString()
-      
+
       if (newIndexSelection[indexStr]) {
         newSelectedIds.add(id)
       } else if (currentPageRowSelection[indexStr]) {
@@ -156,7 +180,7 @@ export function DataTable<TData, TValue>({
         newSelectedIds.delete(id)
       }
     })
-    
+
     setSelectedIds(newSelectedIds)
     setRowSelection(newIndexSelection)
   }, [currentPageRowSelection, isAllSelected, selectedIds, data, getRowId])
@@ -170,13 +194,18 @@ export function DataTable<TData, TValue>({
       rowSelection: currentPageRowSelection,
       columnFilters,
       globalFilter,
+      columnSizing,
     },
     enableRowSelection,
+    enableColumnResizing,
+    columnResizeMode,
+    columnResizeDirection,
     onRowSelectionChange: handleRowSelectionChange,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnSizingChange: setColumnSizing,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
     getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
@@ -188,8 +217,8 @@ export function DataTable<TData, TValue>({
     manualSorting,
     ...(manualPagination && totalCount
       ? {
-          pageCount: Math.ceil(totalCount / (paginationConfig.defaultPageSize || 10)),
-        }
+        pageCount: Math.ceil(totalCount / (paginationConfig.defaultPageSize || 10)),
+      }
       : {}),
   })
 
@@ -257,8 +286,12 @@ export function DataTable<TData, TValue>({
           className={toolbarClassName}
         />
       )}
-      <div className={cn("rounded-md border", className)}>
-        <Table>
+      <div className={cn(
+        "rounded-md border overflow-x-auto",
+        className,
+        isFetching && !isLoading && "animate-pulse opacity-75 pointer-events-none"
+      )}>
+        <Table className="table-fixed w-full min-w-max">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -269,16 +302,44 @@ export function DataTable<TData, TValue>({
                       key={header.id}
                       className={cn(
                         header.column.getCanSort() && "cursor-pointer select-none",
-                        meta?.headerClassName
+                        meta?.headerClassName,
+                        "relative"
                       )}
+                      style={{
+                        width: header.getSize(),
+                      }}
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+
+                      {/* Resize Handle */}
+                      {enableColumnResizing && header.column.getCanResize() && (
+                        <div
+                          className={cn(
+                            "touch-hitbox z-10 absolute! inset-y-2 right-0 w-0.5 cursor-col-resize select-none touch-none ",
+                            "bg-border opacity-50 hover:opacity-100",
+                            "transition-opacity duration-200",
+                            header.column.getIsResizing() && "opacity-50! bg-primary w-1"
                           )}
+                          onMouseDown={(e) => {
+                            e.stopPropagation()
+                            header.getResizeHandler()(e)
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation()
+                            header.getResizeHandler()(e)
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                          }}
+                        />
+                      )}
                     </TableHead>
                   )
                 })}
@@ -286,40 +347,76 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta as any
-                    return (
-                      <TableCell key={cell.id} className={meta?.cellClassName}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    )
-                  })}
+            {isLoading || (showSkeletonOnRefetch && isFetching) ? (
+              // Show skeleton rows while loading
+              Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
+                <TableRow key={`skeleton-${rowIndex}`}>
+                  {table.getAllLeafColumns().map((column, colIndex) => (
+                    <TableCell
+                      key={`skeleton-${rowIndex}-${colIndex}`}
+                      style={{
+                        width: column.getSize(),
+                      }}
+                    >
+                      <div
+                        className="h-4 bg-muted animate-pulse rounded w-3/4"
+                      />
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => {
+                const rowId = getRowIdProp ? getRowIdProp(row.original as TData) : row.id
+                const isRowLoading = loadingRows?.has(rowId)
+                return (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={cn(
+                      isRowLoading && "animate-pulse opacity-75 pointer-events-none",
+                      onRowClick && "cursor-pointer hover:bg-muted/50"
+                    )}
+                    onClick={(e) => {
+                      // Don't trigger row click if clicking on interactive elements
+                      const target = e.target as HTMLElement
+                      const isInteractive = target.closest('button, input, select, textarea, a, [role="button"], [tabindex]:not([tabindex="-1"])')
+
+                      if (!isInteractive) {
+                        onRowClick?.(row.original as TData)
+                      }
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const meta = cell.column.columnDef.meta as any
+                      const enableTruncation = meta?.enableTextTruncation ?? false
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            enableTruncation && "truncate max-w-0",
+                            meta?.cellClassName
+                          )}
+                          style={{
+                            width: cell.column.getSize(),
+                          }}
+                          title={enableTruncation && typeof cell.getValue() === 'string' ? cell.getValue() as string : undefined}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getAllLeafColumns().length}
                   className="h-24 text-center"
                 >
                   No results.
@@ -330,7 +427,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       <DataTablePagination table={table} config={paginationConfig} totalCount={totalCount} />
-      
+
       {/* Bulk Actions Bar */}
       {enableRowSelection && selectionConfig.enableBulkActions && (selectionState.totalSelectedCount > 0) && (
         <DataTableBulkActions

@@ -5,13 +5,11 @@
  * Provides admin-specific styling, navigation, and context using better-auth.
  */
 
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Separator } from '@/components/taali-ui/ui/separator';
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from '@/components/taali-ui/ui/breadcrumb';
-import { ShieldUser } from 'lucide-react';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useRouterState } from '@tanstack/react-router';
 import { SuperAdminSidebar } from './super-admin-sidebar';
 import { useSession } from '@/lib/auth/auth-hooks';
+import { PageHeader } from '@/components/page-header';
 
 interface SuperAdminLayoutProps {
   children: React.ReactNode;
@@ -40,6 +38,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     select: (state) => state.location.pathname 
   });
   const currentPageName = pageNames[currentPath] || 'Super Admin';
+
 
   return (
     <SidebarProvider
@@ -82,25 +81,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         dark:[--accent-foreground:theme(colors.purple.50)]
       " />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-background border-b">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <ShieldUser className="h-4 w-4 text-purple-600" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="text-foreground font-medium">
-                    {currentPageName}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="ml-auto px-4 text-sm text-purple-700 dark:text-purple-300">
-            System Administration Mode
-          </div>
-        </header>
+        <PageHeader title={currentPageName} />
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-background">
           {children}
         </div>

@@ -8,14 +8,14 @@ import {
   ChevronsRight,
 } from "lucide-react"
 
-import { Button } from "@/components/taali-ui/ui/button"
+import { Button } from "../ui/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/taali-ui/ui/select"
+} from "../ui/select"
 import { DataTablePaginationConfig } from "./types"
 
 interface DataTablePaginationProps<TData> {

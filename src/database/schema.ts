@@ -119,19 +119,27 @@ export const invitation = pgTable("invitation", {
 // Better Auth Stripe subscription table
 export const subscription = pgTable("subscription", {
   id: text("id").primaryKey(),
-  userId: text("user_id").references(() => user.id),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  stripePriceId: text("stripe_price_id"),
+  plan: text("plan").notNull(),
+  referenceId: text("reference_id").notNull(),
   stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  status: text("status").default("incomplete"),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  seats: integer("seats"),
+  // Keep some additional fields for compatibility
+  userId: text("user_id").references(() => user.id),
+  stripePriceId: text("stripe_price_id"),
   stripeCurrentPeriodEnd: timestamp("stripe_current_period_end"),
   stripeCurrentPeriodStart: timestamp("stripe_current_period_start"),
   stripeCancelAt: timestamp("stripe_cancel_at"),
   stripeCancelAtPeriodEnd: boolean("stripe_cancel_at_period_end"),
   stripeTrialStart: timestamp("stripe_trial_start"),
   stripeTrialEnd: timestamp("stripe_trial_end"),
-  referenceId: text("reference_id"), // This will be organizationId
-  seats: integer("seats"),
-  status: text("status"),
+  limits: jsonb("limits"), // Plan limits (todos, members, storage)
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
