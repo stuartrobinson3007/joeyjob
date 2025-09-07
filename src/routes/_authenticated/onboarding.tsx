@@ -1,16 +1,17 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
+import { z } from 'zod'
+
 import { useSession } from '@/lib/auth/auth-hooks'
 import { OnboardingForm } from '@/features/auth/components/onboarding-form'
 import { getInvitationDetails } from '@/features/organization/lib/onboarding.server'
-import { z } from 'zod'
 
 const searchSchema = z.object({
-  invite: z.string().optional()
+  invite: z.string().optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/onboarding')({
   staticData: {
-    sidebar: false
+    sidebar: false,
   },
   validateSearch: searchSchema,
   loader: async ({ location }) => {
@@ -19,7 +20,7 @@ export const Route = createFileRoute('/_authenticated/onboarding')({
     if (searchParams.invite) {
       try {
         const invitation = await getInvitationDetails({
-          data: { invitationId: searchParams.invite }
+          data: { invitationId: searchParams.invite },
         })
         return { invitation }
       } catch (error) {
@@ -30,7 +31,7 @@ export const Route = createFileRoute('/_authenticated/onboarding')({
 
     return { invitation: null }
   },
-  component: OnboardingPage
+  component: OnboardingPage,
 })
 
 function OnboardingPage() {

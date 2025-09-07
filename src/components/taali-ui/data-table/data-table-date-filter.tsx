@@ -1,19 +1,16 @@
-"use client"
+'use client'
 
-import { Column } from "@tanstack/react-table"
-import { CalendarIcon, X } from "lucide-react"
-import * as React from "react"
-import { format } from "date-fns"
+import { Column } from '@tanstack/react-table'
+import { CalendarIcon } from 'lucide-react'
+import * as React from 'react'
+import { format } from 'date-fns'
 
-import { Button } from "../ui/button"
-import { Badge } from "../ui/badge"
-import { Calendar } from "../ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover"
-import { cn } from "../lib/utils"
+import { Button } from '../ui/button'
+import { Calendar } from '../ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { cn } from '../lib/utils'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface DataTableDateFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -27,6 +24,7 @@ export function DataTableDateFilter<TData, TValue>({
   isRange = false,
 }: DataTableDateFilterProps<TData, TValue>) {
   const [open, setOpen] = React.useState(false)
+  const { t } = useTranslation('common')
   const value = column?.getFilterValue() as Date | [Date, Date] | undefined
 
   const handleSelect = (date: Date | undefined) => {
@@ -47,34 +45,28 @@ export function DataTableDateFilter<TData, TValue>({
   }
 
   const displayValue = React.useMemo(() => {
-    if (!value) return title || "Pick a date"
+    if (!value) return title || t('common:filters.pickADate')
 
     if (isRange && Array.isArray(value)) {
       const [from, to] = value
       if (from && to && from.getTime() !== to.getTime()) {
-        return `${format(from, "MMM d")} - ${format(to, "MMM d")}`
+        return `${format(from, 'MMM d')} - ${format(to, 'MMM d')}`
       } else if (from) {
-        return format(from, "MMM d, yyyy")
+        return format(from, 'MMM d, yyyy')
       }
     } else if (value instanceof Date) {
-      return format(value, "MMM d, yyyy")
+      return format(value, 'MMM d, yyyy')
     }
 
-    return title || "Pick a date"
-  }, [value, title, isRange])
+    return title || t('common:filters.pickADate')
+  }, [value, title, isRange, t])
 
   const hasValue = Boolean(value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 border-dashed"
-          )}
-        >
+        <Button variant="outline" size="sm" className={cn('h-8 border-dashed')}>
           <CalendarIcon className="mr-2 h-4 w-4" />
           {displayValue}
         </Button>
@@ -89,16 +81,11 @@ export function DataTableDateFilter<TData, TValue>({
                   ? { from: value[0], to: value[1] }
                   : undefined
               }
-              onSelect={handleRangeSelect as any}
+              onSelect={handleRangeSelect}
               initialFocus
             />
           ) : (
-            <Calendar
-              mode="single"
-              selected={value as Date}
-              onSelect={handleSelect}
-              initialFocus
-            />
+            <Calendar mode="single" selected={value as Date} onSelect={handleSelect} initialFocus />
           )}
           {hasValue && (
             <div className="p-2 border-t">
@@ -111,7 +98,7 @@ export function DataTableDateFilter<TData, TValue>({
                   setOpen(false)
                 }}
               >
-                Clear filter
+                {t('common:filters.clearFilter')}
               </Button>
             </div>
           )}

@@ -1,0 +1,62 @@
+{
+  "required": "Este campo es obligatorio",
+  "email": "Por favor, ingresa una dirección de correo válida",
+  "minLength": "Debe tener al menos {{min}} caracteres",
+  "maxLength": "Debe tener no más de {{max}} caracteres",
+  "pattern": "Formato inválido",
+  "unique": "Este valor ya existe",
+  "passwordMatch": "Las contraseñas no coinciden",
+  "passwordStrength": "La contraseña debe contener al menos 8 caracteres con números y letras",
+  "phoneNumber": "Por favor, ingresa un número de teléfono válido",
+  "url": "Por favor, ingresa una URL válida",
+  "numeric": "Debe ser un número",
+  "positive": "Debe ser un número positivo",
+  "integer": "Debe ser un número entero",
+  "date": "Por favor, ingresa una fecha válida",
+  "future": "La fecha debe ser en el futuro",
+  "past": "La fecha debe ser en el pasado",
+  "organization": {
+    "name": {
+      "min": "El nombre de la organización debe tener al menos {{min}} caracteres",
+      "max": "El nombre de la organización debe tener menos de {{max}} caracteres",
+      "required": "El nombre de la organización es obligatorio"
+    },
+    "slug": {
+      "min": "El slug debe tener al menos {{min}} caracteres",
+      "max": "El slug debe tener menos de {{max}} caracteres",
+      "pattern": "El slug solo puede contener letras minúsculas, números y guiones",
+      "required": "El slug es obligatorio",
+      "taken": "Este slug ya está en uso",
+      "validationFailed": "No se puede validar la disponibilidad del slug"
+    }
+  },
+  "user": {
+    "email": {
+      "invalid": "Dirección de correo inválida",
+      "taken": "Este correo ya está registrado"
+    },
+    "firstName": {
+      "required": "El nombre es obligatorio",
+      "max": "El nombre es demasiado largo"
+    },
+    "lastName": {
+      "required": "El apellido es obligatorio",
+      "max": "El apellido es demasiado largo"
+    },
+    "password": {
+      "min": "La contraseña debe tener al menos {{min}} caracteres",
+      "uppercase": "La contraseña debe contener al menos una letra mayúscula",
+      "lowercase": "La contraseña debe contener al menos una letra minúscula",
+      "number": "La contraseña debe contener al menos un número"
+    }
+  },
+  "todo": {
+    "title": {
+      "required": "El título es obligatorio",
+      "max": "El título debe tener menos de {{max}} caracteres"
+    },
+    "description": {
+      "max": "La descripción debe tener menos de {{max}} caracteres"
+    }
+  }
+}

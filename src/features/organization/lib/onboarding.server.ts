@@ -1,16 +1,18 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getWebRequest } from '@tanstack/react-start/server'
-import { auth } from '@/lib/auth/auth'
-import { db } from '@/lib/db/db'
-import { invitation, organization, user } from '@/database/schema'
 import { and, eq, gt } from 'drizzle-orm'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 
+import errorTranslations from '@/i18n/locales/en/errors.json'
+import { auth } from '@/lib/auth/auth'
+import { db } from '@/lib/db/db'
+import { invitation, organization, user } from '@/database/schema'
+
 const completeOnboardingSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  invitationId: z.string().optional()
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  invitationId: z.string().optional(),
 })
 
 export const completeOnboarding = createServerFn({ method: 'POST' })
@@ -30,8 +32,8 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
         firstName: data.firstName,
         lastName: data.lastName,
         onboardingCompleted: true,
-        name: `${data.firstName} ${data.lastName}`.trim()
-      }
+        name: `${data.firstName} ${data.lastName}`.trim(),
+      },
     })
 
     let organizationId: string
@@ -41,12 +43,12 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       const result = await auth.api.acceptInvitation({
         headers: request.headers,
         body: {
-          invitationId: data.invitationId
-        }
+          invitationId: data.invitationId,
+        },
       })
 
       if (!result || !result.invitation.organizationId) {
-        throw new Error('Failed to accept invitation')
+        throw new Error(errorTranslations.server.failedToAcceptInvitation)
       }
 
       organizationId = result.invitation.organizationId
@@ -57,12 +59,12 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
         headers: request.headers,
         body: {
           name: `${data.firstName}'s Workspace`,
-          slug
-        }
+          slug,
+        },
       })
 
       if (!org || !org.id) {
-        throw new Error('Failed to create organization')
+        throw new Error(errorTranslations.server.failedToCreateOrganization)
       }
 
       organizationId = org.id
@@ -71,7 +73,7 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
     return {
       success: true,
       organizationId,
-      isInvite: !!data.invitationId
+      isInvite: !!data.invitationId,
     }
   })
 
@@ -87,29 +89,31 @@ export const getInvitationDetails = createServerFn({ method: 'GET' })
         expiresAt: invitation.expiresAt,
         status: invitation.status,
         organizationName: organization.name,
-        inviterName: user.name
+        inviterName: user.name,
       })
       .from(invitation)
       .leftJoin(organization, eq(invitation.organizationId, organization.id))
       .leftJoin(user, eq(invitation.inviterId, user.id))
-      .where(and(
-        eq(invitation.id, data.invitationId),
-        eq(invitation.status, 'pending'),
-        gt(invitation.expiresAt, new Date())
-      ))
+      .where(
+        and(
+          eq(invitation.id, data.invitationId),
+          eq(invitation.status, 'pending'),
+          gt(invitation.expiresAt, new Date())
+        )
+      )
       .limit(1)
 
     if (!invitationData[0]) {
-      throw new Error('Invitation not found or expired')
+      throw new Error(errorTranslations.server.invitationNotFoundOrExpired)
     }
 
     return {
       id: invitationData[0].id,
       email: invitationData[0].email,
       role: invitationData[0].role,
-      organizationName: invitationData[0].organizationName || 'Organization',
-      inviterName: invitationData[0].inviterName || 'A team member',
+      organizationName: invitationData[0].organizationName || errorTranslations.fields.organization,
+      inviterName: invitationData[0].inviterName || errorTranslations.server.defaultInviterName,
       expiresAt: invitationData[0].expiresAt,
-      status: invitationData[0].status
+      status: invitationData[0].status,
     }
   })

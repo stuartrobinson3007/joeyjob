@@ -1,0 +1,116 @@
+{
+  "general": {
+    "unknown": "Ocurrió un error desconocido",
+    "tryAgain": "Por favor intenta de nuevo",
+    "contactSupport": "Si el problema persiste, contacta soporte"
+  },
+  "network": {
+    "offline": "Sin conexión a internet",
+    "timeout": "Se agotó el tiempo de espera de la solicitud",
+    "serverError": "Error del servidor",
+    "notFound": "Recurso no encontrado",
+    "forbidden": "No tienes permisos para acceder a este recurso",
+    "unauthorized": "Por favor inicia sesión para continuar"
+  },
+  "validation": {
+    "required": "{{field}} es obligatorio",
+    "email": "Por favor ingresa una dirección de correo válida",
+    "minLength": "{{field}} debe tener al menos {{min}} caracteres",
+    "maxLength": "{{field}} debe tener no más de {{max}} caracteres",
+    "pattern": "El formato de {{field}} es inválido",
+    "unique": "{{field}} ya existe",
+    "passwordMatch": "Las contraseñas no coinciden"
+  },
+  "auth": {
+    "invalidCredentials": "Correo o contraseña inválidos",
+    "accountLocked": "La cuenta ha sido bloqueada",
+    "emailNotVerified": "Por favor verifica tu dirección de correo",
+    "sessionExpired": "Tu sesión ha expirado",
+    "invalidToken": "Token inválido o expirado"
+  },
+  "todos": {
+    "loadFailed": "Error al cargar tareas",
+    "saveFailed": "Error al guardar tarea",
+    "deleteFailed": "Error al eliminar tarea",
+    "notFound": "Tarea no encontrada"
+  },
+  "team": {
+    "inviteFailed": "Error al enviar invitación",
+    "removeFailed": "Error al eliminar miembro del equipo",
+    "updateFailed": "Error al actualizar rol del miembro",
+    "notAuthorized": "No estás autorizado para gestionar miembros del equipo"
+  },
+  "billing": {
+    "paymentFailed": "El pago falló",
+    "cardDeclined": "La tarjeta fue rechazada",
+    "insufficientFunds": "Fondos insuficientes",
+    "updateFailed": "Error al actualizar método de pago",
+    "cancelFailed": "Error al cancelar suscripción"
+  },
+  "codes": {
+    "AUTH_INVALID_CREDENTIALS": "Correo o contraseña inválidos",
+    "AUTH_SESSION_EXPIRED": "Tu sesión ha expirado. Por favor inicia sesión de nuevo",
+    "AUTH_INSUFFICIENT_PERMISSIONS": "No tienes permisos para realizar esta acción",
+    "AUTH_ACCOUNT_LOCKED": "Tu cuenta ha sido bloqueada. Por favor contacta soporte",
+    "AUTH_NOT_AUTHENTICATED": "Por favor inicia sesión para continuar",
+    "VAL_REQUIRED_FIELD": "{{field}} es obligatorio",
+    "VAL_INVALID_FORMAT": "Por favor ingresa un formato válido",
+    "VAL_INVALID_EMAIL": "Por favor ingresa una dirección de correo válida",
+    "VAL_PASSWORD_TOO_WEAK": "La contraseña debe tener al menos 8 caracteres",
+    "BIZ_LIMIT_EXCEEDED": "Has alcanzado el límite de tu plan para {{resource}}",
+    "BIZ_DUPLICATE_ENTRY": "Este {{resource}} ya existe",
+    "BIZ_NOT_FOUND": "{{resource}} no encontrado",
+    "BIZ_INVALID_STATE": "Esta acción no puede realizarse en el estado actual",
+    "BIZ_PAYMENT_FAILED": "El pago falló. Por favor revisa tu método de pago",
+    "SYS_SERVER_ERROR": "Algo salió mal. Por favor intenta de nuevo",
+    "SYS_RATE_LIMIT": "Demasiadas solicitudes. Por favor reduce la velocidad",
+    "SYS_CONFIG_ERROR": "Error de configuración. Por favor contacta soporte",
+    "NET_CONNECTION_ERROR": "Problema de conexión. Por favor revisa tu internet",
+    "NET_TIMEOUT": "La solicitud tomó demasiado tiempo. Por favor intenta de nuevo"
+  },
+  "actions": {
+    "retry": "Intentar de Nuevo",
+    "login": "Iniciar Sesión",
+    "upgrade": "Actualizar Plan",
+    "support": "Contactar Soporte",
+    "goBack": "Volver",
+    "dismiss": "Descartar"
+  },
+  "server": {
+    "validationFailed": "Error de validación",
+    "alreadyMember": "Ya es miembro",
+    "invitationAlreadySent": "Ya se envió una invitación",
+    "cannotChangeOwnerRole": "No se puede cambiar el rol del propietario",
+    "failedToUpdateRole": "Error al actualizar rol",
+    "invitationCreationFailed": "Error al crear invitación",
+    "invitationCancellationFailed": "Error al cancelar invitación",
+    "onlyPendingInvitationsResent": "Solo se pueden reenviar invitaciones pendientes",
+    "failedToCancelInvitation": "Error al cancelar invitación existente",
+    "failedToCreateInvitation": "Error al crear nueva invitación",
+    "organizationIdRequired": "ID de organización requerido",
+    "noOrganizationContext": "No hay ID de organización en el contexto",
+    "paymentFailed": "Pago fallido",
+    "checkoutSessionFailed": "Error al crear sesión de pago - no se devolvió URL",
+    "billingPortalFailed": "Error al crear sesión del portal de facturación",
+    "noBillingHistory": "No hay historial de facturación disponible. Por favor suscríbete a un plan primero.",
+    "failedToAcceptInvitation": "Error al aceptar invitación",
+    "failedToCreateOrganization": "Error al crear organización",
+    "invitationNotFoundOrExpired": "Invitación no encontrada o expirada",
+    "defaultInviterName": "Miembro del Equipo",
+    "saveFailed": "Error al guardar",
+    "genericError": "Ocurrió un error"
+  },
+  "fields": {
+    "email": "Correo electrónico",
+    "name": "Nombre",
+    "organization": "Organización"
+  },
+  "titles": {
+    "error": "Error",
+    "validationError": "Por favor revisa tu información",
+    "networkError": "Problema de Conexión",
+    "permissionError": "Acceso Denegado",
+    "notFound": "No Encontrado",
+    "serverError": "Error del Servidor"
+  }
+}

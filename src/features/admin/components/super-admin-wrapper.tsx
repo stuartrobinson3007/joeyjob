@@ -1,37 +1,39 @@
 /**
  * Super Admin Wrapper Component
- * 
+ *
  * Wraps the entire application with a purple border and admin controls strip
- * when the super admin is impersonating another user. Provides visual indication 
+ * when the super admin is impersonating another user. Provides visual indication
  * and quick access to exit impersonation functionality.
  */
 
-import { ShieldUser, X } from 'lucide-react';
-import { authClient } from '@/lib/auth/auth-client';
-import { useCallback, useMemo, memo } from 'react';
-import { useSession } from '@/lib/auth/auth-hooks';
+import { ShieldUser, X } from 'lucide-react'
+import { useCallback, useMemo, memo } from 'react'
+
+import { authClient } from '@/lib/auth/auth-client'
+import { useSession } from '@/lib/auth/auth-hooks'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 // Corner mask SVG component for creating rounded corner illusion
 const CornerMask = ({
   corner,
-  size = 10
+  size = 10,
 }: {
-  corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  size?: number;
+  corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  size?: number
 }) => {
   const positions = {
     'top-left': 'top-[40px] left-[5px]',
     'top-right': 'top-[40px] right-[5px]',
     'bottom-left': 'bottom-[5px] left-[5px]',
-    'bottom-right': 'bottom-[5px] right-[5px]'
-  };
+    'bottom-right': 'bottom-[5px] right-[5px]',
+  }
 
   const paths = {
     'top-left': `M ${size},0 A ${size},${size} 0 0,0 0,${size} L 0,0 Z`,
     'top-right': `M ${size},${size} A ${size},${size} 0 0,0 0,0 L ${size},0 Z`,
     'bottom-left': `M 0,0 A ${size},${size} 0 0,0 ${size},${size} L 0,${size} Z`,
-    'bottom-right': `M 0,${size} A ${size},${size} 0 0,0 ${size},0 L ${size},${size} Z`
-  };
+    'bottom-right': `M 0,${size} A ${size},${size} 0 0,0 ${size},0 L ${size},${size} Z`,
+  }
 
   return (
     <svg
@@ -40,21 +42,18 @@ const CornerMask = ({
       height={size}
       style={{ zIndex: 51 }}
     >
-      <path
-        d={paths[corner]}
-        className='fill-purple-700'
-      />
+      <path d={paths[corner]} className="fill-purple-700" />
     </svg>
-  );
-};
-
-interface SuperAdminButton {
-  onClick: () => void;
-  title?: string;
-  children: React.ReactNode;
+  )
 }
 
-const SuperAdminButton = ({ onClick, title, children }: SuperAdminButton) => (
+interface SuperAdminButtonProps {
+  onClick: () => void
+  title?: string
+  children: React.ReactNode
+}
+
+const SuperAdminButton = ({ onClick, title, children }: SuperAdminButtonProps) => (
   <button
     onClick={onClick}
     title={title}
@@ -62,15 +61,15 @@ const SuperAdminButton = ({ onClick, title, children }: SuperAdminButton) => (
   >
     {children}
   </button>
-);
+)
 
 export interface SuperAdminWrapperProps {
-  isSuperAdmin: boolean;
-  user?: any; // Use any to match better-auth user type
-  isImpersonating?: boolean;
-  impersonatedUser?: any; // Use any to match better-auth user type
-  onExitImpersonation?: () => void;
-  onOpenSettings?: () => void;
+  isSuperAdmin: boolean
+  user?: any // Use any to match better-auth user type
+  isImpersonating?: boolean
+  impersonatedUser?: any // Use any to match better-auth user type
+  onExitImpersonation?: () => void
+  onOpenSettings?: () => void
 }
 
 export const SuperAdminWrapper = memo(function SuperAdminWrapper({
@@ -79,27 +78,27 @@ export const SuperAdminWrapper = memo(function SuperAdminWrapper({
   onExitImpersonation,
   onOpenSettings,
 }: SuperAdminWrapperProps) {
+  const { t } = useTranslation('admin')
 
   // Show frame when superadmin is impersonating a user
-  const shouldShowFrame = isImpersonating;
+  const shouldShowFrame = isImpersonating
 
   if (!shouldShowFrame) {
-    return null;
+    return null
   }
 
-  const displayName = `${impersonatedUser?.firstName || ''} ${impersonatedUser?.lastName || ''}`.trim() || impersonatedUser?.email;
+  const displayName =
+    `${impersonatedUser?.firstName || ''} ${impersonatedUser?.lastName || ''}`.trim() ||
+    impersonatedUser?.email
 
   const handleExitClick = () => {
-
     if (onExitImpersonation) {
-      onExitImpersonation();
+      onExitImpersonation()
     }
-  };
+  }
 
   return (
-    <div
-      className="fixed inset-0 z-50 pointer-events-none outline outline-purple-700 outline-5 -outline-offset-5"
-    >
+    <div className="fixed inset-0 z-50 pointer-events-none outline outline-purple-700 outline-5 -outline-offset-5">
       {/* Corner masks for rounded corner illusion */}
       <CornerMask corner="top-left" />
       <CornerMask corner="top-right" />
@@ -115,30 +114,23 @@ export const SuperAdminWrapper = memo(function SuperAdminWrapper({
       >
         {/* Left side - Super Admin indicator */}
         <div className="flex items-center gap-2 text-sm">
-          <ShieldUser className='size-6' />
+          <ShieldUser className="size-6" />
           <div className="flex items-center gap-2 bg-purple-950 py-1 px-2.5 rounded-md text-purple-50">
-            <span className="font-medium">Impersonating {displayName}</span>
+            <span className="font-medium">{t('impersonation.impersonating', { displayName })}</span>
           </div>
         </div>
 
         {/* Right side - Super Admin controls */}
         <div className="flex items-center gap-2">
-          {onOpenSettings && (
-            <SuperAdminButton onClick={onOpenSettings}>
-              ⚙️
-            </SuperAdminButton>
-          )}
-          <SuperAdminButton
-            onClick={handleExitClick}
-            title="Exit impersonation and return to users table"
-          >
+          {onOpenSettings && <SuperAdminButton onClick={onOpenSettings}>⚙️</SuperAdminButton>}
+          <SuperAdminButton onClick={handleExitClick} title={t('users.exitImpersonation')}>
             <X className="h-4 w-4" />
           </SuperAdminButton>
         </div>
       </div>
     </div>
-  );
-});
+  )
+})
 
 /**
  * Hook to manage super admin wrapper state and detection using better-auth
@@ -146,39 +138,42 @@ export const SuperAdminWrapper = memo(function SuperAdminWrapper({
  */
 export function useSuperAdminWrapper() {
   // Session should already be loaded when this hook is called
-  const { data: session } = useSession();
+  const { data: session } = useSession()
 
   // Handle exit impersonation - stable function
   const handleExitImpersonation = useCallback(async () => {
     try {
-      await authClient.admin.stopImpersonating();
-      window.location.href = '/superadmin/users';
+      await authClient.admin.stopImpersonating()
+      window.location.href = '/superadmin/users'
     } catch (error) {
-      console.error('Failed to stop impersonation:', error);
+      console.error('Failed to stop impersonation:', error)
     }
-  }, []);
+  }, [])
 
   // Check admin status
-  const isSuperAdmin = session?.user?.role === 'superadmin';
-  const isImpersonating = !!session?.session?.impersonatedBy;
+  const isSuperAdmin = session?.user?.role === 'superadmin'
+  const isImpersonating = !!session?.session?.impersonatedBy
 
   // Stable memoization with only primitive dependencies
-  const result = useMemo(() => ({
-    isSuperAdmin,
-    isImpersonating,
-    impersonatedUser: isImpersonating ? session?.user : undefined,
-    user: session?.user,
-    onExitImpersonation: handleExitImpersonation,
-    shouldShowSuperAdminFrame: isImpersonating,
-    superAdminBarHeight: 40,
-  }), [
-    isSuperAdmin,
-    isImpersonating,
-    session?.user?.id,  // Use ID instead of full object
-    session?.user?.role,
-    session?.session?.impersonatedBy,
-    handleExitImpersonation
-  ]);
+  const result = useMemo(
+    () => ({
+      isSuperAdmin,
+      isImpersonating,
+      impersonatedUser: isImpersonating ? session?.user : undefined,
+      user: session?.user,
+      onExitImpersonation: handleExitImpersonation,
+      shouldShowSuperAdminFrame: isImpersonating,
+      superAdminBarHeight: 40,
+    }),
+    [
+      isSuperAdmin,
+      isImpersonating,
+      session?.user?.id, // Use ID instead of full object
+      session?.user?.role,
+      session?.session?.impersonatedBy,
+      handleExitImpersonation,
+    ]
+  )
 
-  return result;
+  return result
 }

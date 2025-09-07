@@ -4,10 +4,11 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { getRoleByName, roles } from '@/lib/auth/roles-client'
+import { getRoleByName } from '@/lib/auth/roles-client'
 
 export function usePermissions() {
   const { data: session } = useSession()
@@ -29,20 +30,20 @@ export function usePermissions() {
       setIsLoading(true)
       try {
         const response = await authClient.organization.listMembers({
-          query: { organizationId: activeOrganizationId }
+          query: { organizationId: activeOrganizationId },
         })
 
         // Handle different response structures from Better Auth
         let membersArray: any[] = []
-        
+
         if (response && 'members' in response) {
-          membersArray = response.members || []
+          membersArray = Array.isArray(response.members) ? response.members : []
         } else if (response && 'data' in response) {
           const data = response.data
           if (Array.isArray(data)) {
             membersArray = data
           } else if (data && 'members' in data) {
-            membersArray = data.members || []
+            membersArray = Array.isArray(data.members) ? data.members : []
           }
         } else if (Array.isArray(response)) {
           membersArray = response
@@ -71,22 +72,23 @@ export function usePermissions() {
       if (!memberRole || !roleConfig) {
         return false
       }
-      
+
       const actions = Array.isArray(action) ? action : [action]
-      
+
       // Check if the role has the required permissions
       const roleStatements = roleConfig.statements
       const resourcePermissions = roleStatements[resource as keyof typeof roleStatements]
-      
+
       if (!resourcePermissions) {
         return false
       }
-      
+
       // Check if all required actions are allowed
-      const hasAllPermissions = actions.every(requiredAction => 
-        Array.isArray(resourcePermissions) && resourcePermissions.includes(requiredAction as any)
+      const hasAllPermissions = actions.every(
+        requiredAction =>
+          Array.isArray(resourcePermissions) && resourcePermissions.includes(requiredAction as any)
       )
-      
+
       return hasAllPermissions
     }
 
@@ -117,34 +119,34 @@ export function usePermissions() {
     return {
       // Generic permission check
       hasPermission,
-      
+
       // Todo permissions
       canCreateTodo,
       canReadTodo,
       canUpdateTodo,
       canDeleteTodo,
       canAssignTodo,
-      
+
       // Member permissions
       canManageMembers,
       canInviteMembers,
       canCancelInvitations,
-      
+
       // Billing permissions
       canViewBilling,
       canManageBilling,
-      
+
       // Organization permissions
       canUpdateOrganization,
       canDeleteOrganization,
-      
+
       // Role checks
       isAdmin,
       isOwner,
-      
+
       // Raw data
       role: memberRole,
-      isLoading
+      isLoading,
     }
   }, [memberRole])
 

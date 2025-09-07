@@ -1,4 +1,5 @@
 import React from 'react'
+
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/taali-ui/ui/separator'
 
@@ -11,17 +12,17 @@ interface PageHeaderProps {
 
 /**
  * Reusable page header component that provides consistent layout and styling.
- * 
+ *
  * Usage examples:
- * 
+ *
  * Simple title:
- * <PageHeader title="Settings" />
- * 
+ * <PageHeader title={t('title')} />
+ *
  * With actions:
- * <PageHeader title="Team" actions={<Button>Invite Member</Button>} />
- * 
+ * <PageHeader title={t('title')} actions={<Button>{t('common:actions.invite')}</Button>} />
+ *
  * With custom breadcrumb:
- * <PageHeader breadcrumb={<Breadcrumb>...</Breadcrumb>} actions={<Button>Done</Button>} />
+ * <PageHeader breadcrumb={<Breadcrumb>...</Breadcrumb>} actions={<Button>{t('common:actions.done')}</Button>} />
  */
 export function PageHeader({ title, breadcrumb, actions, children }: PageHeaderProps) {
   return (
@@ -29,19 +30,9 @@ export function PageHeader({ title, breadcrumb, actions, children }: PageHeaderP
       <div className="flex items-center gap-2 px-4">
         <SidebarTrigger className="" />
         <Separator orientation="vertical" className="mr-2 h-4!" />
-        {breadcrumb ? (
-          breadcrumb
-        ) : title ? (
-          <span className="text-sm">{title}</span>
-        ) : (
-          children
-        )}
+        {breadcrumb ? breadcrumb : title ? <span className="text-sm">{title}</span> : children}
       </div>
-      {actions && (
-        <div className="ml-auto px-4">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="ml-auto px-4">{actions}</div>}
     </header>
   )
 }

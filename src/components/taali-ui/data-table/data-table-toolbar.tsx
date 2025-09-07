@@ -1,17 +1,20 @@
-"use client"
+'use client'
 
-import { Table } from "@tanstack/react-table"
-import { X } from "lucide-react"
-import * as React from "react"
+import { Table } from '@tanstack/react-table'
+import { X } from 'lucide-react'
+import * as React from 'react'
 
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { DataTableFacetedFilter } from "./data-table-faceted-filter"
-import { DataTableDynamicFacetedFilter } from "./data-table-dynamic-faceted-filter"
-import { DataTableDateFilter } from "./data-table-date-filter"
-import { DataTableNumberFilter } from "./data-table-number-filter"
-import { DataTableConfig, DataTableColumnMeta } from "./types"
-import { cn } from "../lib/utils"
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { cn } from '../lib/utils'
+
+import { DataTableFacetedFilter } from './data-table-faceted-filter'
+import { DataTableDynamicFacetedFilter } from './data-table-dynamic-faceted-filter'
+import { DataTableDateFilter } from './data-table-date-filter'
+import { DataTableNumberFilter } from './data-table-number-filter'
+import { DataTableConfig, DataTableColumnMeta } from './types'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -24,6 +27,7 @@ export function DataTableToolbar<TData>({
   config = {},
   className,
 }: DataTableToolbarProps<TData>) {
+  const { t: tCommon } = useTranslation('common')
   const isFiltered = table.getState().columnFilters.length > 0
   const { searchConfig } = config
 
@@ -35,7 +39,7 @@ export function DataTableToolbar<TData>({
   )
 
   const searchValue = React.useMemo(() => {
-    return (table.getState().globalFilter ?? "") as string
+    return (table.getState().globalFilter ?? '') as string
   }, [table.getState().globalFilter])
 
   const renderFilter = (columnId: string) => {
@@ -47,50 +51,50 @@ export function DataTableToolbar<TData>({
     if (!filterConfig) return null
 
     switch (filterConfig.type) {
-      case "select":
-      case "multiSelect":
+      case 'select':
+      case 'multiSelect':
         return (
           <DataTableFacetedFilter
             key={columnId}
             column={column}
-            title={filterConfig.title || column.columnDef.header as string}
+            title={filterConfig.title || (column.columnDef.header as string)}
             options={filterConfig.options || []}
-            multiple={filterConfig.type === "multiSelect"}
+            multiple={filterConfig.type === 'multiSelect'}
           />
         )
-      case "dynamicSelect":
-      case "dynamicMultiSelect":
+      case 'dynamicSelect':
+      case 'dynamicMultiSelect':
         if (!filterConfig.loadOptions) return null
         return (
           <DataTableDynamicFacetedFilter
             key={columnId}
             column={column}
-            title={filterConfig.title || column.columnDef.header as string}
+            title={filterConfig.title || (column.columnDef.header as string)}
             loadOptions={filterConfig.loadOptions}
-            multiple={filterConfig.type === "dynamicMultiSelect"}
+            multiple={filterConfig.type === 'dynamicMultiSelect'}
           />
         )
-      case "date":
-      case "dateRange":
+      case 'date':
+      case 'dateRange':
         return (
           <DataTableDateFilter
             key={columnId}
             column={column}
-            title={filterConfig.title || column.columnDef.header as string}
-            isRange={filterConfig.type === "dateRange"}
+            title={filterConfig.title || (column.columnDef.header as string)}
+            isRange={filterConfig.type === 'dateRange'}
           />
         )
-      case "number":
-      case "numberRange":
+      case 'number':
+      case 'numberRange':
         return (
           <DataTableNumberFilter
             key={columnId}
             column={column}
-            title={filterConfig.title || column.columnDef.header as string}
+            title={filterConfig.title || (column.columnDef.header as string)}
             min={filterConfig.min}
             max={filterConfig.max}
             step={filterConfig.step}
-            isRange={filterConfig.type === "numberRange"}
+            isRange={filterConfig.type === 'numberRange'}
           />
         )
       default:
@@ -99,24 +103,24 @@ export function DataTableToolbar<TData>({
   }
 
   const columnsWithFilters = React.useMemo(() => {
-    return table.getAllColumns().filter((column) => {
+    return table.getAllColumns().filter(column => {
       const meta = column.columnDef.meta as DataTableColumnMeta
       return !!meta?.filterConfig
     })
   }, [table])
 
   return (
-    <div className={cn("flex items-center justify-between", className)}>
+    <div className={cn('flex items-center justify-between', className)}>
       <div className="flex flex-1 items-center space-x-2">
         <Input
-          placeholder={searchConfig?.placeholder || "Search..."}
+          placeholder={searchConfig?.placeholder || tCommon('actions.search')}
           value={searchValue}
-          onChange={(event) => {
+          onChange={event => {
             handleSearch(event.target.value)
           }}
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        {columnsWithFilters.map((column) => renderFilter(column.id))}
+        {columnsWithFilters.map(column => renderFilter(column.id))}
         {isFiltered && (
           <Button
             variant="ghost"

@@ -1,13 +1,17 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getWebRequest } from '@tanstack/react-start/server'
+import { and, eq } from 'drizzle-orm'
+import { z } from 'zod'
+
+import errorTranslations from '@/i18n/locales/en/errors.json'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { member, invitation, user } from '@/database/schema'
-import { and, eq } from 'drizzle-orm'
-import { z } from 'zod'
 import { checkPermission } from '@/lib/utils/permissions'
 import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
 
 const getTeamMembersSchema = z.object({
   organizationId: z.string(),
@@ -15,34 +19,34 @@ const getTeamMembersSchema = z.object({
   pageSize: z.number().min(1).max(100).default(10),
   sortBy: z.enum(['name', 'email', 'role', 'status', 'joinedAt']).default('joinedAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
-  search: z.string().optional()
+  search: z.string().optional(),
 })
 
 const inviteMemberSchema = z.object({
   email: z.string().email(),
   role: z.enum(['viewer', 'member', 'admin', 'owner']),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 const removeMemberSchema = z.object({
   memberIdOrEmail: z.string(),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 const updateMemberRoleSchema = z.object({
   memberId: z.string(),
   role: z.enum(['viewer', 'member', 'admin', 'owner']),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 const cancelInvitationSchema = z.object({
   invitationId: z.string(),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 const resendInvitationSchema = z.object({
   invitationId: z.string(),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 export type TeamMember = {
@@ -67,7 +71,7 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
     const offset = (data.page - 1) * data.pageSize
 
     // Fetch members with user details
-    let membersQuery = db
+    const membersQuery = db
       .select({
         id: member.id,
         userId: member.userId,
@@ -75,48 +79,43 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
         createdAt: member.createdAt,
         userName: user.name,
         userEmail: user.email,
-        userImage: user.image
+        userImage: user.image,
       })
       .from(member)
       .leftJoin(user, eq(member.userId, user.id))
       .where(eq(member.organizationId, data.organizationId))
 
     // Fetch invitations
-    let invitationsQuery = db
+    const invitationsQuery = db
       .select({
         id: invitation.id,
         email: invitation.email,
         role: invitation.role,
         status: invitation.status,
         expiresAt: invitation.expiresAt,
-        inviterName: user.name
+        inviterName: user.name,
       })
       .from(invitation)
       .leftJoin(user, eq(invitation.inviterId, user.id))
       .where(
-        and(
-          eq(invitation.organizationId, data.organizationId),
-          eq(invitation.status, 'pending')
-        )
+        and(eq(invitation.organizationId, data.organizationId), eq(invitation.status, 'pending'))
       )
 
     // Apply search if provided - need to fetch all then filter
-    const [membersResult, invitationsResult] = await Promise.all([
-      membersQuery,
-      invitationsQuery
-    ])
-    
+    const [membersResult, invitationsResult] = await Promise.all([membersQuery, invitationsQuery])
+
     // Filter results if search is provided
     let filteredMembers = membersResult
     let filteredInvitations = invitationsResult
-    
+
     if (data.search) {
       const searchLower = data.search.toLowerCase()
-      filteredMembers = membersResult.filter(m => 
-        m.userName?.toLowerCase().includes(searchLower) || 
-        m.userEmail?.toLowerCase().includes(searchLower)
+      filteredMembers = membersResult.filter(
+        m =>
+          m.userName?.toLowerCase().includes(searchLower) ||
+          m.userEmail?.toLowerCase().includes(searchLower)
       )
-      filteredInvitations = invitationsResult.filter(i => 
+      filteredInvitations = invitationsResult.filter(i =>
         i.email.toLowerCase().includes(searchLower)
       )
     }
@@ -133,7 +132,7 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
         joinedAt: m.createdAt,
         expiresAt: null,
         avatar: m.userImage,
-        userId: m.userId
+        userId: m.userId,
       })),
       ...filteredInvitations.map(i => ({
         id: i.id,
@@ -145,38 +144,42 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
         joinedAt: null,
         expiresAt: i.expiresAt,
         avatar: null,
-        userId: null
-      }))
+        userId: null,
+      })),
     ]
 
     // Sort the merged data
     teamMembers.sort((a, b) => {
       let compareValue = 0
-      
+
       switch (data.sortBy) {
-        case 'name':
+        case 'name': {
           const aName = a.name || a.email
           const bName = b.name || b.email
           compareValue = aName.localeCompare(bName)
           break
+        }
         case 'email':
           compareValue = a.email.localeCompare(b.email)
           break
-        case 'role':
+        case 'role': {
           const roleOrder = { owner: 0, admin: 1, member: 2, viewer: 3 }
-          compareValue = (roleOrder[a.role as keyof typeof roleOrder] || 99) - 
-                        (roleOrder[b.role as keyof typeof roleOrder] || 99)
+          compareValue =
+            (roleOrder[a.role as keyof typeof roleOrder] || 99) -
+            (roleOrder[b.role as keyof typeof roleOrder] || 99)
           break
+        }
         case 'status':
           compareValue = a.status.localeCompare(b.status)
           break
-        case 'joinedAt':
+        case 'joinedAt': {
           const aDate = a.joinedAt || a.expiresAt || new Date(0)
           const bDate = b.joinedAt || b.expiresAt || new Date(0)
           compareValue = aDate.getTime() - bDate.getTime()
           break
+        }
       }
-      
+
       return data.sortOrder === 'asc' ? compareValue : -compareValue
     })
 
@@ -193,8 +196,8 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
         totalCount,
         totalPages,
         hasNext: data.page < totalPages,
-        hasPrevious: data.page > 1
-      }
+        hasPrevious: data.page > 1,
+      },
     }
   })
 
@@ -211,16 +214,16 @@ export const inviteTeamMember = createServerFn({ method: 'POST' })
       .select()
       .from(member)
       .leftJoin(user, eq(member.userId, user.id))
-      .where(
-        and(
-          eq(member.organizationId, data.organizationId),
-          eq(user.email, data.email)
-        )
-      )
+      .where(and(eq(member.organizationId, data.organizationId), eq(user.email, data.email)))
       .limit(1)
 
     if (existingMember.length > 0) {
-      throw new Error('This user is already a member of the organization')
+      throw new AppError(
+        ERROR_CODES.BIZ_DUPLICATE_ENTRY,
+        400,
+        { resource: 'member' },
+        errorTranslations.server.alreadyMember
+      )
     }
 
     // Check for existing pending invitation
@@ -237,7 +240,12 @@ export const inviteTeamMember = createServerFn({ method: 'POST' })
       .limit(1)
 
     if (existingInvite.length > 0) {
-      throw new Error('An invitation has already been sent to this email')
+      throw new AppError(
+        ERROR_CODES.BIZ_DUPLICATE_ENTRY,
+        400,
+        { resource: 'invitation' },
+        errorTranslations.server.invitationAlreadySent
+      )
     }
 
     // Create invitation using Better Auth API
@@ -246,12 +254,17 @@ export const inviteTeamMember = createServerFn({ method: 'POST' })
       body: {
         organizationId: data.organizationId,
         email: data.email,
-        role: data.role
-      }
+        role: data.role,
+      },
     })
 
     if (!result) {
-      throw new Error('Failed to create invitation')
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        errorTranslations.server.invitationCreationFailed
+      )
     }
 
     return result
@@ -269,12 +282,12 @@ export const removeTeamMember = createServerFn({ method: 'POST' })
       headers: request.headers,
       body: {
         organizationId: data.organizationId,
-        memberIdOrEmail: data.memberIdOrEmail
-      }
+        memberIdOrEmail: data.memberIdOrEmail,
+      },
     })
 
     if (!result) {
-      throw new Error('Failed to remove member')
+      throw new AppError(ERROR_CODES.SYS_SERVER_ERROR, 500, undefined, 'Failed to remove member')
     }
 
     return result
@@ -289,14 +302,15 @@ export const updateTeamMemberRole = createServerFn({ method: 'POST' })
     const request = getWebRequest()
 
     // Prevent changing owner role
-    const targetMember = await db
-      .select()
-      .from(member)
-      .where(eq(member.id, data.memberId))
-      .limit(1)
+    const targetMember = await db.select().from(member).where(eq(member.id, data.memberId)).limit(1)
 
     if (targetMember[0]?.role === 'owner') {
-      throw new Error('Cannot change the role of the organization owner')
+      throw new AppError(
+        ERROR_CODES.BIZ_INVALID_STATE,
+        400,
+        undefined,
+        errorTranslations.server.cannotChangeOwnerRole
+      )
     }
 
     const result = await auth.api.updateMemberRole({
@@ -304,12 +318,17 @@ export const updateTeamMemberRole = createServerFn({ method: 'POST' })
       body: {
         organizationId: data.organizationId,
         memberId: data.memberId,
-        role: data.role
-      }
+        role: data.role,
+      },
     })
 
     if (!result) {
-      throw new Error('Failed to update role')
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        errorTranslations.server.failedToUpdateRole
+      )
     }
 
     return result
@@ -331,18 +350,23 @@ export const cancelTeamInvitation = createServerFn({ method: 'POST' })
       .limit(1)
 
     if (!invite[0] || invite[0].organizationId !== data.organizationId) {
-      throw new Error('Invitation not found')
+      throw AppError.notFound('Invitation')
     }
 
     const result = await auth.api.cancelInvitation({
       headers: request.headers,
       body: {
-        invitationId: data.invitationId
-      }
+        invitationId: data.invitationId,
+      },
     })
 
     if (!result) {
-      throw new Error('Failed to cancel invitation')
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        errorTranslations.server.invitationCancellationFailed
+      )
     }
 
     return result
@@ -366,23 +390,33 @@ export const resendTeamInvitation = createServerFn({ method: 'POST' })
       .limit(1)
 
     if (!invite[0] || invite[0].organizationId !== data.organizationId) {
-      throw new Error('Invitation not found')
+      throw AppError.notFound('Invitation')
     }
 
     if (invite[0].status !== 'pending') {
-      throw new Error('Can only resend pending invitations')
+      throw new AppError(
+        ERROR_CODES.BIZ_INVALID_STATE,
+        400,
+        undefined,
+        errorTranslations.server.onlyPendingInvitationsResent
+      )
     }
 
     // Cancel the existing invitation
     const cancelResult = await auth.api.cancelInvitation({
       headers: request.headers,
       body: {
-        invitationId: data.invitationId
-      }
+        invitationId: data.invitationId,
+      },
     })
 
     if (!cancelResult) {
-      throw new Error('Failed to cancel existing invitation')
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        errorTranslations.server.failedToCancelInvitation
+      )
     }
 
     // Create a new invitation with the same details
@@ -391,12 +425,17 @@ export const resendTeamInvitation = createServerFn({ method: 'POST' })
       body: {
         organizationId: data.organizationId,
         email: invite[0].email,
-        role: invite[0].role || 'member'
-      }
+        role: (invite[0].role as 'member' | 'admin' | 'owner' | 'viewer') || 'member',
+      },
     })
 
     if (!result) {
-      throw new Error('Failed to create new invitation')
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        errorTranslations.server.failedToCreateInvitation
+      )
     }
 
     return result
@@ -408,8 +447,8 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
   .validator((data: unknown) => {
     const params = data as { organizationId: string } & ServerQueryParams
     return {
+      ...params,
       organizationId: z.string().parse(params.organizationId),
-      ...params
     }
   })
   .handler(async ({ data }) => {
@@ -423,7 +462,7 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
     const searchTerm = data.search || ''
 
     // Fetch members with user details
-    let membersQuery = db
+    const membersQuery = db
       .select({
         id: member.id,
         userId: member.userId,
@@ -431,36 +470,30 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
         createdAt: member.createdAt,
         userName: user.name,
         userEmail: user.email,
-        userImage: user.image
+        userImage: user.image,
       })
       .from(member)
       .leftJoin(user, eq(member.userId, user.id))
       .where(eq(member.organizationId, data.organizationId))
 
     // Fetch invitations
-    let invitationsQuery = db
+    const invitationsQuery = db
       .select({
         id: invitation.id,
         email: invitation.email,
         role: invitation.role,
         status: invitation.status,
         expiresAt: invitation.expiresAt,
-        inviterName: user.name
+        inviterName: user.name,
       })
       .from(invitation)
       .leftJoin(user, eq(invitation.inviterId, user.id))
       .where(
-        and(
-          eq(invitation.organizationId, data.organizationId),
-          eq(invitation.status, 'pending')
-        )
+        and(eq(invitation.organizationId, data.organizationId), eq(invitation.status, 'pending'))
       )
 
-    const [membersResult, invitationsResult] = await Promise.all([
-      membersQuery,
-      invitationsQuery
-    ])
-    
+    const [membersResult, invitationsResult] = await Promise.all([membersQuery, invitationsQuery])
+
     // Transform and merge data
     let teamMembers: TeamMember[] = [
       ...membersResult.map(m => ({
@@ -473,7 +506,7 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
         joinedAt: m.createdAt,
         expiresAt: null,
         avatar: m.userImage,
-        userId: m.userId
+        userId: m.userId,
       })),
       ...invitationsResult.map(i => ({
         id: i.id,
@@ -485,27 +518,28 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
         joinedAt: null,
         expiresAt: i.expiresAt,
         avatar: null,
-        userId: null
-      }))
+        userId: null,
+      })),
     ]
 
     // Apply filters
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
-      teamMembers = teamMembers.filter(member => 
-        (member.name?.toLowerCase().includes(searchLower)) || 
-        member.email.toLowerCase().includes(searchLower)
+      teamMembers = teamMembers.filter(
+        member =>
+          member.name?.toLowerCase().includes(searchLower) ||
+          member.email.toLowerCase().includes(searchLower)
       )
     }
 
     // Apply role filter if specified
     if (data.filters?.role) {
-      teamMembers = teamMembers.filter(member => member.role === data.filters.role)
+      teamMembers = teamMembers.filter(member => member.role === data.filters!.role)
     }
 
     // Apply status filter if specified
     if (data.filters?.status) {
-      teamMembers = teamMembers.filter(member => member.status === data.filters.status)
+      teamMembers = teamMembers.filter(member => member.status === data.filters!.status)
     }
 
     // Apply sorting
@@ -513,31 +547,35 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
       const sort = data.sorting[0]
       teamMembers.sort((a, b) => {
         let compareValue = 0
-        
+
         switch (sort.id) {
-          case 'name':
+          case 'name': {
             const aName = a.name || a.email
             const bName = b.name || b.email
             compareValue = aName.localeCompare(bName)
             break
+          }
           case 'email':
             compareValue = a.email.localeCompare(b.email)
             break
-          case 'role':
+          case 'role': {
             const roleOrder = { owner: 0, admin: 1, member: 2, viewer: 3 }
-            compareValue = (roleOrder[a.role as keyof typeof roleOrder] || 99) - 
-                          (roleOrder[b.role as keyof typeof roleOrder] || 99)
+            compareValue =
+              (roleOrder[a.role as keyof typeof roleOrder] || 99) -
+              (roleOrder[b.role as keyof typeof roleOrder] || 99)
             break
+          }
           case 'status':
             compareValue = a.status.localeCompare(b.status)
             break
-          case 'joinedAt':
+          case 'joinedAt': {
             const aDate = a.joinedAt || a.expiresAt || new Date(0)
             const bDate = b.joinedAt || b.expiresAt || new Date(0)
             compareValue = aDate.getTime() - bDate.getTime()
             break
+          }
         }
-        
+
         return sort.desc ? -compareValue : compareValue
       })
     }
@@ -549,7 +587,7 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
     const response: ServerQueryResponse<TeamMember> = {
       data: paginatedMembers,
       totalCount,
-      pageCount
+      pageCount,
     }
 
     return response

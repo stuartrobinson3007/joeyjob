@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { db } from '../src/lib/db/db'
-import { todos, user, organization, member } from '../src/database/schema'
+import { todos, user, organization } from '../src/database/schema'
 import { nanoid } from 'nanoid'
 import { eq } from 'drizzle-orm'
 

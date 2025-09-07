@@ -1,8 +1,7 @@
 {
   "include": [
     "**/*.ts",
-    "**/*.tsx",
-    "AvatarUploadDialog.tsx.temp"
+    "**/*.tsx"
   ],
   "compilerOptions": {
     "target": "ES2022",

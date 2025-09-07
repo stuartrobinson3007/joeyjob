@@ -1,11 +1,14 @@
+import { Loader2 } from 'lucide-react'
+
 import { Button } from '@/components/taali-ui/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/taali-ui/ui/card'
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
-import { Loader2 } from 'lucide-react'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 export function SessionDisplay() {
   const { data: session, isPending } = useSession()
+  const { t } = useTranslation('profile')
 
   const handleSignOut = async () => {
     try {
@@ -24,25 +27,25 @@ export function SessionDisplay() {
   }
 
   if (!session) {
-    return <div>No session found</div>
+    return <div>{t('auth:sessions.notFound')}</div>
   }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle>Session Information</CardTitle>
+          <CardTitle>{t('auth:sessions.information')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="font-semibold mb-2">User</h3>
+            <h3 className="font-semibold mb-2">{t('common:labels.user')}</h3>
             <pre className="bg-muted p-3 rounded text-sm overflow-auto">
               {JSON.stringify(session.user, null, 2)}
             </pre>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-2">Session</h3>
+            <h3 className="font-semibold mb-2">{t('auth:sessions.session')}</h3>
             <pre className="bg-muted p-3 rounded text-sm overflow-auto">
               {JSON.stringify(session.session, null, 2)}
             </pre>
@@ -50,7 +53,7 @@ export function SessionDisplay() {
 
           <div className="pt-4 border-t">
             <Button onClick={handleSignOut} variant="destructive">
-              Sign Out
+              {t('common:actions.signOut')}
             </Button>
           </div>
         </CardContent>

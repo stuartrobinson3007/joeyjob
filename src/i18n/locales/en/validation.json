@@ -1,0 +1,62 @@
+{
+  "required": "This field is required",
+  "email": "Please enter a valid email address",
+  "minLength": "Must be at least {{min}} characters",
+  "maxLength": "Must be no more than {{max}} characters",
+  "pattern": "Invalid format",
+  "unique": "This value already exists",
+  "passwordMatch": "Passwords do not match",
+  "passwordStrength": "Password must contain at least 8 characters with numbers and letters",
+  "phoneNumber": "Please enter a valid phone number",
+  "url": "Please enter a valid URL",
+  "numeric": "Must be a number",
+  "positive": "Must be a positive number",
+  "integer": "Must be a whole number",
+  "date": "Please enter a valid date",
+  "future": "Date must be in the future",
+  "past": "Date must be in the past",
+  "organization": {
+    "name": {
+      "min": "Organization name must be at least {{min}} characters",
+      "max": "Organization name must be less than {{max}} characters",
+      "required": "Organization name is required"
+    },
+    "slug": {
+      "min": "Slug must be at least {{min}} characters",
+      "max": "Slug must be less than {{max}} characters",
+      "pattern": "Slug can only contain lowercase letters, numbers, and hyphens",
+      "required": "Slug is required",
+      "taken": "This slug is already taken",
+      "validationFailed": "Unable to validate slug availability"
+    }
+  },
+  "user": {
+    "email": {
+      "invalid": "Invalid email address",
+      "taken": "This email is already registered"
+    },
+    "firstName": {
+      "required": "First name is required",
+      "max": "First name is too long"
+    },
+    "lastName": {
+      "required": "Last name is required", 
+      "max": "Last name is too long"
+    },
+    "password": {
+      "min": "Password must be at least {{min}} characters",
+      "uppercase": "Password must contain at least one uppercase letter",
+      "lowercase": "Password must contain at least one lowercase letter",
+      "number": "Password must contain at least one number"
+    }
+  },
+  "todo": {
+    "title": {
+      "required": "Title is required",
+      "max": "Title must be less than {{max}} characters"
+    },
+    "description": {
+      "max": "Description must be less than {{max}} characters"
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "title": "Team",
+  "teamLabel": "Team",
+  "members": "Members",
+  "invite": {
+    "title": "Invite Team Member",
+    "email": "Email Address",
+    "emailPlaceholder": "member@example.com",
+    "role": "Role",
+    "sendInvite": "Send Invitation",
+    "pending": "Pending invitations",
+    "resend": "Resend",
+    "revoke": "Revoke",
+    "success": "Invitation sent successfully",
+    "error": "Failed to send invitation"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member",
+    "viewer": "Viewer",
+    "viewerDescription": "Read-only access",
+    "memberDescription": "Can create and edit",
+    "adminDescription": "Can manage team and settings"
+  },
+  "permissions": {
+    "billing": "Manage billing",
+    "members": "Manage members",
+    "settings": "Manage settings",
+    "delete": "Delete workspace"
+  },
+  "members": {
+    "search": "Search members...",
+    "filter": "Filter by role",
+    "sort": "Sort by",
+    "actions": "Actions",
+    "changeRole": "Change role",
+    "remove": "Remove from team",
+    "removeConfirm": "Are you sure you want to remove {{name}} from the team?"
+  },
+  "labels": {
+    "emailAddress": "Email Address",
+    "role": "Role"
+  },
+  "empty": {
+    "title": "No team members yet",
+    "subtitle": "Invite your first team member to collaborate"
+  },
+  "table": {
+    "member": "Member",
+    "email": "Email",
+    "role": "Role",
+    "status": "Status",
+    "joined": "Joined/Expires",
+    "actions": "Actions",
+    "search": "Search members...",
+    "noOrganization": "Please select an organization to view team members."
+  },
+  "status": {
+    "active": "Active",
+    "pending": "Pending"
+  },
+  "actions": {
+    "setViewer": "Set as Viewer",
+    "setMember": "Set as Member",
+    "setAdmin": "Set as Admin",
+    "setAsAdmin": "Set as Admin",
+    "inviteMember": "Invite Member",
+    "removeMember": "Remove Member",
+    "resendInvitation": "Resend Invitation",
+    "cancelInvitation": "Cancel Invitation"
+  },
+  "dialogs": {
+    "inviteDescription": "Send an invitation to join your workspace. They'll receive an email with instructions.",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "member@example.com",
+    "roleLabel": "Role",
+    "sendButton": "Send Invitation",
+    "cancel": "Cancel"
+  },
+  "messages": {
+    "notAuthorized": "You do not have permission to perform this action",
+    "emailRequired": "Please enter an email address",
+    "invitationSent": "Invitation sent!",
+    "memberRemoved": "Member removed successfully",
+    "roleUpdated": "Role updated successfully",
+    "invitationCancelled": "Invitation cancelled",
+    "invitationResent": "Invitation resent!",
+    "notAuthorizedToInvite": "Not authorized to invite members",
+    "invitationAlreadySent": "An invitation has already been sent to this email"
+  }
+}

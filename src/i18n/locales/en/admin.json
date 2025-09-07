@@ -1,0 +1,113 @@
+{
+  "title": "Super Admin",
+  "actions": {
+    "leave": "Leave Super Admin"
+  },
+  "sidebar": {
+    "subtitle": "System Management"
+  },
+  "users": {
+    "title": "Users",
+    "search": "Search users",
+    "impersonate": "Impersonate",
+    "suspend": "Suspend",
+    "activate": "Activate",
+    "delete": "Delete user",
+    "confirmDelete": "Are you sure you want to delete this user?",
+    "role": "Role",
+    "status": "Status",
+    "lastActive": "Last active",
+    "created": "Created",
+    "banned": "User banned",
+    "unbanned": "User unbanned",
+    "ban": "Ban",
+    "unban": "Unban",
+    "viewSessions": "View All Sessions",
+    "sessionsDescription": "View and manage all active sessions for this user.",
+    "exitImpersonation": "Exit impersonation and return to users table",
+    "userSessions": "User Sessions",
+    "joinedDate": "Joined Date",
+    "adminAction": "Admin action",
+    "superAdminRole": "Super Admin",
+    "admin": "Admin",
+    "user": "User",
+    "active": "Active",
+    "bannedStatus": "Banned",
+    "unknown": "Unknown"
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "search": "Search workspaces",
+    "createdDate": "Created Date",
+    "owner": "Owner",
+    "members": "Members",
+    "plan": "Plan",
+    "created": "Created",
+    "actions": "Actions",
+    "organization": "Organization",
+    "noSlug": "No slug",
+    "deleteOrganization": "Delete Organization"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "totalUsers": "Total Users",
+    "activeUsers": "Active Users",
+    "bannedUsers": "Banned Users",
+    "totalWorkspaces": "Total Organizations",
+    "totalMembers": "Total Members",
+    "avgMembersPerOrg": "Avg Members per Org",
+    "revenue": "Revenue"
+  },
+  "settings": {
+    "title": "System Settings",
+    "maintenance": "Maintenance Mode",
+    "registrations": "Allow Registrations",
+    "invitations": "Allow Invitations"
+  },
+  "messages": {
+    "banStatusUpdated": "User ban status updated",
+    "banStatusFailed": "Failed to update user ban status",
+    "allSessionsRevoked": "All user sessions revoked",
+    "allSessionsRevokeFailed": "Failed to revoke user sessions",
+    "sessionRevoked": "Session revoked",
+    "sessionRevokeFailed": "Failed to revoke session",
+    "sessionLoadFailed": "Failed to load user sessions",
+    "impersonationStarted": "Impersonation started",
+    "impersonationFailed": "Failed to impersonate user",
+    "organizationDeleted": "Organization deleted",
+    "organizationDeleteFailed": "Failed to delete organization"
+  },
+  "tables": {
+    "sessionToken": "Session Token",
+    "created": "Created",
+    "expires": "Expires",
+    "device": "Device",
+    "ipAddress": "IP Address",
+    "status": "Status",
+    "id": "ID",
+    "user": "User",
+    "joined": "Joined"
+  },
+  "sessions": {
+    "title": "User Sessions",
+    "description": "View and manage all active sessions for this user.",
+    "noSessions": "No active sessions found",
+    "revokeAll": "Revoke All Sessions",
+    "revoke": "Revoke session",
+    "created": "Created"
+  },
+  "impersonation": {
+    "impersonating": "Impersonating {{displayName}}",
+    "logoutDisabled": "Logout disabled during impersonation"
+  },
+  "pages": {
+    "dashboard": "Dashboard",
+    "userManagement": "User Management",
+    "workspaceManagement": "Workspace Management",
+    "analytics": "Analytics",
+    "systemSettings": "System Settings"
+  },
+  "errors": {
+    "accessDenied": "Access denied. Super admin role required."
+  }
+}

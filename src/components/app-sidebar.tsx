@@ -2,9 +2,11 @@
  * App Sidebar with role-based access control
  */
 
-import { useState, useEffect } from 'react';
-import { useRouter, useRouterState, Link } from '@tanstack/react-router';
-import { CheckSquare, Users, Settings, CreditCard } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { useRouter, useRouterState, Link } from '@tanstack/react-router'
+import { CheckSquare, Users, Settings, CreditCard } from 'lucide-react'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 import {
   Sidebar,
   SidebarContent,
@@ -15,117 +17,121 @@ import {
   SidebarMenuItem,
   SidebarGroup,
   SidebarGroupContent,
-} from '@/components/ui/sidebar';
-import { UserTile } from '@/components/user-tile';
-import { OrganizationSwitcher } from '@/features/organization/components/organization-switcher';
-import { authClient } from '@/lib/auth/auth-client';
-import { useSession } from '@/lib/auth/auth-hooks';
-import { useActiveOrganization } from '@/features/organization/lib/organization-context';
-import { queryClient } from '@/lib/hooks/providers';
+} from '@/components/ui/sidebar'
+import { UserTile } from '@/components/user-tile'
+import { OrganizationSwitcher } from '@/features/organization/components/organization-switcher'
+import { authClient } from '@/lib/auth/auth-client'
+import { useSession } from '@/lib/auth/auth-hooks'
+import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { queryClient } from '@/lib/hooks/providers'
 
-const baseNavigationItems = [
+// Type definitions
+
+// We'll define navigation items inside the component to access translations
+const getNavigationItems = (t: (key: string, options?: any) => string) => [
   {
-    title: "Todos",
-    url: "/",
+    title: t('common:navigation.todos'),
+    url: '/',
     icon: CheckSquare,
     requiresPermission: null, // Everyone can access
   },
   {
-    title: "Team",
-    url: "/team",
+    title: t('common:navigation.team'),
+    url: '/team',
     icon: Users,
     requiresPermission: null, // Everyone can access (with different capabilities)
   },
   {
-    title: "Billing",
-    url: "/billing",
+    title: t('common:navigation.billing'),
+    url: '/billing',
     icon: CreditCard,
     requiresPermission: 'billing',
   },
   {
-    title: "Settings",
-    url: "/settings",
+    title: t('common:navigation.settings'),
+    url: '/settings',
     icon: Settings,
     requiresPermission: 'workspace',
   },
-];
+]
 
 // Permission helper functions
 const hasAdminPermission = (role: string | null): boolean => {
-  return role === 'owner' || role === 'admin';
-};
+  return role === 'owner' || role === 'admin'
+}
 
 export function AppSidebar() {
-  const router = useRouter();
-  const { data: session } = useSession();
-  const { activeOrganizationId } = useActiveOrganization();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [memberRole, setMemberRole] = useState<string | null>(null);
+  const router = useRouter()
+  const { data: session } = useSession()
+  const { activeOrganizationId } = useActiveOrganization()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [memberRole, setMemberRole] = useState<string | null>(null)
+  const { t } = useTranslation('common')
 
   const currentPath = useRouterState({
-    select: (state) => state.location.pathname
-  });
+    select: state => state.location.pathname,
+  })
 
-  const user = session?.user;
-  const isImpersonating = !!(session as any)?.session?.impersonatedBy;
+  const user = session?.user
+  const isImpersonating = !!(session as any)?.session?.impersonatedBy
 
   // Get the user's role in the active organization
   useEffect(() => {
     async function fetchMemberRole() {
       if (!activeOrganizationId || !user?.id) {
-        setMemberRole(null);
-        return;
+        setMemberRole(null)
+        return
       }
 
       try {
         const response = await authClient.organization.listMembers({
-          query: { organizationId: activeOrganizationId }
-        });
+          query: { organizationId: activeOrganizationId },
+        })
 
         // Handle different response structures from Better Auth
-        let membersArray: any[] = [];
+        let membersArray: any[] = []
 
         if (response && 'members' in response) {
           // Response has members property
-          membersArray = response.members || [];
+          membersArray = Array.isArray(response.members) ? response.members : []
         } else if (response && 'data' in response) {
           // Response has data property
-          const data = response.data;
+          const data = response.data
           if (Array.isArray(data)) {
-            membersArray = data;
+            membersArray = data
           } else if (data && 'members' in data) {
-            membersArray = data.members || [];
+            membersArray = data.members || []
           }
         } else if (Array.isArray(response)) {
           // Response is directly an array
-          membersArray = response;
+          membersArray = response
         }
 
         // Find the current user's membership
-        const currentUserMember = membersArray.find((m: any) => m.userId === user.id);
-        setMemberRole(currentUserMember?.role || null);
-      } catch (error) {
-        setMemberRole(null);
+        const currentUserMember = membersArray.find((m: any) => m.userId === user.id)
+        setMemberRole(currentUserMember?.role || null)
+      } catch {
+        setMemberRole(null)
       }
     }
 
-    fetchMemberRole();
-  }, [activeOrganizationId, user?.id]);
+    fetchMemberRole()
+  }, [activeOrganizationId, user?.id])
 
   // Filter navigation items based on user permissions
-  const navigationItems = baseNavigationItems.filter(item => {
-    if (!item.requiresPermission) return true;
+  const navigationItems = getNavigationItems(t).filter(item => {
+    if (!item.requiresPermission) return true
 
     // Billing and Settings require admin or owner role
-    return hasAdminPermission(memberRole);
-  });
+    return hasAdminPermission(memberRole)
+  })
 
   const handleLogout = async () => {
     if (isLoggingOut) {
-      return;
+      return
     }
 
-    setIsLoggingOut(true);
+    setIsLoggingOut(true)
 
     try {
       await authClient.signOut({
@@ -133,57 +139,48 @@ export function AppSidebar() {
           onSuccess: async () => {
             // Clear local storage items
             if (typeof window !== 'undefined') {
-              const itemsToClear = [
-                'activeOrganizationId',
-                'admin_override_mode',
-              ];
+              const itemsToClear = ['activeOrganizationId', 'admin_override_mode']
 
               itemsToClear.forEach(item => {
                 try {
-                  localStorage.removeItem(item);
-                } catch (error) {
-                  console.error('Error clearing localStorage item:', item, error);
+                  localStorage.removeItem(item)
+                } catch {
+                  // Error clearing localStorage item silently ignored
                 }
-              });
+              })
 
               // Clear session storage
               try {
-                sessionStorage.clear();
-              } catch (error) {
-                console.error('Error clearing sessionStorage:', error);
+                sessionStorage.clear()
+              } catch {
+                // Error clearing sessionStorage silently ignored
               }
             }
 
             // IMPORTANT: Invalidate all queries to clear cached session
-            await queryClient.invalidateQueries();
-            await queryClient.clear();
+            await queryClient.invalidateQueries()
+            await queryClient.clear()
 
             // Navigate to signin
             router.navigate({
               to: '/auth/signin',
-              search: {
-                message: 'You have been logged out.',
-                type: 'info'
-              }
-            });
+            })
           },
-          onError: (error) => {
-            console.error('Logout error:', error);
-            setIsLoggingOut(false);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-      setIsLoggingOut(false);
+          onError: () => {
+            setIsLoggingOut(false)
+          },
+        },
+      })
+    } catch {
+      setIsLoggingOut(false)
     }
-  };
+  }
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="px-2 py-2">
-          <h2 className="text-lg font-semibold mb-2">App</h2>
+          <h2 className="text-lg font-semibold mb-2">{t('common:sidebar.app')}</h2>
           <OrganizationSwitcher />
         </div>
       </SidebarHeader>
@@ -192,16 +189,10 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {navigationItems.map(item => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={currentPath === item.url}
-                  >
-                    <Link
-                      to={item.url}
-                      className="flex items-center gap-3"
-                    >
+                  <SidebarMenuButton asChild isActive={currentPath === item.url}>
+                    <Link to={item.url} className="flex items-center gap-3">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -225,5 +216,5 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }

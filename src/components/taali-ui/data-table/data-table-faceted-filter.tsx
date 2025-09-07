@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { Column } from "@tanstack/react-table"
-import { Check, PlusCircle } from "lucide-react"
-import * as React from "react"
+import { Column } from '@tanstack/react-table'
+import { PlusCircle } from 'lucide-react'
+import * as React from 'react'
 
-import { Badge } from "../ui/badge"
-import { Button } from "../ui/button"
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
 import {
   Faceted,
   FacetedBadgeList,
@@ -15,12 +15,14 @@ import {
   FacetedInput,
   FacetedItem,
   FacetedList,
-  FacetedSeparator,
   FacetedTrigger,
-} from "../ui/faceted"
-import { Separator } from "../ui/separator"
-import { DataTableFilterOption } from "./types"
-import { cn } from "../lib/utils"
+} from '../ui/faceted'
+import { Separator } from '../ui/separator'
+import { cn } from '../lib/utils'
+
+import { DataTableFilterOption } from './types'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -35,6 +37,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   options,
   multiple = true,
 }: DataTableFacetedFilterProps<TData, TValue>) {
+  const { t } = useTranslation('common')
   const selectedValues = column?.getFilterValue() as string[] | string | undefined
   const normalizedValues = React.useMemo(() => {
     if (!selectedValues) return []
@@ -53,7 +56,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   return (
     <Faceted
       value={multiple ? normalizedValues : normalizedValues[0]}
-      onValueChange={handleValueChange as any}
+      onValueChange={handleValueChange}
       multiple={multiple}
     >
       <FacetedTrigger asChild>
@@ -70,16 +73,13 @@ export function DataTableFacetedFilter<TData, TValue>({
               />
               <div className="hidden space-x-1 lg:flex">
                 {normalizedValues.length > 2 ? (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal"
-                  >
+                  <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                     {normalizedValues.length} selected
                   </Badge>
                 ) : (
                   options
-                    .filter((option) => normalizedValues.includes(option.value))
-                    .map((option) => (
+                    .filter(option => normalizedValues.includes(option.value))
+                    .map(option => (
                       <Badge
                         variant="secondary"
                         key={option.value}
@@ -97,20 +97,17 @@ export function DataTableFacetedFilter<TData, TValue>({
       <FacetedContent className="w-[200px] p-0">
         <FacetedInput placeholder={title} />
         <FacetedList>
-          <FacetedEmpty>No results found.</FacetedEmpty>
+          <FacetedEmpty>{t('common:filters.noResults')}</FacetedEmpty>
           <FacetedGroup>
-            {options.map((option) => {
+            {options.map(option => {
               const isSelected = normalizedValues.includes(option.value)
               return (
-                <FacetedItem
-                  key={option.value}
-                  value={option.value}
-                >
+                <FacetedItem key={option.value} value={option.value}>
                   {option.icon && (
                     <option.icon
                       className={cn(
-                        "mr-2 h-4 w-4 text-muted-foreground",
-                        isSelected && "text-foreground"
+                        'mr-2 h-4 w-4 text-muted-foreground',
+                        isSelected && 'text-foreground'
                       )}
                     />
                   )}
@@ -132,7 +129,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 className="w-full justify-center"
                 onClick={() => column?.setFilterValue(undefined)}
               >
-                Clear filter
+                {t('common:filters.clearFilter')}
               </Button>
             </div>
           )}

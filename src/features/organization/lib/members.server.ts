@@ -1,27 +1,29 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getWebRequest } from '@tanstack/react-start/server'
+import { and, eq } from 'drizzle-orm'
+import { z } from 'zod'
+
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { member } from '@/database/schema'
-import { and, eq } from 'drizzle-orm'
-import { z } from 'zod'
+import { AppError } from '@/lib/utils/errors'
 
 const inviteMemberSchema = z.object({
   email: z.string().email(),
   role: z.enum(['member', 'admin', 'owner']),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 const removeMemberSchema = z.object({
   memberIdOrEmail: z.string(),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 const updateMemberRoleSchema = z.object({
   memberId: z.string(),
   role: z.enum(['member', 'admin', 'owner']),
-  organizationId: z.string()
+  organizationId: z.string(),
 })
 
 // Invite a member to organization
@@ -35,14 +37,13 @@ export const inviteMember = createServerFn({ method: 'POST' })
     const membership = await db
       .select()
       .from(member)
-      .where(and(
-        eq(member.userId, context.user.id),
-        eq(member.organizationId, data.organizationId)
-      ))
+      .where(
+        and(eq(member.userId, context.user.id), eq(member.organizationId, data.organizationId))
+      )
       .limit(1)
 
     if (!membership.length) {
-      throw new Error('Access denied to organization')
+      throw AppError.forbidden('access organization')
     }
 
     // Create invitation using Better Auth API
@@ -51,14 +52,14 @@ export const inviteMember = createServerFn({ method: 'POST' })
       body: {
         organizationId: data.organizationId,
         email: data.email,
-        role: data.role
-      }
+        role: data.role,
+      },
     })
 
     return result
   })
 
-// Remove a member from organization  
+// Remove a member from organization
 export const removeMember = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator((data: unknown) => removeMemberSchema.parse(data))
@@ -69,22 +70,21 @@ export const removeMember = createServerFn({ method: 'POST' })
     const membership = await db
       .select()
       .from(member)
-      .where(and(
-        eq(member.userId, context.user.id),
-        eq(member.organizationId, data.organizationId)
-      ))
+      .where(
+        and(eq(member.userId, context.user.id), eq(member.organizationId, data.organizationId))
+      )
       .limit(1)
 
     if (!membership.length) {
-      throw new Error('Access denied to organization')
+      throw AppError.forbidden('access organization')
     }
 
     const result = await auth.api.removeMember({
       headers: request.headers,
       body: {
         organizationId: data.organizationId,
-        memberIdOrEmail: data.memberIdOrEmail
-      }
+        memberIdOrEmail: data.memberIdOrEmail,
+      },
     })
 
     return result
@@ -101,14 +101,13 @@ export const updateMemberRole = createServerFn({ method: 'POST' })
     const membership = await db
       .select()
       .from(member)
-      .where(and(
-        eq(member.userId, context.user.id),
-        eq(member.organizationId, data.organizationId)
-      ))
+      .where(
+        and(eq(member.userId, context.user.id), eq(member.organizationId, data.organizationId))
+      )
       .limit(1)
 
     if (!membership.length) {
-      throw new Error('Access denied to organization')
+      throw AppError.forbidden('access organization')
     }
 
     const result = await auth.api.updateMemberRole({
@@ -116,8 +115,8 @@ export const updateMemberRole = createServerFn({ method: 'POST' })
       body: {
         organizationId: data.organizationId,
         memberId: data.memberId,
-        role: data.role
-      }
+        role: data.role,
+      },
     })
 
     return result

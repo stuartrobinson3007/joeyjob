@@ -1,17 +1,15 @@
-"use client"
+'use client'
 
-import { Column } from "@tanstack/react-table"
-import * as React from "react"
+import { Column } from '@tanstack/react-table'
+import * as React from 'react'
 
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover"
-import { Slider } from "../ui/slider"
-import { cn } from "../lib/utils"
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { Slider } from '../ui/slider'
+import { cn } from '../lib/utils'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface DataTableNumberFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -30,6 +28,7 @@ export function DataTableNumberFilter<TData, TValue>({
   step = 1,
   isRange = false,
 }: DataTableNumberFilterProps<TData, TValue>) {
+  const { t } = useTranslation('common')
   const [open, setOpen] = React.useState(false)
   const value = column?.getFilterValue() as number | [number, number] | undefined
 
@@ -53,15 +52,15 @@ export function DataTableNumberFilter<TData, TValue>({
   }
 
   const displayValue = React.useMemo(() => {
-    if (!value) return title || "Set value"
+    if (!value) return title || t('common:filters.setValue')
 
     if (isRange && Array.isArray(value)) {
       return `${value[0]} - ${value[1]}`
-    } else if (typeof value === "number") {
+    } else if (typeof value === 'number') {
       return value.toString()
     }
 
-    return title || "Set value"
+    return title || t('common:filters.setValue')
   }, [value, title, isRange])
 
   const hasValue = Boolean(value)
@@ -69,13 +68,7 @@ export function DataTableNumberFilter<TData, TValue>({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 border-dashed"
-          )}
-        >
+        <Button variant="outline" size="sm" className={cn('h-8 border-dashed')}>
           {displayValue}
         </Button>
       </PopoverTrigger>
@@ -88,31 +81,25 @@ export function DataTableNumberFilter<TData, TValue>({
                 <div className="flex items-center space-x-2">
                   <Input
                     type="number"
-                    placeholder="Min"
+                    placeholder={t('common:filters.min')}
                     value={Array.isArray(localValue) ? localValue[0] : min}
-                    onChange={(e) => {
+                    onChange={e => {
                       const newMin = Number(e.target.value)
-                      setLocalValue([
-                        newMin,
-                        Array.isArray(localValue) ? localValue[1] : max,
-                      ])
+                      setLocalValue([newMin, Array.isArray(localValue) ? localValue[1] : max])
                     }}
                     min={min}
                     max={max}
                     step={step}
                     className="h-8"
                   />
-                  <span className="text-muted-foreground">to</span>
+                  <span className="text-muted-foreground">{t('common:filters.to')}</span>
                   <Input
                     type="number"
-                    placeholder="Max"
+                    placeholder={t('common:filters.max')}
                     value={Array.isArray(localValue) ? localValue[1] : max}
-                    onChange={(e) => {
+                    onChange={e => {
                       const newMax = Number(e.target.value)
-                      setLocalValue([
-                        Array.isArray(localValue) ? localValue[0] : min,
-                        newMax,
-                      ])
+                      setLocalValue([Array.isArray(localValue) ? localValue[0] : min, newMax])
                     }}
                     min={min}
                     max={max}
@@ -122,7 +109,7 @@ export function DataTableNumberFilter<TData, TValue>({
                 </div>
                 <Slider
                   value={Array.isArray(localValue) ? localValue : [min, max]}
-                  onValueChange={(value) => setLocalValue(value as [number, number])}
+                  onValueChange={value => setLocalValue(value as [number, number])}
                   min={min}
                   max={max}
                   step={step}
@@ -133,17 +120,17 @@ export function DataTableNumberFilter<TData, TValue>({
               <>
                 <Input
                   type="number"
-                  placeholder="Value"
-                  value={typeof localValue === "number" ? localValue : min}
-                  onChange={(e) => setLocalValue(Number(e.target.value))}
+                  placeholder={t('common:filters.value')}
+                  value={typeof localValue === 'number' ? localValue : min}
+                  onChange={e => setLocalValue(Number(e.target.value))}
                   min={min}
                   max={max}
                   step={step}
                   className="h-8"
                 />
                 <Slider
-                  value={[typeof localValue === "number" ? localValue : min]}
-                  onValueChange={(value) => setLocalValue(value[0])}
+                  value={[typeof localValue === 'number' ? localValue : min]}
+                  onValueChange={value => setLocalValue(value[0])}
                   min={min}
                   max={max}
                   step={step}
@@ -154,13 +141,8 @@ export function DataTableNumberFilter<TData, TValue>({
           </div>
           <div className="flex justify-end space-x-2">
             {hasValue && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClear}
-                className="justify-center"
-              >
-                Clear filter
+              <Button variant="ghost" size="sm" onClick={handleClear} className="justify-center">
+                {t('common:filters.clearFilter')}
               </Button>
             )}
             <Button size="sm" onClick={handleApply}>

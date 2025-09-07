@@ -1,0 +1,241 @@
+{
+  "navigation": {
+    "todos": "Tareas",
+    "team": "Equipo",
+    "billing": "Facturación",
+    "settings": "Configuración",
+    "profile": "Perfil",
+    "logout": "Cerrar sesión",
+    "home": "Inicio",
+    "more": "Más"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "confirm": "Confirmar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "refresh": "Actualizar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "share": "Compartir",
+    "copy": "Copiar",
+    "paste": "Pegar",
+    "signOut": "Cerrar Sesión"
+  },
+  "states": {
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "deleting": "Eliminando...",
+    "updating": "Actualizando...",
+    "creating": "Creando...",
+    "processing": "Procesando...",
+    "uploading": "Subiendo...",
+    "downloading": "Descargando...",
+    "sending": "Enviando...",
+    "signingOut": "Cerrando sesión...",
+    "savingChanges": "Guardando cambios",
+    "changesSaved": "Cambios guardados",
+    "unsavedChanges": "Cambios sin guardar"
+  },
+  "labels": {
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "description": "Descripción",
+    "date": "Fecha",
+    "time": "Hora",
+    "status": "Estado",
+    "priority": "Prioridad",
+    "type": "Tipo",
+    "category": "Categoría",
+    "tags": "Etiquetas",
+    "notes": "Notas",
+    "user": "Usuario",
+    "role": "Rol",
+    "session": "Sesión",
+    "organization": "Organización"
+  },
+  "messages": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "noData": "No hay datos disponibles",
+    "noResults": "No se encontraron resultados",
+    "required": "Este campo es obligatorio",
+    "optional": "Opcional"
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "first": "Primero",
+    "last": "Último",
+    "page": "Página",
+    "of": "de",
+    "items": "elementos",
+    "showing": "Mostrando",
+    "to": "a",
+    "perPage": "Filas por página",
+    "goToFirst": "Ir a la primera página",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "goToLast": "Ir a la última página",
+    "morePages": "Más páginas"
+  },
+  "time": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "tomorrow": "Mañana",
+    "thisWeek": "Esta semana",
+    "lastWeek": "La semana pasada",
+    "thisMonth": "Este mes",
+    "lastMonth": "El mes pasado",
+    "thisYear": "Este año",
+    "lastYear": "El año pasado"
+  },
+  "language": {
+    "title": "Idioma",
+    "description": "Selecciona tu idioma preferido",
+    "english": "Inglés",
+    "spanish": "Español"
+  },
+  "errors": {
+    "somethingWrong": "Algo salió mal",
+    "unexpectedError": "Ocurrió un error inesperado. Por favor, intenta actualizar la página.",
+    "tryAgain": "Intentar de Nuevo",
+    "notFound": "404 -"
+  },
+  "organization": {
+    "selectWorkspace": "Seleccionar espacio de trabajo",
+    "searchWorkspaces": "Buscar espacios de trabajo...",
+    "switchingDisabled": "Cambio de espacio de trabajo deshabilitado en modo superadmin",
+    "newWorkspace": "Nuevo espacio de trabajo",
+    "workspaceName": "Nombre del espacio de trabajo",
+    "workspaceNamePlaceholder": "Mi Empresa",
+    "workspaceDescription": "Descripción del espacio de trabajo",
+    "workspaceDescriptionOptional": "Descripción (opcional)",
+    "workspaceDescriptionPlaceholder": "Una breve descripción de tu espacio de trabajo",
+    "createWorkspace": "Crear espacio de trabajo",
+    "createWorkspaceDescription": "Crea un nuevo espacio de trabajo para colaborar con tu equipo",
+    "createNewWorkspaceDescription": "Inicia un nuevo espacio de trabajo para tu equipo",
+    "createOrganization": "Crear Organización",
+    "createNew": "Crear Nueva Organización",
+    "empty": "Aún no hay organizaciones",
+    "noWorkspaces": "No se encontraron espacios de trabajo.",
+    "noWorkspacesTitle": "Aún no hay espacios de trabajo",
+    "noWorkspacesDescription": "Comienza creando tu primer espacio de trabajo",
+    "createFirstWorkspace": "Crea tu primer espacio de trabajo",
+    "chooseWorkspaceDescription": "Elige un espacio de trabajo para continuar",
+    "title": "Organizaciones"
+  },
+  "filters": {
+    "setValue": "Establecer valor",
+    "selectValue": "Seleccionar {{value}}",
+    "min": "Mín",
+    "max": "Máx",
+    "value": "Valor",
+    "to": "a",
+    "noResults": "No se encontraron resultados.",
+    "noOptions": "No se encontraron opciones.",
+    "loadingOptions": "Cargando opciones...",
+    "loadingError": "Error al cargar opciones",
+    "pickADate": "Elige una fecha",
+    "clearFilter": "Limpiar filtro",
+    "invalidFileType": "Tipo de archivo inválido. Por favor sube: {{types}}",
+    "fileSizeLimit": "El tamaño del archivo debe ser menor a {{maxSize}}MB"
+  },
+  "table": {
+    "selectAll": "Seleccionar todo",
+    "selectRow": "Seleccionar fila",
+    "openMenu": "Abrir menú",
+    "unknown": "Desconocido",
+    "notAvailable": "N/D"
+  },
+  "app": {
+    "title": "App de Tareas TanStack",
+    "name": "App de Tareas",
+    "notFound": "La página que buscas no existe.",
+    "backHome": "Volver al Inicio"
+  },
+  "boolean": {
+    "yes": "Sí",
+    "no": "No",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "active": "Activo",
+    "inactive": "Inactivo"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "accessibility": {
+    "close": "Cerrar",
+    "toggleTheme": "Cambiar tema",
+    "morePages": "Más páginas",
+    "toggleSidebar": "Alternar Barra Lateral",
+    "previousSlide": "Diapositiva anterior",
+    "nextSlide": "Siguiente diapositiva",
+    "openMenu": "Abrir menú",
+    "remove": "Quitar",
+    "goToPrevious": "Ir a la página anterior",
+    "goToNext": "Ir a la página siguiente",
+    "breadcrumb": "navegación",
+    "pagination": "paginación",
+    "sortableCancelMessage": "El elemento ordenable ya no está sobre un área donde se puede soltar. Presiona escape para cancelar."
+  },
+  "fileUpload": {
+    "uploadedFiles": "Archivos Subidos",
+    "uploadFiles": "Subir Archivos",
+    "failedToLoadOptions": "Error al cargar opciones",
+    "selectFile": "Seleccionar Archivo",
+    "dropFiles": "o suelta archivo{{plural}} aquí",
+    "success": "Archivo subido exitosamente",
+    "deleted": "Archivo eliminado exitosamente",
+    "fileDuplicate": "Archivo \"{{fileName}}\" ya ha sido subido. Por favor elige un archivo diferente.",
+    "fileSizes": {
+      "bytes": "Bytes",
+      "kb": "KB",
+      "mb": "MB"
+    },
+    "fileCount": {
+      "single": "archivo",
+      "multiple": "archivos"
+    }
+  },
+  "workspace": {
+    "selectWorkspace": "Seleccionar espacio de trabajo",
+    "createWorkspace": "Crear espacio de trabajo",
+    "workspaceName": "Nombre del espacio de trabajo",
+    "organizationName": "Nombre de la organización",
+    "createWorkspaceTitle": "Crear espacio de trabajo"
+  },
+  "sidebar": {
+    "app": "App",
+    "superAdmin": "Super Admin"
+  },
+  "states": {
+    "noOrganizationSelected": "Ninguna Organización Seleccionada",
+    "uploading": "Subiendo..."
+  },
+  "labels": {
+    "status": "Estado"
+  },
+  "onboarding": {
+    "subtitle": "Solo unos detalles más para empezar"
+  },
+  "fields": {
+    "priority": "Prioridad"
+  }
+}

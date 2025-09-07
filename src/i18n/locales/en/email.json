@@ -1,0 +1,68 @@
+{
+  "magicLink": {
+    "title": "Sign in to Todo App",
+    "heading": "Sign in to Todo App",
+    "description": "Click the button below to sign in to your account:",
+    "button": "Sign in to Todo App",
+    "alternative": "Or copy and paste this link in your browser:",
+    "copyright": "© {{year}} {{appName}}. All rights reserved.",
+    "expiry": "This link will expire in 5 minutes for security reasons.",
+    "footer": "If you didn't request this email, you can safely ignore it."
+  },
+  "invitation": {
+    "preview": "Invitation to join {{organizationName}}",
+    "title": "You're invited!",
+    "message": "<strong>{{inviterName}}</strong> has invited you to join <strong>{{organizationName}}</strong> on Todo App.",
+    "acceptButton": "Accept Invitation",
+    "orCopy": "Or copy and paste this link in your browser:",
+    "footer": "If you don't want to join this organization, you can safely ignore this email.",
+    "workspaceInvitation": "Workspace Invitation",
+    "welcome": "Welcome to {{organizationName}}",
+    "greeting": "Hi there,",
+    "description": "You'll be joining a collaborative workspace where teams create, share, and manage projects together.",
+    "accessTitle": "What you'll get access to:",
+    "access": {
+      "collaborate": "• Collaborate with {{inviterName}} and the team",
+      "projects": "• Access to workspace projects and resources",
+      "communication": "• Real-time communication and file sharing"
+    },
+    "expiry": "This invitation expires in 48 hours.",
+    "questions": "Questions about this invitation? Reply to this email or contact {{inviterName}} directly.",
+    "copyright": "© {{year}} {{appName}}. All rights reserved."
+  },
+  "otp": {
+    "signIn": {
+      "subject": "Your sign-in code for Todo App",
+      "title": "Sign in to Todo App",
+      "message": "Use this code to sign in to your account:"
+    },
+    "emailVerification": {
+      "subject": "Verify your email for Todo App",
+      "title": "Verify your email",
+      "message": "Use this code to verify your email address:"
+    },
+    "forgetPassword": {
+      "subject": "Reset your password for Todo App",
+      "title": "Reset your password",
+      "message": "Use this code to reset your password:"
+    },
+    "default": {
+      "subject": "Your verification code for Todo App",
+      "title": "Verification code",
+      "message": "Your verification code is:"
+    },
+    "expiry": "This code will expire in 5 minutes for security reasons.",
+    "footer": "If you didn't request this code, you can safely ignore this email.",
+    "verificationCode": "Verification Code",
+    "greeting": "Hi there,",
+    "yourCode": "Your Verification Code",
+    "support": "If you have any questions or concerns, please contact our support team.",
+    "copyright": "© {{year}} {{appName}}. All rights reserved.",
+    "instructions": {
+      "title": "How to use this code:",
+      "step1": "1. Return to the {{appName}} sign-in page",
+      "step2": "2. Enter this 6-digit code in the verification field",
+      "step3": "3. Complete your sign-in process"
+    }
+  }
+}

@@ -1,17 +1,26 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Trash2, Loader2 } from 'lucide-react'
+
+import { useErrorHandler } from '@/lib/errors/hooks'
 import { getTodoById, updateTodo, deleteTodo } from '@/features/todos/lib/todos.server'
 import { todoKeys } from '@/features/todos/lib/query-keys'
 import { formatDateTime } from '@/lib/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useFormAutosave } from '@/lib/hooks/use-form-autosave'
-import { useQueryClient } from '@tanstack/react-query'
 import { SaveStatusIndicator } from '@/components/save-status-indicator'
 import { Input } from '@/components/taali-ui/ui/input'
 import { Textarea } from '@/components/taali-ui/ui/textarea'
 import { Button } from '@/components/taali-ui/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/taali-ui/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/taali-ui/ui/select'
 import { Label } from '@/components/taali-ui/ui/label'
 import {
   AlertDialog,
@@ -24,11 +33,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/taali-ui/ui/alert-dialog'
-import { toast } from 'sonner'
-import { Trash2, Loader2 } from 'lucide-react'
-import { useSession } from '@/lib/auth/auth-hooks'
 import { usePermissions } from '@/lib/hooks/use-permissions'
 import type { EditTodoFormData } from '@/types/todos'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -45,7 +52,6 @@ export const Route = createFileRoute('/_authenticated/todos/$id/edit')({
 function EditTodoPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
-  const { data: session } = useSession()
   const { activeOrganizationId } = useActiveOrganization()
   const { canUpdateTodo, canDeleteTodo, isLoading: permissionsLoading } = usePermissions()
   const queryClient = useQueryClient()
@@ -53,8 +59,9 @@ function EditTodoPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
-  const user = session?.user
+  const { t } = useTranslation('todos')
+  const { showError, showSuccess } = useErrorHandler()
+  const { t: tCommon } = useTranslation('common')
 
   // Load todo on mount
   useEffect(() => {
@@ -68,8 +75,8 @@ function EditTodoPage() {
         const loadedTodo = await getTodoById({ data: { id } })
         setTodo(loadedTodo)
       } catch (error) {
-        console.error('Failed to load todo:', error)
-        toast.error('Failed to load todo')
+        // Failed to load todo - error handled by showError
+        showError(error)
         navigate({ to: '/' })
       } finally {
         setIsLoading(false)
@@ -77,37 +84,43 @@ function EditTodoPage() {
     }
 
     loadTodo()
-  }, [id, activeOrganizationId, navigate])
+  }, [id, activeOrganizationId, navigate, showError])
 
   // Initialize form data
-  const initialData = useMemo<EditTodoFormData>(() => ({
-    title: todo?.title || '',
-    description: todo?.description || '',
-    priority: todo?.priority || 'medium',
-    dueDate: todo?.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : '',
-    assignedTo: todo?.assignedTo || '',
-  }), [todo])
+  const initialData = useMemo<EditTodoFormData>(
+    () => ({
+      title: todo?.title || '',
+      description: todo?.description || '',
+      priority: todo?.priority || 'medium',
+      dueDate: todo?.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : '',
+      assignedTo: todo?.assignedTo || '',
+    }),
+    [todo]
+  )
 
   // Validation function
-  const validateTodoData = useCallback((data: EditTodoFormData) => {
-    const errors: string[] = []
-    const trimmedTitle = data.title.trim()
+  const validateTodoData = useCallback(
+    (data: EditTodoFormData) => {
+      const errors: string[] = []
+      const trimmedTitle = data.title.trim()
 
-    if (!trimmedTitle) {
-      errors.push('Title is required')
-    } else if (trimmedTitle.length > 500) {
-      errors.push('Title must be 500 characters or less')
-    }
+      if (!trimmedTitle) {
+        errors.push(t('validation:validation.titleRequired'))
+      } else if (trimmedTitle.length > 500) {
+        errors.push(t('validation:validation.titleTooLong'))
+      }
 
-    if (data.description && data.description.length > 2000) {
-      errors.push('Description must be 2000 characters or less')
-    }
+      if (data.description && data.description.length > 2000) {
+        errors.push(t('validation:validation.descriptionTooLong'))
+      }
 
-    return {
-      isValid: errors.length === 0,
-      errors
-    }
-  }, [])
+      return {
+        isValid: errors.length === 0,
+        errors,
+      }
+    },
+    [t]
+  )
 
   // Custom comparison to handle whitespace
   const compareFormData = useCallback((a: EditTodoFormData, b: EditTodoFormData) => {
@@ -133,7 +146,7 @@ function EditTodoPage() {
     initialData,
     validate: validateTodoData,
     compareFunction: compareFormData,
-    onSave: async (data) => {
+    onSave: async data => {
       const validation = validateTodoData(data)
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '))
@@ -150,13 +163,13 @@ function EditTodoPage() {
           priority: data.priority,
           dueDate: data.dueDate || null,
           assignedTo: data.assignedTo || null,
-        }
+        },
       })
 
       // Invalidate ALL todo queries for this organization using hierarchical structure
       if (activeOrganizationId) {
         await queryClient.invalidateQueries({
-          queryKey: todoKeys.all(activeOrganizationId)
+          queryKey: todoKeys.all(activeOrganizationId),
         })
       }
 
@@ -184,30 +197,35 @@ function EditTodoPage() {
       console.log('[TodoEdit] Deleting todo', { id, timestamp: new Date().toISOString() })
       await deleteTodo({ data: { id: id! } })
 
-      console.log('[TodoEdit] Todo deleted, invalidating cache', { timestamp: new Date().toISOString() })
+      console.log('[TodoEdit] Todo deleted, invalidating cache', {
+        timestamp: new Date().toISOString(),
+      })
 
       // Debug: Log all current cache entries before delete invalidation
       const queryCache = queryClient.getQueryCache()
       const allQueries = queryCache.getAll()
-      console.log('[TodoEdit] All cached queries before delete invalidation:', allQueries.map(q => ({
-        queryKey: q.queryKey,
-        state: q.state.status
-      })))
+      console.log(
+        '[TodoEdit] All cached queries before delete invalidation:',
+        allQueries.map(q => ({
+          queryKey: q.queryKey,
+          state: q.state.status,
+        }))
+      )
 
       const deleteInvalidationKey = activeOrganizationId ? todoKeys.all(activeOrganizationId) : []
       console.log('[TodoEdit] Delete invalidating with hierarchical key:', deleteInvalidationKey)
 
-      // Invalidate ALL todo queries for this organization using hierarchical structure  
+      // Invalidate ALL todo queries for this organization using hierarchical structure
       if (activeOrganizationId) {
         await queryClient.invalidateQueries({
-          queryKey: todoKeys.all(activeOrganizationId)
+          queryKey: todoKeys.all(activeOrganizationId),
         })
       }
 
-      toast.success('Todo deleted')
+      showSuccess(t('common:messages.deleted'))
       navigate({ to: '/' })
-    } catch (error: any) {
-      toast.error(error.userMessage || 'Failed to delete todo')
+    } catch (error) {
+      showError(error)
       setIsDeleting(false)
     }
   }
@@ -216,14 +234,11 @@ function EditTodoPage() {
   const canEdit = canUpdateTodo()
   const canDelete = canDeleteTodo()
 
-
   if (!activeOrganizationId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h2 className="text-2xl font-bold mb-4">No Organization Selected</h2>
-        <p className="text-muted-foreground">
-          Please select an organization from the switcher above to edit todos.
-        </p>
+        <h2 className="text-2xl font-bold mb-4">{t('edit.noOrganization')}</h2>
+        <p className="text-muted-foreground">{t('edit.noOrganizationDescription')}</p>
       </div>
     )
   }
@@ -239,13 +254,9 @@ function EditTodoPage() {
   if (!todo) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h2 className="text-2xl font-bold mb-4">Todo Not Found</h2>
-        <p className="text-muted-foreground mb-4">
-          The todo you're looking for doesn't exist or you don't have access to it.
-        </p>
-        <Button onClick={() => navigate({ to: '/' })}>
-          Back to Todos
-        </Button>
+        <h2 className="text-2xl font-bold mb-4">{t('edit.notFound')}</h2>
+        <p className="text-muted-foreground mb-4">{t('edit.notFoundDescription')}</p>
+        <Button onClick={() => navigate({ to: '/' })}>{t('edit.backToTodos')}</Button>
       </div>
     )
   }
@@ -259,13 +270,13 @@ function EditTodoPage() {
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link to="/" className="hover:text-foreground transition-colors">
-                    Todos
+                    {t('title')}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{formData.title || 'Edit Todo'}</BreadcrumbPage>
+                <BreadcrumbPage>{formData.title || t('edit.title')}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -285,29 +296,25 @@ function EditTodoPage() {
             {canDelete && (
               <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={isDeleting}
-                  >
+                  <Button variant="ghost" size="sm" disabled={isDeleting}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Todo</AlertDialogTitle>
+                    <AlertDialogTitle>{t('edit.deleteConfirm')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete "{formData.title || 'this todo'}"? This action cannot be undone.
+                      {t('edit.deleteDescription', { title: formData.title || 'this todo' })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{tCommon('actions.cancel')}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDelete}
                       disabled={isDeleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {isDeleting ? 'Deleting...' : 'Delete'}
+                      {isDeleting ? tCommon('states.uploading') : tCommon('actions.delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -322,7 +329,7 @@ function EditTodoPage() {
                 navigate({ to: '/' })
               }}
             >
-              Done
+              {t('edit.done')}
             </Button>
           </div>
         }
@@ -333,53 +340,63 @@ function EditTodoPage() {
         <div className="max-w-4xl mx-auto">
           {!canEdit && (
             <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                You have read-only access to this todo. Contact an administrator if you need edit permissions.
-              </p>
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">{t('edit.readOnly')}</p>
             </div>
           )}
           <div className="bg-card p-6 rounded-lg shadow-md">
             <div className="space-y-6">
               {/* Title Field */}
               <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
+                <Label htmlFor="title">{t('edit.titleRequired')}</Label>
                 <Input
                   id="title"
                   type="text"
                   value={formData.title}
-                  onChange={(e) => updateField('title', e.target.value)}
+                  onChange={e => updateField('title', e.target.value)}
                   onBlur={saveNow}
-                  placeholder="Enter todo title"
+                  placeholder={t('edit.titlePlaceholder')}
                   disabled={!canEdit}
-                  className={errors.some(e => e.includes('Title')) ? 'border-destructive' : ''}
+                  className={
+                    errors.some(e => e.includes(t('validation:validation.titleRequired')))
+                      ? 'border-destructive'
+                      : ''
+                  }
                 />
-                {errors.some(e => e.includes('Title')) && (
-                  <p className="text-sm text-destructive">{errors.find(e => e.includes('Title'))}</p>
+                {errors.some(e => e.includes(t('validation:validation.titleRequired'))) && (
+                  <p className="text-sm text-destructive">
+                    {errors.find(e => e.includes(t('validation:validation.titleRequired')))}
+                  </p>
                 )}
               </div>
 
               {/* Description Field */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t('edit.descriptionLabel')}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => updateField('description', e.target.value)}
+                  onChange={e => updateField('description', e.target.value)}
                   onBlur={saveNow}
-                  placeholder="Enter todo description (optional)"
+                  placeholder={t('edit.descriptionPlaceholder')}
                   rows={4}
                   disabled={!canEdit}
-                  className={errors.some(e => e.includes('Description')) ? 'border-destructive' : ''}
+                  className={
+                    errors.some(e => e.includes(t('validation:validation.descriptionTooLong')))
+                      ? 'border-destructive'
+                      : ''
+                  }
                 />
-                {errors.some(e => e.includes('Description')) && (
-                  <p className="text-sm text-destructive">{errors.find(e => e.includes('Description'))}</p>
+                {errors.some(e => e.includes(t('validation:validation.descriptionTooLong'))) && (
+                  <p className="text-sm text-destructive">
+                    {errors.find(e => e.includes(t('validation:validation.descriptionTooLong')))}
+                  </p>
                 )}
               </div>
 
               {/* Priority and Due Date */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority">{t('edit.priorityLabel')}</Label>
                   <Select
                     value={formData.priority}
                     onValueChange={(value: 'low' | 'medium' | 'high') => {
@@ -389,23 +406,23 @@ function EditTodoPage() {
                     disabled={!canEdit}
                   >
                     <SelectTrigger id="priority">
-                      <SelectValue placeholder="Select priority" />
+                      <SelectValue placeholder={t('edit.priorityPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="low">{t('priority.low')}</SelectItem>
+                      <SelectItem value="medium">{t('priority.medium')}</SelectItem>
+                      <SelectItem value="high">{t('priority.high')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dueDate">Due Date</Label>
+                  <Label htmlFor="dueDate">{t('edit.dueDateLabel')}</Label>
                   <Input
                     id="dueDate"
                     type="date"
                     value={formData.dueDate}
-                    onChange={(e) => updateField('dueDate', e.target.value)}
+                    onChange={e => updateField('dueDate', e.target.value)}
                     onBlur={saveNow}
                     disabled={!canEdit}
                   />
@@ -415,10 +432,10 @@ function EditTodoPage() {
               {/* Metadata */}
               <div className="pt-4 border-t">
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>Created: {formatDateTime(todo.createdAt)}</p>
-                  <p>Last updated: {formatDateTime(todo.updatedAt)}</p>
+                  <p>{t('edit.created', { date: formatDateTime(todo.createdAt) })}</p>
+                  <p>{t('edit.lastUpdated', { date: formatDateTime(todo.updatedAt) })}</p>
                   {todo.completed && (
-                    <p className="text-green-600 font-medium">✓ Completed</p>
+                    <p className="text-green-600 font-medium">{t('edit.completedStatus')}</p>
                   )}
                 </div>
               </div>

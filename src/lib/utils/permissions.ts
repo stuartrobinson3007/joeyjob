@@ -1,9 +1,8 @@
 import { getWebRequest } from '@tanstack/react-start/server'
-import { auth, roles } from '@/lib/auth/auth'
+
 import { PermissionError } from './errors'
-import { db } from '@/lib/db/db'
-import { member } from '@/database/schema'
-import { and, eq } from 'drizzle-orm'
+
+import { auth } from '@/lib/auth/auth'
 
 /**
  * Check if the current user has specific permissions for a resource
@@ -20,49 +19,19 @@ export const checkPermission = async (
 ) => {
   const request = getWebRequest()
 
-  try {
-    const hasPermission = await auth.api.hasPermission({
-      headers: request.headers,
-      body: {
-        organizationId,
-        permissions: {
-          [resource]: actions
-        }
-      }
-    })
-
-    if (!hasPermission.success) {
-      const defaultMessage = `You don't have permission to ${actions.join('/')} ${resource}`
-      throw new PermissionError(customMessage || defaultMessage)
-    }
-  } catch (error) {
-    throw error
-  }
-}
-
-/**
- * Verify that a user has billing admin permissions in an organization
- * @param userId - The user ID to check
- * @param organizationId - The organization to check permissions for
- * @throws PermissionError if user lacks billing admin permissions
- */
-export const requireBillingAdmin = async (
-  userId: string,
-  organizationId: string
-): Promise<void> => {
-  const memberRecord = await db.query.member.findFirst({
-    where: and(
-      eq(member.userId, userId),
-      eq(member.organizationId, organizationId)
-    )
+  const hasPermission = await auth.api.hasPermission({
+    headers: request.headers,
+    body: {
+      organizationId,
+      permissions: {
+        [resource]: actions,
+      },
+    },
   })
 
-  if (!memberRecord) {
-    throw new PermissionError('Not a member of this organization')
-  }
-
-  const role = roles[memberRecord.role as keyof typeof roles]
-  if (!role?.hasPermission('billing', 'manage')) {
-    throw new PermissionError('Billing admin permission required')
+  if (!hasPermission.success) {
+    const defaultMessage = `You don't have permission to ${actions.join('/')} ${resource}`
+    throw new PermissionError(customMessage || defaultMessage)
   }
 }
+

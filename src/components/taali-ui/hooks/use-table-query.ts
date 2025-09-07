@@ -1,6 +1,7 @@
-import { useQuery, UseQueryOptions } from "@tanstack/react-query"
-import { useState, useCallback, useMemo, useEffect } from "react"
-import { DataTableState, ServerQueryParams, ServerQueryResponse } from "../data-table/types"
+import { useQuery, UseQueryOptions } from '@tanstack/react-query'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+
+import { DataTableState, ServerQueryParams, ServerQueryResponse } from '../data-table/types'
 
 interface UseTableQueryOptions<TData> {
   queryKey: string[]
@@ -22,7 +23,7 @@ export function useTableQuery<TData>({
   refetchInterval = false,
 }: UseTableQueryOptions<TData>) {
   const [tableState, setTableState] = useState<DataTableState>({
-    search: "",
+    search: '',
     columnFilters: [],
     sorting: [],
     pagination: {
@@ -45,14 +46,14 @@ export function useTableQuery<TData>({
   // Convert table state to server query params
   const serverParams = useMemo<ServerQueryParams>(() => {
     const filters: Record<string, any> = {}
-    
+
     // Add column filters (including search which is set as a column filter)
-    debouncedState.columnFilters.forEach((filter) => {
+    debouncedState.columnFilters.forEach(filter => {
       if (filter.value !== undefined && filter.value !== '') {
         filters[filter.id] = filter.value
       }
     })
-    
+
     // Use global filter for search - clean and generic
     const searchValue = debouncedState.search || ''
 
@@ -65,10 +66,7 @@ export function useTableQuery<TData>({
   }, [debouncedState])
 
   // Create query key with params
-  const fullQueryKey = useMemo(
-    () => [...queryKey, serverParams],
-    [queryKey, serverParams]
-  )
+  const fullQueryKey = useMemo(() => [...queryKey, serverParams], [queryKey, serverParams])
 
   // Fetch data
   const query = useQuery({
@@ -77,12 +75,12 @@ export function useTableQuery<TData>({
     enabled,
     staleTime,
     refetchInterval,
-    placeholderData: (previousData) => previousData,
+    placeholderData: previousData => previousData,
   } as UseQueryOptions<ServerQueryResponse<TData>, Error>)
 
   // Handler for state changes from DataTable
   const handleStateChange = useCallback((newState: Partial<DataTableState>) => {
-    setTableState((prev) => ({
+    setTableState(prev => ({
       ...prev,
       ...newState,
     }))
@@ -90,9 +88,9 @@ export function useTableQuery<TData>({
 
   // Reset filters
   const resetFilters = useCallback(() => {
-    setTableState((prev) => ({
+    setTableState(prev => ({
       ...prev,
-      search: "",
+      search: '',
       columnFilters: [],
       sorting: [],
       pagination: {
@@ -104,12 +102,10 @@ export function useTableQuery<TData>({
 
   // Set specific filter
   const setFilter = useCallback((columnId: string, value: any) => {
-    setTableState((prev) => {
-      const existingFilterIndex = prev.columnFilters.findIndex(
-        (filter) => filter.id === columnId
-      )
+    setTableState(prev => {
+      const existingFilterIndex = prev.columnFilters.findIndex(filter => filter.id === columnId)
 
-      let newFilters = [...prev.columnFilters]
+      const newFilters = [...prev.columnFilters]
 
       if (value === undefined || value === null) {
         // Remove filter

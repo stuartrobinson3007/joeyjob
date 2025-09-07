@@ -1,0 +1,243 @@
+{
+  "navigation": {
+    "todos": "Todos",
+    "team": "Team",
+    "billing": "Billing",
+    "settings": "Settings",
+    "profile": "Profile",
+    "logout": "Logout",
+    "home": "Home",
+    "more": "More"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "share": "Share",
+    "copy": "Copy",
+    "paste": "Paste",
+    "signOut": "Sign Out",
+    "id": "ID"
+  },
+  "states": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "deleting": "Deleting...",
+    "updating": "Updating...",
+    "creating": "Creating...",
+    "processing": "Processing...",
+    "uploading": "Uploading...",
+    "downloading": "Downloading...",
+    "sending": "Sending...",
+    "signingOut": "Signing out...",
+    "savingChanges": "Saving changes",
+    "changesSaved": "Changes saved",
+    "unsavedChanges": "Unsaved changes"
+  },
+  "labels": {
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "description": "Description",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "priority": "Priority",
+    "type": "Type",
+    "category": "Category",
+    "tags": "Tags",
+    "notes": "Notes",
+    "user": "User",
+    "role": "Role",
+    "session": "Session",
+    "organization": "Organization"
+  },
+  "messages": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "noData": "No data available",
+    "noResults": "No results found",
+    "required": "This field is required",
+    "optional": "Optional"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "first": "First",
+    "last": "Last",
+    "page": "Page",
+    "of": "of",
+    "items": "items",
+    "showing": "Showing",
+    "to": "to",
+    "perPage": "Rows per page",
+    "goToFirst": "Go to first page",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "goToLast": "Go to last page",
+    "morePages": "More pages"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "thisYear": "This year",
+    "lastYear": "Last year"
+  },
+  "language": {
+    "title": "Language",
+    "description": "Select your preferred language",
+    "english": "English",
+    "spanish": "Spanish"
+  },
+  "errors": {
+    "somethingWrong": "Something went wrong",
+    "unexpectedError": "An unexpected error occurred. Please try refreshing the page.",
+    "tryAgain": "Try Again",
+    "notFound": "404 -"
+  },
+  "organization": {
+    "selectWorkspace": "Select workspace",
+    "searchWorkspaces": "Search workspaces...",
+    "switchingDisabled": "Workspace switching disabled in superadmin mode",
+    "newWorkspace": "New workspace",
+    "workspaceName": "Workspace name",
+    "workspaceNamePlaceholder": "Acme Inc",
+    "workspaceDescription": "Workspace description",
+    "workspaceDescriptionOptional": "Description (optional)",
+    "workspaceDescriptionPlaceholder": "A brief description of your workspace",
+    "createWorkspace": "Create workspace",
+    "createWorkspaceDescription": "Create a new workspace to collaborate with your team",
+    "createNewWorkspaceDescription": "Start a new workspace for your team",
+    "createOrganization": "Create Organization",
+    "createNew": "Create New Organization",
+    "empty": "No organizations yet",
+    "noWorkspaces": "No workspaces found.",
+    "noWorkspacesTitle": "No workspaces yet",
+    "noWorkspacesDescription": "Get started by creating your first workspace",
+    "createFirstWorkspace": "Create your first workspace",
+    "chooseWorkspaceDescription": "Choose a workspace to continue",
+    "title": "Organizations"
+  },
+  "filters": {
+    "setValue": "Set value",
+    "selectValue": "Select {{value}}",
+    "min": "Min",
+    "max": "Max",
+    "value": "Value",
+    "to": "to",
+    "noResults": "No results found.",
+    "noOptions": "No options found.",
+    "loadingOptions": "Loading options...",
+    "loadingError": "Failed to load options",
+    "pickADate": "Pick a date",
+    "clearFilter": "Clear filter"
+  },
+  "table": {
+    "selectAll": "Select all",
+    "selectRow": "Select row",
+    "openMenu": "Open menu",
+    "unknown": "Unknown",
+    "notAvailable": "N/A",
+    "allItemsSelected": "All {{count}} items selected",
+    "itemsSelected": "{{selected}} of {{total}} items selected",
+    "selectAllItems": "Select all {{total}} items"
+  },
+  "app": {
+    "title": "TanStack Todo App",
+    "name": "Todo App",
+    "notFound": "The page you're looking for doesn't exist.",
+    "backHome": "Back to Home"
+  },
+  "boolean": {
+    "yes": "Yes",
+    "no": "No",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "title": "Theme"
+  },
+  "accessibility": {
+    "close": "Close",
+    "toggleTheme": "Toggle theme",
+    "morePages": "More pages",
+    "toggleSidebar": "Toggle Sidebar",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "openMenu": "Open menu",
+    "remove": "Remove",
+    "goToPrevious": "Go to previous page",
+    "goToNext": "Go to next page",
+    "breadcrumb": "breadcrumb",
+    "pagination": "pagination",
+    "sortableCancelMessage": "Sortable item is no longer over a droppable area. Press escape to cancel."
+  },
+  "fileUpload": {
+    "uploadedFiles": "Uploaded Files",
+    "uploadFiles": "Upload Files",
+    "failedToLoadOptions": "Failed to load options",
+    "invalidFileType": "Invalid file type. Please upload: {{types}}",
+    "fileSizeLimit": "File size must be less than {{maxSize}}MB",
+    "selectFile": "Select File",
+    "dropFiles": "or drop file{{plural}} here",
+    "success": "File uploaded successfully",
+    "deleted": "File deleted successfully",
+    "fileDuplicate": "File \"{{fileName}}\" has already been uploaded. Please choose a different file.",
+    "fileSizes": {
+      "bytes": "Bytes",
+      "kb": "KB",
+      "mb": "MB"
+    },
+    "fileCount": {
+      "single": "file",
+      "multiple": "files"
+    }
+  },
+  "workspace": {
+    "selectWorkspace": "Select workspace",
+    "createWorkspace": "Create workspace",
+    "workspaceName": "Workspace name",
+    "organizationName": "Organization name",
+    "createWorkspaceTitle": "Create workspace"
+  },
+  "sidebar": {
+    "app": "App",
+    "superAdmin": "Super Admin"
+  },
+  "states": {
+    "noOrganizationSelected": "No Organization Selected",
+    "uploading": "Uploading..."
+  },
+  "labels": {
+    "status": "Status"
+  },
+  "onboarding": {
+    "subtitle": "Just a few more details to get you started"
+  }
+}

@@ -1,17 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import { authClient } from '@/lib/auth/auth-client'
+import { Ban, UserCheck, Eye, MoreHorizontal, Monitor, User, Shield, Loader2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Ban, UserCheck, Eye, MoreHorizontal, LogOut, Monitor, X, User, Shield, Trash2, Loader2 } from 'lucide-react'
+
+import { authClient } from '@/lib/auth/auth-client'
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { ErrorState } from '@/components/error-state'
+import { parseError } from '@/lib/errors/client-handler'
 import { formatDate, formatDateTime } from '@/lib/utils/date'
 import { Badge } from '@/components/taali-ui/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/taali-ui/ui/dropdown-menu'
 import { Button } from '@/components/taali-ui/ui/button'
@@ -22,15 +25,29 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/taali-ui/ui/sheet'
-import { DataTable, DataTableHeader, useTableQuery, DataTableConfig, DataTableColumnMeta } from '@/components/taali-ui/data-table'
-import { getAdminUsersTable, getAdminUserStats, type AdminUser } from '@/features/admin/lib/admin-users.server'
-import { useQuery } from '@tanstack/react-query'
+import {
+  DataTable,
+  DataTableHeader,
+  useTableQuery,
+  DataTableConfig,
+  DataTableColumnMeta,
+} from '@/components/taali-ui/data-table'
+import {
+  getAdminUsersTable,
+  getAdminUserStats,
+  type AdminUser,
+} from '@/features/admin/lib/admin-users.server'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 export const Route = createFileRoute('/_authenticated/superadmin/users')({
   component: SuperAdminUsers,
 })
 
 function SuperAdminUsers() {
+  const { t } = useTranslation('admin')
+  const { t: tNotifications } = useTranslation('notifications')
+  const { t: tCommon } = useTranslation('common')
+  const { showError } = useErrorHandler()
   const [selectedUser, setSelectedUser] = React.useState<AdminUser | null>(null)
   const [userSessions, setUserSessions] = React.useState<any[]>([])
   const [sessionsLoading, setSessionsLoading] = React.useState(false)
@@ -41,329 +58,350 @@ function SuperAdminUsers() {
   const { data: stats } = useQuery({
     queryKey: ['admin', 'users', 'stats'],
     queryFn: () => getAdminUserStats(),
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
   })
 
   // Use the table query hook
-  const {
-    data,
-    totalCount,
-    isLoading,
-    isFetching,
-    onStateChange,
-    refetch,
-  } = useTableQuery<AdminUser>({
-    queryKey: ['admin', 'users', 'table'],
-    queryFn: (params) => {
-      setCurrentFilters(params)
-      return getAdminUsersTable({ data: params })
+  const { data, totalCount, isLoading, isFetching, isError, error, onStateChange, refetch } =
+    useTableQuery<AdminUser>({
+      queryKey: ['admin', 'users', 'table'],
+      queryFn: params => {
+        setCurrentFilters(params)
+        return getAdminUsersTable({ data: params })
+      },
+      enabled: true,
+    })
+
+  const loadUserSessions = React.useCallback(
+    async (userId: string) => {
+      setSessionsLoading(true)
+      try {
+        const result = await authClient.admin.listUserSessions({
+          userId,
+        })
+        setUserSessions(result.data?.sessions || [])
+      } catch (error) {
+        console.error('Failed to load user sessions:', error)
+        showError(error)
+        setUserSessions([])
+      } finally {
+        setSessionsLoading(false)
+      }
     },
-    enabled: true,
-  })
+    [showError]
+  )
 
-  const handleBanUser = React.useCallback(async (userId: string, banned: boolean) => {
-    try {
-      await authClient.admin.banUser({
-        userId,
-        banReason: banned ? 'Admin action' : undefined
-      })
-      toast.success(banned ? 'User banned' : 'User unbanned')
-      refetch()
-    } catch (error) {
-      toast.error('Failed to update user ban status')
-    }
-  }, [refetch])
-
-  const handleSetRole = React.useCallback(async (userId: string, role: 'user' | 'admin' | 'superadmin') => {
-    try {
-      await authClient.admin.setRole({
-        userId,
-        role
-      })
-      toast.success('User role updated')
-      refetch()
-    } catch (error) {
-      toast.error('Failed to update user role')
-    }
-  }, [refetch])
-
-  const handleRevokeUserSessions = React.useCallback(async (userId: string) => {
-    try {
-      await authClient.admin.revokeUserSessions({
-        userId
-      })
-      toast.success('All user sessions revoked')
-      // Reload sessions if we're viewing them
-      if (selectedUser && selectedUser.id === userId) {
-        loadUserSessions(userId)
+  const handleBanUser = React.useCallback(
+    async (userId: string, banned: boolean) => {
+      try {
+        await authClient.admin.banUser({
+          userId,
+          banReason: banned ? t('users.adminAction') : undefined,
+        })
+        toast.success(
+          banned ? tNotifications('success.userBanned') : tNotifications('success.userUnbanned')
+        )
+        refetch()
+      } catch (error) {
+        showError(error)
       }
-    } catch (error) {
-      console.error('Failed to revoke user sessions:', error)
-      toast.error('Failed to revoke user sessions')
-    }
-  }, [selectedUser])
+    },
+    [refetch, t, tNotifications, showError]
+  )
 
-  const handleRevokeSession = React.useCallback(async (sessionToken: string) => {
-    try {
-      await authClient.admin.revokeUserSession({
-        sessionToken
-      })
-      toast.success('Session revoked')
-      // Reload sessions for the current user
-      if (selectedUser) {
-        loadUserSessions(selectedUser.id)
+  const handleRevokeUserSessions = React.useCallback(
+    async (userId: string) => {
+      try {
+        await authClient.admin.revokeUserSessions({
+          userId,
+        })
+        toast.success(t('common:messages.allSessionsRevoked'))
+        // Reload sessions if we're viewing them
+        if (selectedUser && selectedUser.id === userId) {
+          loadUserSessions(userId)
+        }
+      } catch (error) {
+        console.error('Failed to revoke user sessions:', error)
+        showError(error)
       }
-    } catch (error) {
-      console.error('Failed to revoke session:', error)
-      toast.error('Failed to revoke session')
-    }
-  }, [selectedUser])
+    },
+    [selectedUser, t, showError, loadUserSessions]
+  )
 
-  const loadUserSessions = React.useCallback(async (userId: string) => {
-    setSessionsLoading(true)
-    try {
-      const result = await authClient.admin.listUserSessions({
-        userId
-      })
-      setUserSessions(result.data?.sessions || [])
-    } catch (error) {
-      console.error('Failed to load user sessions:', error)
-      toast.error('Failed to load user sessions')
-      setUserSessions([])
-    } finally {
-      setSessionsLoading(false)
-    }
-  }, [])
+  const handleRevokeSession = React.useCallback(
+    async (sessionToken: string) => {
+      try {
+        await authClient.admin.revokeUserSession({
+          sessionToken,
+        })
+        toast.success(t('common:messages.sessionRevoked'))
+        // Reload sessions for the current user
+        if (selectedUser) {
+          loadUserSessions(selectedUser.id)
+        }
+      } catch (error) {
+        console.error('Failed to revoke session:', error)
+        showError(error)
+      }
+    },
+    [selectedUser, t, showError, loadUserSessions]
+  )
 
-  const handleViewSessions = React.useCallback(async (user: AdminUser) => {
-    setSelectedUser(user)
-    setSheetOpen(true)
-    await loadUserSessions(user.id)
-  }, [loadUserSessions])
+  const handleViewSessions = React.useCallback(
+    async (user: AdminUser) => {
+      setSelectedUser(user)
+      setSheetOpen(true)
+      await loadUserSessions(user.id)
+    },
+    [loadUserSessions]
+  )
 
-  const handleImpersonate = React.useCallback(async (userId: string) => {
-    try {
-      await authClient.admin.impersonateUser({ userId })
-      toast.success('Impersonation started')
-      window.location.href = '/'
-    } catch (error) {
-      toast.error('Failed to impersonate user')
-    }
-  }, [])
-
+  const handleImpersonate = React.useCallback(
+    async (userId: string) => {
+      try {
+        await authClient.admin.impersonateUser({ userId })
+        toast.success(t('common:messages.impersonationStarted'))
+        window.location.href = '/'
+      } catch (error) {
+        showError(error)
+      }
+    },
+    [t, showError]
+  )
 
   // Column definitions
-  const columns = React.useMemo<ColumnDef<AdminUser>[]>(() => [
-    {
-      accessorKey: "id",
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          ID
-        </DataTableHeader>
-      ),
-      enableSorting: true,
-      size: 100,
-      cell: ({ row }) => {
-        const user = row.original
-        return (
-          <div className="text-xs font-mono text-muted-foreground">
-            {user.id}
-          </div>
-        )
+  const columns = React.useMemo<ColumnDef<AdminUser>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        header: ({ column }) => (
+          <DataTableHeader column={column} sortable>
+            ID
+          </DataTableHeader>
+        ),
+        enableSorting: true,
+        size: 100,
+        cell: ({ row }) => {
+          const user = row.original
+          return <div className="text-xs font-mono text-muted-foreground">{user.id}</div>
+        },
+        meta: {
+          enableTextTruncation: true,
+        } as DataTableColumnMeta,
       },
-      meta: {
-        enableTextTruncation: true,
-      } as DataTableColumnMeta,
-    },
-    {
-      id: "user",
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          User
-        </DataTableHeader>
-      ),
-      enableSorting: true,
-      size: 300,
-      cell: ({ row }) => {
-        const user = row.original
-        return (
-          <div>
-            <div className="text-sm font-medium text-foreground">
-              {user.name || 'No name'}
+      {
+        id: 'user',
+        header: ({ column }) => (
+          <DataTableHeader column={column} sortable>
+            {t('users.user')}
+          </DataTableHeader>
+        ),
+        enableSorting: true,
+        size: 300,
+        cell: ({ row }) => {
+          const user = row.original
+          return (
+            <div>
+              <div className="text-sm font-medium text-foreground">
+                {user.name || t('common:table.unknown')}
+              </div>
+              <div className="text-sm text-muted-foreground">{user.email}</div>
             </div>
-            <div className="text-sm text-muted-foreground">{user.email}</div>
-          </div>
-        )
-      },
-      meta: {
-        enableTextTruncation: true,
-      } as DataTableColumnMeta,
-    },
-    {
-      accessorKey: "role",
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          Role
-        </DataTableHeader>
-      ),
-      enableColumnFilter: true,
-      enableSorting: true,
-      size: 120,
-      cell: ({ row }) => {
-        const user = row.original
-        return (
-          <Badge
-            variant={user.role === 'superadmin' ? 'destructive' : user.role === 'admin' ? 'primary' : 'muted'}
-            style="soft"
-            startIcon={user.role === 'superadmin' ? <Shield /> : user.role === 'admin' ? <Shield /> : <User />}
-          >
-            {user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'User'}
-          </Badge>
-        )
-      },
-      meta: {
-        filterConfig: {
-          type: "select",
-          title: "Role",
-          options: [
-            { label: "User", value: "user" },
-            { label: "Admin", value: "admin" },
-            { label: "Super Admin", value: "superadmin" },
-          ],
+          )
         },
-        enableTextTruncation: false,
-      } as DataTableColumnMeta,
-    },
-    {
-      accessorKey: "banned",
-      id: "status",
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          Status
-        </DataTableHeader>
-      ),
-      enableColumnFilter: true,
-      enableSorting: true,
-      size: 100,
-      cell: ({ row }) => {
-        const user = row.original
-        return user.banned ? (
-          <Badge variant="destructive" style="soft">
-            Banned
-          </Badge>
-        ) : (
-          <Badge variant="success" style="soft" status>
-            Active
-          </Badge>
-        )
+        meta: {
+          enableTextTruncation: true,
+        } as DataTableColumnMeta,
       },
-      meta: {
-        filterConfig: {
-          type: "select",
-          title: "Status",
-          options: [
-            { label: "Active", value: "false" },
-            { label: "Banned", value: "true" },
-          ],
+      {
+        accessorKey: 'role',
+        header: ({ column }) => (
+          <DataTableHeader column={column} sortable>
+            {tCommon('labels.role')}
+          </DataTableHeader>
+        ),
+        enableColumnFilter: true,
+        enableSorting: true,
+        size: 120,
+        cell: ({ row }) => {
+          const user = row.original
+          return (
+            <Badge
+              variant={
+                user.role === 'superadmin'
+                  ? 'destructive'
+                  : user.role === 'admin'
+                    ? 'primary'
+                    : 'muted'
+              }
+              appearance="soft"
+              startIcon={
+                user.role === 'superadmin' ? (
+                  <Shield />
+                ) : user.role === 'admin' ? (
+                  <Shield />
+                ) : (
+                  <User />
+                )
+              }
+            >
+              {user.role === 'superadmin'
+                ? t('users.superAdminRole')
+                : user.role === 'admin'
+                  ? t('users.admin')
+                  : t('users.user')}
+            </Badge>
+          )
         },
-        enableTextTruncation: false,
-      } as DataTableColumnMeta,
-    },
-    {
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          Joined
-        </DataTableHeader>
-      ),
-      enableColumnFilter: true,
-      enableSorting: true,
-      size: 150,
-      cell: ({ row }) => {
-        const user = row.original
-        return (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(user.createdAt)}
-          </span>
-        )
+        meta: {
+          filterConfig: {
+            type: 'select',
+            title: tCommon('labels.role'),
+            options: [
+              { label: t('users.user'), value: 'user' },
+              { label: t('users.admin'), value: 'admin' },
+              { label: t('users.superAdminRole'), value: 'superadmin' },
+            ],
+          },
+          enableTextTruncation: false,
+        } as DataTableColumnMeta,
       },
-      meta: {
-        filterConfig: {
-          type: "dateRange",
-          title: "Joined Date",
+      {
+        accessorKey: 'banned',
+        id: 'status',
+        header: ({ column }) => (
+          <DataTableHeader column={column} sortable>
+            {tCommon('labels.status')}
+          </DataTableHeader>
+        ),
+        enableColumnFilter: true,
+        enableSorting: true,
+        size: 100,
+        cell: ({ row }) => {
+          const user = row.original
+          return user.banned ? (
+            <Badge variant="destructive" appearance="soft">
+              {t('users.bannedStatus')}
+            </Badge>
+          ) : (
+            <Badge variant="success" appearance="soft" status>
+              {t('users.active')}
+            </Badge>
+          )
         },
-        enableTextTruncation: false,
-      } as DataTableColumnMeta,
-    },
-    {
-      id: "actions",
-      header: () => null,
-      size: 50,
-      enableResizing: false,
-      cell: ({ row }) => {
-        const user = row.original
-        return (
-          <div className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleImpersonate(user.id)}>
-                  <Eye />
-                  Impersonate
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBanUser(user.id, !user.banned)}>
-                  {user.banned ? (
-                    <>
-                      <UserCheck />
-                      Unban
-                    </>
-                  ) : (
-                    <>
-                      <Ban />
-                      Ban
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleViewSessions(user)}>
-                  <Monitor />
-                  View All Sessions
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )
+        meta: {
+          filterConfig: {
+            type: 'select',
+            title: tCommon('labels.status'),
+            options: [
+              { label: t('users.active'), value: 'false' },
+              { label: t('users.bannedStatus'), value: 'true' },
+            ],
+          },
+          enableTextTruncation: false,
+        } as DataTableColumnMeta,
       },
-      enableSorting: false,
-      meta: {
-        enableTextTruncation: false,
-      } as DataTableColumnMeta,
-    },
-  ], [handleBanUser, handleImpersonate, handleViewSessions])
+      {
+        accessorKey: 'createdAt',
+        header: ({ column }) => (
+          <DataTableHeader column={column} sortable>
+            {t('users.joinedDate')}
+          </DataTableHeader>
+        ),
+        enableColumnFilter: true,
+        enableSorting: true,
+        size: 150,
+        cell: ({ row }) => {
+          const user = row.original
+          return <span className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</span>
+        },
+        meta: {
+          filterConfig: {
+            type: 'dateRange',
+            title: t('users.joinedDate'),
+          },
+          enableTextTruncation: false,
+        } as DataTableColumnMeta,
+      },
+      {
+        id: 'actions',
+        header: () => null,
+        size: 50,
+        enableResizing: false,
+        cell: ({ row }) => {
+          const user = row.original
+          return (
+            <div className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleImpersonate(user.id)}>
+                    <Eye />
+                    {t('users.impersonate')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBanUser(user.id, !user.banned)}>
+                    {user.banned ? (
+                      <>
+                        <UserCheck />
+                        {t('users.unban')}
+                      </>
+                    ) : (
+                      <>
+                        <Ban />
+                        {t('users.ban')}
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleViewSessions(user)}>
+                    <Monitor />
+                    {t('users.viewSessions')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        },
+        enableSorting: false,
+        meta: {
+          enableTextTruncation: false,
+        } as DataTableColumnMeta,
+      },
+    ],
+    [handleBanUser, handleImpersonate, handleViewSessions, t]
+  )
 
   // DataTable configuration
-  const config = React.useMemo<DataTableConfig<AdminUser>>(() => ({
-    searchConfig: {
-      placeholder: "Search users by name, email, or ID...",
-      searchableColumns: ["name", "email", "id"]
-    },
-    enableColumnFilters: true,
-    enableSorting: true,
-    enableRowSelection: false,
-    manualFiltering: true,
-    manualPagination: true,
-    manualSorting: true,
-    paginationConfig: {
-      pageSizeOptions: [10, 20, 30, 50],
-      defaultPageSize: 10,
-    },
-    resizingConfig: {
-      enableColumnResizing: true,
-    },
-  }), [])
+  const config = React.useMemo<DataTableConfig<AdminUser>>(
+    () => ({
+      searchConfig: {
+        placeholder: t('users.search'),
+        searchableColumns: ['name', 'email', 'id'],
+      },
+      enableColumnFilters: true,
+      enableSorting: true,
+      enableRowSelection: false,
+      manualFiltering: true,
+      manualPagination: true,
+      manualSorting: true,
+      paginationConfig: {
+        pageSizeOptions: [10, 20, 30, 50],
+        defaultPageSize: 10,
+      },
+      resizingConfig: {
+        enableColumnResizing: true,
+      },
+    }),
+    [t]
+  )
+
+  // Handle table errors
+  if (isError && error && !isLoading) {
+    return <ErrorState error={parseError(error)} onRetry={refetch} />
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -371,22 +409,18 @@ function SuperAdminUsers() {
         {/* User Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-card rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-1">Total Users</h3>
+            <h3 className="text-sm font-medium mb-1">{t('analytics.totalUsers')}</h3>
             <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
           </div>
 
           <div className="bg-card rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-1">Active Users</h3>
-            <p className="text-2xl font-bold">
-              {stats?.activeUsers || 0}
-            </p>
+            <h3 className="text-sm font-medium mb-1">{t('analytics.activeUsers')}</h3>
+            <p className="text-2xl font-bold">{stats?.activeUsers || 0}</p>
           </div>
 
           <div className="bg-card rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-1">Banned Users</h3>
-            <p className="text-2xl font-bold">
-              {stats?.bannedUsers || 0}
-            </p>
+            <h3 className="text-sm font-medium mb-1">{t('analytics.bannedUsers')}</h3>
+            <p className="text-2xl font-bold">{stats?.bannedUsers || 0}</p>
           </div>
         </div>
       </div>
@@ -401,7 +435,7 @@ function SuperAdminUsers() {
           currentFilters={currentFilters}
           isLoading={isLoading}
           isFetching={isFetching}
-          getRowIdProp={(row) => row.id}
+          getRowIdProp={row => row.id}
         />
       </div>
 
@@ -409,12 +443,12 @@ function SuperAdminUsers() {
         <SheetContent className="w-[500px] sm:w-[540px] flex flex-col gap-0">
           <SheetHeader className="shrink-0 px-6 py-6 border-b">
             <SheetTitle>
-              {selectedUser ? `${selectedUser.name || selectedUser.email}'s Sessions` : 'User Sessions'}
+              {selectedUser
+                ? `${selectedUser.name || selectedUser.email}'s Sessions`
+                : t('users.userSessions')}
               {!sessionsLoading && userSessions.length > 0 && ` (${userSessions.length})`}
             </SheetTitle>
-            <SheetDescription>
-              View and manage all active sessions for this user.
-            </SheetDescription>
+            <SheetDescription>{t('auth:sessions.description')}</SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto">
@@ -425,30 +459,34 @@ function SuperAdminUsers() {
                 </div>
               ) : userSessions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No active sessions found
+                  {t('auth:sessions.noSessions')}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {userSessions.map((session) => (
+                  {userSessions.map(session => (
                     <div key={session.token} className="border rounded-lg p-4 space-y-3">
                       <div className="grid gap-2 flex-1">
                         <div className="grid gap-1">
-                          <div className="text-sm font-medium">Session Token</div>
+                          <div className="text-sm font-medium">{t('tables.sessionToken')}</div>
                           <div className="text-sm text-muted-foreground font-mono">
-                            {session.token ? session.token.substring(0, 16) + '...' : 'Unknown'}
+                            {session.token
+                              ? session.token.substring(0, 16) + '...'
+                              : t('users.unknown')}
                           </div>
                         </div>
 
                         <div className="grid gap-1">
-                          <div className="text-sm font-medium">Created</div>
+                          <div className="text-sm font-medium">{t('tables.created')}</div>
                           <div className="text-sm text-muted-foreground">
-                            {session.createdAt ? formatDateTime(session.createdAt) : 'Unknown'}
+                            {session.createdAt
+                              ? formatDateTime(session.createdAt)
+                              : t('users.unknown')}
                           </div>
                         </div>
 
                         {session.expiresAt && (
                           <div className="grid gap-1">
-                            <div className="text-sm font-medium">Expires</div>
+                            <div className="text-sm font-medium">{t('tables.expires')}</div>
                             <div className="text-sm text-muted-foreground">
                               {formatDateTime(session.expiresAt)}
                             </div>
@@ -457,19 +495,15 @@ function SuperAdminUsers() {
 
                         {session.userAgent && (
                           <div className="grid gap-1">
-                            <div className="text-sm font-medium">Device</div>
-                            <div className="text-sm text-muted-foreground">
-                              {session.userAgent}
-                            </div>
+                            <div className="text-sm font-medium">{t('tables.device')}</div>
+                            <div className="text-sm text-muted-foreground">{session.userAgent}</div>
                           </div>
                         )}
 
                         {session.ipAddress && (
                           <div className="grid gap-1">
-                            <div className="text-sm font-medium">IP Address</div>
-                            <div className="text-sm text-muted-foreground">
-                              {session.ipAddress}
-                            </div>
+                            <div className="text-sm font-medium">{t('tables.ipAddress')}</div>
+                            <div className="text-sm text-muted-foreground">{session.ipAddress}</div>
                           </div>
                         )}
                       </div>
@@ -480,7 +514,7 @@ function SuperAdminUsers() {
                         onClick={() => handleRevokeSession(session.token)}
                         className="w-full"
                       >
-                        Revoke session
+                        {t('auth:sessions.revoke')}
                       </Button>
                     </div>
                   ))}
@@ -496,7 +530,7 @@ function SuperAdminUsers() {
               disabled={sessionsLoading || userSessions.length === 0}
               className="w-full"
             >
-              Revoke All Sessions
+              {t('auth:sessions.revokeAll')}
             </Button>
           </div>
         </SheetContent>

@@ -1,0 +1,119 @@
+{
+  "title": "Profile Settings",
+  "subtitle": "Manage your account information and preferences",
+  "backToDashboard": "Back to Dashboard",
+  "tabs": {
+    "basic": "Basic Information",
+    "sessions": "Sessions"
+  },
+  "personalInfo": {
+    "title": "Personal Information",
+    "description": "Update your personal details and account information",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "firstNamePlaceholder": "Enter first name",
+    "lastNamePlaceholder": "Enter last name",
+    "emailPlaceholder": "Enter email address",
+    "fullName": "Full Name",
+    "updateProfilePicture": "Update Profile Picture"
+  },
+  "account": {
+    "title": "Account Details",
+    "description": "View your account status and metadata",
+    "userId": "User ID",
+    "role": "Role",
+    "accountCreated": "Account Created",
+    "emailVerified": "Email Verified"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "description": "Customize your application settings",
+    "language": "Language"
+  },
+  "security": {
+    "title": "Security",
+    "description": "Manage your account security settings",
+    "twoFactor": "Two-Factor Authentication",
+    "changePassword": "Change Password",
+    "passwordDescription": "Update your password regularly for better security",
+    "notice": "Security Notice",
+    "revokeSessionTitle": "Revoke Session?",
+    "revokeSessionAction": "Revoke Session",
+    "revokeAllTitle": "Revoke All Other Sessions?",
+    "warning": "Warning",
+    "securityNoticeDescription": "If you notice any unfamiliar devices or locations, revoke those sessions immediately and change your password.",
+    "revokeAllSessionsDescription": "This will sign out all other devices from your account except the current one. All users will need to sign in again to access your account.",
+    "revokeWarning": "This action cannot be undone. Make sure you recognize the current device before proceeding.",
+    "twoFactorEnabled": "Two-factor authentication is enabled for your account",
+    "twoFactorDisabled": "Add an extra layer of security to your account"
+  },
+  "sessions": {
+    "title": "Active Sessions",
+    "subtitle": "Sessions",
+    "description": "Manage your active sessions across different devices",
+    "alertDescription": "View and manage all devices that are currently signed in to your account. The current session is highlighted and cannot be revoked.",
+    "empty": "No active sessions found",
+    "current": "Current Session",
+    "revoke": "Revoke",
+    "revokeAll": "Revoke All Other Sessions",
+    "revokeAllOthers": "Revoke All Others",
+    "lastActivity": "Last activity",
+    "unknown": "Unknown Browser",
+    "unknownOS": "Unknown OS",
+    "unknownDevice": "Unknown Device",
+    "expires": "Expires {{date}}",
+    "notFound": "No session found",
+    "information": "Session Information",
+    "session": "Session",
+    "expiresLabel": "Expires:",
+    "ipAddress": "IP:"
+  },
+  "labels": {
+    "user": "User"
+  },
+  "dialogs": {
+    "revokeSession": "Revoke Session?",
+    "revokeSessionDescription": "This will sign out this device. You'll need to sign in again on that device.",
+    "revokeAllSessions": "Revoke All Other Sessions?",
+    "revokeAllDescription": "This will sign out all other devices. You'll stay signed in on this device.",
+    "warning": "Warning",
+    "securityWarning": "If you suspect unauthorized access, revoke all sessions and change your password immediately."
+  },
+  "messages": {
+    "profileUpdated": "Profile updated successfully",
+    "profileUpdateFailed": "Failed to update profile",
+    "sessionRevoked": "Session revoked successfully",
+    "sessionRevokeFailed": "Failed to revoke session",
+    "allSessionsRevoked": "All other sessions revoked successfully",
+    "allSessionsRevokeFailed": "Failed to revoke sessions"
+  },
+  "avatar": {
+    "title": "Update Profile Picture",
+    "description": "Choose a new profile picture. The image will be resized to 128x128 pixels.",
+    "preview": "Preview of your new profile picture",
+    "uploadInstructions": "Click to upload or drag and drop",
+    "fileTypes": "JPEG, PNG, GIF or WebP (max 10MB)",
+    "validating": "Validating image...",
+    "chooseFile": "Choose File",
+    "validatingButton": "Validating...",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "remove": "Remove",
+    "cancel": "Cancel",
+    "errors": {
+      "invalidFileType": "Please select a valid image file (JPEG, PNG, GIF, or WebP)",
+      "noFileSelected": "Please select an image first",
+      "invalidImage": "Invalid image file",
+      "fileSizeExceeds": "File size ({{size}}MB) exceeds the 10MB limit",
+      "dimensionsTooLarge": "Image dimensions {{width}}x{{height}} exceed maximum {{maxWidth}}x{{maxHeight}} pixels",
+      "dimensionsTooSmall": "Image dimensions {{width}}x{{height}} are below minimum {{minWidth}}x{{minHeight}} pixels",
+      "uploadFailed": "Failed to upload avatar",
+      "removeFailed": "Failed to remove avatar"
+    },
+    "success": {
+      "uploaded": "Avatar uploaded successfully!",
+      "removed": "Avatar removed successfully!"
+    }
+  }
+}

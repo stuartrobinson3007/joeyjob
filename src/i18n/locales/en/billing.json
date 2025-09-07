@@ -1,0 +1,88 @@
+{
+  "title": "Billing & Subscription",
+  "subscription": {
+    "title": "Subscription",
+    "current": "Current Plan",
+    "manage": "Manage Subscription",
+    "viewHistory": "View Billing History",
+    "manageTitle": "Manage billing, payment methods, and invoices",
+    "updated": "Subscription updated successfully!",
+    "cancelled": "Checkout cancelled",
+    "createFailed": "Failed to create checkout session",
+    "portalFailed": "Failed to generate portal URL. Please try again.",
+    "noPermission": "You do not have permission to manage billing",
+    "noOrganization": "No organization selected. Please select an organization first.",
+    "portalOpenFailed": "Failed to open billing portal. Please try again later.",
+    "reactivate": "Reactivate",
+    "changePlan": "Change Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "currentPlan": "Current Plan",
+    "status": {
+      "pastDue": "Past Due"
+    },
+    "expires": "Expires",
+    "renews": "Renews",
+    "on": "on"
+  },
+  "usage": {
+    "title": "Usage",
+    "current": "Current usage",
+    "limit": "Monthly limit",
+    "reset": "Resets {{date}}",
+    "overage": "Overage charges may apply",
+    "loading": "Loading billing information...",
+    "failed": "Failed to load billing information. Please refresh the page or contact support.",
+    "todos": "Todos",
+    "teamMembers": "Team Members",
+    "storage": "Storage (MB)",
+    "unlimited": "(Unlimited)"
+  },
+  "plans": {
+    "free": "Free",
+    "starter": "Starter",
+    "pro": "Pro",
+    "business": "Business",
+    "enterprise": "Enterprise",
+    "mostPopular": "Most Popular",
+    "monthly": "Monthly",
+    "annual": "Annual (Save 20%)",
+    "month": "month",
+    "year": "year"
+  },
+  "features": {
+    "unlimited": "Unlimited",
+    "customFields": "Custom fields",
+    "apiAccess": "API access",
+    "prioritySupport": "Priority support",
+    "todosLimit": "{{limit}} todos",
+    "membersLimit": "{{limit}} team members",
+    "storageLimit": "{{limit}} storage"
+  },
+  "payment": {
+    "card": "Credit card",
+    "last4": "ending in {{digits}}",
+    "expires": "Expires {{date}}",
+    "update": "Update payment method",
+    "add": "Add payment method",
+    "default": "Default"
+  },
+  "invoice": {
+    "date": "Date",
+    "amount": "Amount",
+    "status": "Status",
+    "download": "Download PDF",
+    "paid": "Paid",
+    "pending": "Pending",
+    "failed": "Failed"
+  },
+  "alerts": {
+    "cancelled": "Your subscription will be cancelled at the end of the current billing period. You can reactivate anytime before it expires.",
+    "pastDue": "Your payment is past due. Please update your payment method to avoid service interruption.",
+    "incomplete": "Your subscription setup is incomplete. Please complete the payment to activate your subscription."
+  },
+  "unlimited": "Unlimited",
+  "labels": {
+    "mostPopular": "Most Popular"
+  }
+}

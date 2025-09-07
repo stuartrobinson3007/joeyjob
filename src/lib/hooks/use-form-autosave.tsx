@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { debounce } from 'lodash'
-import { toast } from 'sonner'
+
+import errorTranslations from '@/i18n/locales/en/errors.json'
 
 interface UseFormAutosaveOptions<T> {
   initialData: T
@@ -70,13 +71,13 @@ export function useFormAutosave<T extends Record<string, any>>({
     }
 
     setIsSaving(true)
-    
+
     const savePromise = (async () => {
       try {
         const result = await onSave(data)
-        
+
         if (!mountedRef.current) return
-        
+
         // If onSave returns normalized data, use it
         const savedData = result || data
         lastSavedDataRef.current = savedData as T
@@ -85,10 +86,11 @@ export function useFormAutosave<T extends Record<string, any>>({
         setErrors([])
       } catch (error) {
         if (!mountedRef.current) return
-        
-        const message = error instanceof Error ? error.message : 'Failed to save'
+
+        const message = error instanceof Error ? error.message : errorTranslations.server.saveFailed
         setErrors([message])
-        toast.error(message)
+        // Error is handled by the component using this hook
+        console.error('Autosave failed:', error)
       } finally {
         if (mountedRef.current) {
           setIsSaving(false)
@@ -103,9 +105,10 @@ export function useFormAutosave<T extends Record<string, any>>({
 
   // Debounced save - using useMemo to ensure stable reference
   const debouncedSave = useMemo(
-    () => debounce(() => {
-      performSave()
-    }, debounceMs),
+    () =>
+      debounce(() => {
+        performSave()
+      }, debounceMs),
     [performSave, debounceMs]
   )
 
@@ -129,15 +132,18 @@ export function useFormAutosave<T extends Record<string, any>>({
   }, [debouncedSave, performSave])
 
   // Reset form to initial or new data
-  const reset = useCallback((newData?: T) => {
-    const dataToSet = newData || initialData
-    setData(dataToSet)
-    lastSavedDataRef.current = dataToSet
-    setLastSaved(null)
-    setErrors([])
-    debouncedSave.cancel()
-    isInitializedRef.current = true
-  }, [initialData, debouncedSave])
+  const reset = useCallback(
+    (newData?: T) => {
+      const dataToSet = newData || initialData
+      setData(dataToSet)
+      lastSavedDataRef.current = dataToSet
+      setLastSaved(null)
+      setErrors([])
+      debouncedSave.cancel()
+      isInitializedRef.current = true
+    },
+    [initialData, debouncedSave]
+  )
 
   // Auto-save on data change
   useEffect(() => {

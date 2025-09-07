@@ -1,18 +1,21 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { Building2, Mail, UserPlus, AlertCircle, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { useErrorHandler } from '@/lib/errors/hooks'
 import { authClient } from '@/lib/auth/auth-client'
 import { getInvitationDetails } from '@/features/organization/lib/onboarding.server'
 import { OTPSignIn } from '@/features/auth/components/otp-sign-in'
-import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
-import { Building2, Mail, UserPlus, AlertCircle, Loader2 } from 'lucide-react'
 import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
 import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 export const Route = createFileRoute('/invite/$invitationId')({
   loader: async ({ params }) => {
     try {
       const invitation = await getInvitationDetails({
-        data: { invitationId: params.invitationId }
+        data: { invitationId: params.invitationId },
       })
       return { invitation }
     } catch (error) {
@@ -20,17 +23,21 @@ export const Route = createFileRoute('/invite/$invitationId')({
       return { invitation: null }
     }
   },
-  component: InvitationPage
+  component: InvitationPage,
 })
 
 function InvitationPage() {
   const { invitationId } = Route.useParams()
   const { invitation } = Route.useLoaderData()
+  const { showError, showSuccess } = useErrorHandler()
   const { data: session, isPending: sessionPending, refetch: refetchSession } = useSession()
   const { refetch: refetchOrganizations } = useListOrganizations()
   const navigate = useNavigate()
   const [isAccepting, setIsAccepting] = useState(false)
   const [showOTPForm, setShowOTPForm] = useState(false)
+  const { t } = useTranslation('invitations')
+  const { t: tCommon } = useTranslation('common')
+  const { t: tNotifications } = useTranslation('notifications')
 
   useEffect(() => {
     // Store invitation ID in localStorage for post-auth retrieval
@@ -47,18 +54,18 @@ function InvitationPage() {
       try {
         await authClient.emailOtp.sendVerificationOtp({
           email: invitation?.email || '',
-          type: "sign-in"
+          type: 'sign-in',
         })
-        toast.success('Verification code sent to your email')
+        showSuccess(t('common:messages.verificationSent'))
       } catch (error) {
-        toast.error('Failed to send verification code')
+        showError(error)
       }
       return
     }
 
     // Check if the logged-in user's email matches the invitation email
     if (session.user.email !== invitation?.email) {
-      toast.error('This invitation is for a different email address')
+      showError(t('common:messages.wrongEmail'))
       return
     }
 
@@ -70,17 +77,19 @@ function InvitationPage() {
         // Redirect to onboarding with invitation
         await navigate({
           to: '/onboarding',
-          search: { invite: invitationId }
+          search: { invite: invitationId },
         })
       } else {
         // User is already onboarded, accept invitation directly
         const result = await authClient.organization.acceptInvitation({
-          invitationId
+          invitationId,
         })
 
         if (result.data) {
-          // Get the organization ID from the result
-          const organizationId = (result as any).organizationId || (result as any).data?.organizationId || result.data.organizationId
+          // Get the organization ID from the result - check various possible locations
+          const data = result.data as any
+          const organizationId =
+            data?.organizationId || data?.organization?.id || data?.member?.organizationId
 
           // Set as active organization using utility function
           if (organizationId) {
@@ -91,19 +100,23 @@ function InvitationPage() {
           await refetchSession()
           await refetchOrganizations()
 
-          toast.success(`Welcome to ${invitation?.organizationName}!`)
+          showSuccess(
+            tNotifications('success.welcomeToOrganization', {
+              organizationName: invitation?.organizationName,
+            })
+          )
 
           // Small delay to ensure state updates propagate
           setTimeout(() => {
             navigate({ to: '/' })
           }, 100)
         } else {
-          throw new Error('Failed to accept invitation')
+          throw new Error(t('common:messages.acceptInvitationFailed'))
         }
       }
     } catch (error) {
       console.error('Failed to accept invitation:', error)
-      toast.error('Failed to accept invitation. Please try again.')
+      showError(error)
     } finally {
       setIsAccepting(false)
     }
@@ -124,15 +137,13 @@ function InvitationPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-destructive/10 rounded-full mb-4">
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Invitation</h1>
-          <p className="text-muted-foreground mb-6">
-            This invitation link is invalid or has expired.
-          </p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">{t('invalid')}</h1>
+          <p className="text-muted-foreground mb-6">{t('common:messages.invalidOrExpired')}</p>
           <button
             onClick={() => navigate({ to: '/' })}
             className="px-6 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80"
           >
-            Go to Home
+            {tCommon('navigation.home')}
           </button>
         </div>
       </div>
@@ -155,24 +166,28 @@ function InvitationPage() {
 
                 // Check if user needs onboarding
                 if (!newSession.user.onboardingCompleted) {
-                  toast.success('Signed in! Please complete your profile to continue.')
+                  showSuccess(t('common:messages.signedInProfile'))
                   // Redirect to onboarding with invitation
                   await navigate({
                     to: '/onboarding',
-                    search: { invite: invitationId }
+                    search: { invite: invitationId },
                   })
                 } else {
                   // User is already onboarded, accept invitation directly
-                  toast.success('Signed in! Accepting invitation...')
+                  showSuccess(t('common:messages.signedInAccepting'))
 
                   try {
                     const result = await authClient.organization.acceptInvitation({
-                      invitationId
+                      invitationId,
                     })
 
                     if (result.data) {
-                      // Get the organization ID from the result
-                      const organizationId = (result as any).organizationId || (result as any).data?.organizationId || result.data.organizationId
+                      // Get the organization ID from the result - check various possible locations
+                      const data = result.data as any
+                      const organizationId =
+                        data?.organizationId ||
+                        data?.organization?.id ||
+                        data?.member?.organizationId
 
                       // Set as active organization using utility function
                       if (organizationId) {
@@ -183,22 +198,26 @@ function InvitationPage() {
                       await refetchSession()
                       await refetchOrganizations()
 
-                      toast.success(`Welcome to ${invitation.organizationName}!`)
+                      toast.success(
+                        tNotifications('success.welcomeToOrganization', {
+                          organizationName: invitation.organizationName,
+                        })
+                      )
 
                       // Small delay to ensure state updates propagate
                       setTimeout(() => {
                         navigate({ to: '/' })
                       }, 100)
                     } else {
-                      throw new Error('Failed to accept invitation')
+                      throw new Error(t('common:messages.acceptInvitationFailed'))
                     }
                   } catch (error) {
-                    toast.error('Failed to accept invitation. Please try again.')
+                    showError(error)
                     setShowOTPForm(false)
                   }
                 }
               } else {
-                toast.error('Authentication failed. Please try again.')
+                showError(t('common:messages.authFailed'))
               }
             }}
             onBack={() => setShowOTPForm(false)}
@@ -215,14 +234,14 @@ function InvitationPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
             <UserPlus className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">You're Invited!</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('common:messages.youreInvited')}</h1>
         </div>
 
         <div className="space-y-4 mb-8">
           <div className="flex items-start gap-3">
             <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm text-muted-foreground">Organization</p>
+              <p className="text-sm text-muted-foreground">{t('common:labels.organization')}</p>
               <p className="font-medium text-foreground">{invitation.organizationName}</p>
             </div>
           </div>
@@ -230,7 +249,7 @@ function InvitationPage() {
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm text-muted-foreground">Invited by</p>
+              <p className="text-sm text-muted-foreground">{t('common:labels.invitedBy')}</p>
               <p className="font-medium text-foreground">{invitation.inviterName}</p>
             </div>
           </div>
@@ -238,8 +257,10 @@ function InvitationPage() {
           <div className="flex items-start gap-3">
             <UserPlus className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm text-muted-foreground">Role</p>
-              <p className="font-medium text-foreground capitalize">{invitation.role || 'Member'}</p>
+              <p className="text-sm text-muted-foreground">{t('common:labels.role')}</p>
+              <p className="font-medium text-foreground capitalize">
+                {invitation.role || t('common:labels.defaultRole')}
+              </p>
             </div>
           </div>
         </div>
@@ -250,20 +271,20 @@ function InvitationPage() {
               // User is logged in with the correct email
               <>
                 <p className="text-sm text-muted-foreground text-center mb-4">
-                  Signed in as <strong>{session.user.email}</strong>
+                  {t('common:messages.signedInAs', { email: session.user.email })}
                 </p>
                 <button
                   onClick={handleAcceptInvitation}
                   disabled={isAccepting}
                   className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isAccepting ? 'Accepting...' : 'Accept Invitation'}
+                  {isAccepting ? t('common:actions.accepting') : t('common:actions.accept')}
                 </button>
                 <button
                   onClick={() => authClient.signOut()}
                   className="w-full px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent"
                 >
-                  Sign in with Different Account
+                  {t('common:actions.signInDifferent')}
                 </button>
               </>
             ) : (
@@ -274,10 +295,13 @@ function InvitationPage() {
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                     <div className="flex-1">
                       <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                        This invitation is for another user
+                        {t('common:messages.wrongUser')}
                       </p>
                       <p className="text-sm text-amber-700 dark:text-amber-300">
-                        This invitation was sent to <strong>{invitation.email}</strong>, but you're signed in as <strong>{session.user.email}</strong>.
+                        {t('common:messages.sentToDifferentEmail', {
+                          invitationEmail: invitation.email,
+                          currentEmail: session.user.email,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -290,13 +314,13 @@ function InvitationPage() {
                   }}
                   className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90"
                 >
-                  Sign Out and Use Invitation
+                  {t('common:actions.signOutAndUse')}
                 </button>
                 <button
                   onClick={() => navigate({ to: '/' })}
                   className="w-full px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent"
                 >
-                  Go to Home
+                  {tCommon('navigation.home')}
                 </button>
               </>
             )
@@ -306,10 +330,10 @@ function InvitationPage() {
                 onClick={handleAcceptInvitation}
                 className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90"
               >
-                Get Access Code
+                {t('common:actions.getAccessCode')}
               </button>
               <p className="text-sm text-muted-foreground text-center">
-                We'll send a code to <strong>{invitation.email}</strong> to verify it's you
+                {t('common:messages.sendCodeVerification', { email: invitation.email })}
               </p>
             </>
           )}

@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react'
 
+import errorTranslations from '@/i18n/locales/en/errors.json'
+
 /**
  * Hook for managing loading states of individual items
  * Useful for tracking which specific items are being processed in a list
@@ -19,9 +21,12 @@ export function useLoadingItems<T = string>() {
     })
   }, [])
 
-  const isLoading = useCallback((id: T) => {
-    return loadingItems.has(id)
-  }, [loadingItems])
+  const isLoading = useCallback(
+    (id: T) => {
+      return loadingItems.has(id)
+    },
+    [loadingItems]
+  )
 
   const clearAll = useCallback(() => {
     setLoadingItems(new Set())
@@ -32,7 +37,7 @@ export function useLoadingItems<T = string>() {
     startLoading,
     stopLoading,
     isLoading,
-    clearAll
+    clearAll,
   }
 }
 
@@ -49,29 +54,32 @@ export function useAsyncAction<TArgs extends any[], TReturn = void>(
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const execute = useCallback(async (...args: TArgs): Promise<TReturn | undefined> => {
-    setIsLoading(true)
-    setError(null)
-    
-    try {
-      const result = await action(...args)
-      options?.onSuccess?.(result)
-      return result
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('An error occurred')
-      setError(error)
-      options?.onError?.(error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }, [action, options])
+  const execute = useCallback(
+    async (...args: TArgs): Promise<TReturn | undefined> => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const result = await action(...args)
+        options?.onSuccess?.(result)
+        return result
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(errorTranslations.server.genericError)
+        setError(error)
+        options?.onError?.(error)
+        throw error
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [action, options]
+  )
 
   return {
     execute,
     isLoading,
     error,
-    reset: () => setError(null)
+    reset: () => setError(null),
   }
 }
 
@@ -84,13 +92,16 @@ export function useMultipleLoadingStates() {
   const setLoading = useCallback((key: string, isLoading: boolean) => {
     setLoadingStates(prev => ({
       ...prev,
-      [key]: isLoading
+      [key]: isLoading,
     }))
   }, [])
 
-  const isLoading = useCallback((key: string) => {
-    return loadingStates[key] || false
-  }, [loadingStates])
+  const isLoading = useCallback(
+    (key: string) => {
+      return loadingStates[key] || false
+    },
+    [loadingStates]
+  )
 
   const isAnyLoading = useCallback(() => {
     return Object.values(loadingStates).some(state => state)
@@ -105,6 +116,6 @@ export function useMultipleLoadingStates() {
     isLoading,
     isAnyLoading,
     clearAll,
-    loadingStates
+    loadingStates,
   }
 }

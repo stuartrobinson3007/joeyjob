@@ -1,9 +1,15 @@
 import { useState } from 'react'
-import { authClient } from '@/lib/auth/auth-client'
-import { toast } from 'sonner'
 import { Mail, Loader2 } from 'lucide-react'
 
+import { authClient } from '@/lib/auth/auth-client'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
+
 export function MagicLinkSignIn() {
+  const { t } = useTranslation('auth')
+  const { showError, showSuccess } = useErrorHandler()
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSent, setIsSent] = useState(false)
@@ -12,7 +18,7 @@ export function MagicLinkSignIn() {
     e.preventDefault()
 
     if (!email) {
-      toast.error('Please enter your email')
+      showError(new AppError(ERROR_CODES.VAL_REQUIRED_FIELD, 400, { field: t('common:labels.email') }))
       return
     }
 
@@ -20,17 +26,24 @@ export function MagicLinkSignIn() {
     try {
       const result = await authClient.signIn.magicLink({
         email,
-        callbackURL: '/'
+        callbackURL: '/',
       })
 
       if (result.error) {
-        toast.error(result.error.message || 'Failed to send magic link')
+        showError(
+          new AppError(
+            ERROR_CODES.SYS_SERVER_ERROR,
+            500,
+            undefined,
+            result.error.message || t('errors:errors.magicLinkFailed')
+          )
+        )
       } else {
         setIsSent(true)
-        toast.success('Magic link sent! Check your email.')
+        showSuccess(t('magicLink.sent'))
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.')
+      showError(error)
       console.error('Magic link error:', error)
     } finally {
       setIsLoading(false)
@@ -42,13 +55,9 @@ export function MagicLinkSignIn() {
       <div className="space-y-4 text-center">
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <Mail className="w-12 h-12 text-green-600 mx-auto mb-2" />
-          <h3 className="text-lg font-medium text-green-900">Check your email!</h3>
-          <p className="text-sm text-green-700 mt-1">
-            We've sent a magic link to <strong>{email}</strong>
-          </p>
-          <p className="text-xs text-green-600 mt-2">
-            The link will expire in 5 minutes
-          </p>
+          <h3 className="text-lg font-medium text-green-900">{t('magicLink.sent')}</h3>
+          <p className="text-sm text-green-700 mt-1">{t('magicLink.check')}</p>
+          <p className="text-xs text-green-600 mt-2">{t('magicLink.expire')}</p>
         </div>
         <button
           onClick={() => {
@@ -57,7 +66,7 @@ export function MagicLinkSignIn() {
           }}
           className="text-sm text-primary hover:text-primary/80"
         >
-          Try a different email
+          {t('magicLink.resend')}
         </button>
       </div>
     )
@@ -67,14 +76,14 @@ export function MagicLinkSignIn() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
-          Email address
+          {t('common:labels.email')}
         </label>
         <input
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
+          onChange={e => setEmail(e.target.value)}
+          placeholder={t('signin.emailPlaceholder')}
           className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
           disabled={isLoading}
           required
@@ -88,12 +97,12 @@ export function MagicLinkSignIn() {
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Sending...
+            {t('states.sending')}
           </>
         ) : (
           <>
             <Mail />
-            Send Magic Link
+            {t('signin.providers.magicLink')}
           </>
         )}
       </button>

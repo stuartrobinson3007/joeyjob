@@ -1,44 +1,49 @@
 /**
  * Super Admin Layout
- * 
+ *
  * Dedicated layout component for super admin pages.
  * Provides admin-specific styling, navigation, and context using better-auth.
  */
 
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { useRouterState } from '@tanstack/react-router';
-import { SuperAdminSidebar } from './super-admin-sidebar';
-import { useSession } from '@/lib/auth/auth-hooks';
-import { PageHeader } from '@/components/page-header';
+import { useRouterState } from '@tanstack/react-router'
+
+import { SuperAdminSidebar } from './super-admin-sidebar'
+
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { useSession } from '@/lib/auth/auth-hooks'
+import { PageHeader } from '@/components/page-header'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface SuperAdminLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
-const pageNames: Record<string, string> = {
-  '/superadmin': 'Dashboard',
-  '/superadmin/users': 'User Management',
-  '/superadmin/workspaces': 'Workspace Management',
-  '/superadmin/analytics': 'Analytics',
-  '/superadmin/settings': 'System Settings',
-};
+// Page names will be translated dynamically
+const getPageNames = (t: (key: string) => string): Record<string, string> => ({
+  '/superadmin': t('pages.dashboard'),
+  '/superadmin/users': t('pages.userManagement'),
+  '/superadmin/workspaces': t('pages.workspaceManagement'),
+  '/superadmin/analytics': t('pages.analytics'),
+  '/superadmin/settings': t('pages.systemSettings'),
+})
 
 export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
-  const { data: session } = useSession();
+  const { data: session } = useSession()
+  const { t } = useTranslation('admin')
 
   // Check superadmin access - simplified since this layout is only used on superadmin routes
-  const isSuperAdmin = session?.user?.role === 'superadmin';
+  const isSuperAdmin = session?.user?.role === 'superadmin'
+
+  // Use useRouterState for reactive pathname updates - must be called before any returns
+  const currentPath = useRouterState({
+    select: state => state.location.pathname,
+  })
+  const pageNames = getPageNames(t)
+  const currentPageName = pageNames[currentPath] || t('title')
 
   if (!isSuperAdmin) {
-    return <>{children}</>;
+    return <>{children}</>
   }
-
-  // Use useRouterState for reactive pathname updates
-  const currentPath = useRouterState({ 
-    select: (state) => state.location.pathname 
-  });
-  const currentPageName = pageNames[currentPath] || 'Super Admin';
-
 
   return (
     <SidebarProvider
@@ -62,7 +67,8 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         dark:[--sidebar-ring:theme(colors.purple.400)]
       "
     >
-      <SuperAdminSidebar className="
+      <SuperAdminSidebar
+        className="
         [--muted:theme(colors.purple.400)] 
         dark:[--muted:theme(colors.purple.800)]
         [--muted-foreground:theme(colors.purple.200)] 
@@ -79,31 +85,31 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         dark:[--accent:theme(colors.purple.800)]
         [--accent-foreground:theme(colors.white)] 
         dark:[--accent-foreground:theme(colors.purple.50)]
-      " />
+      "
+      />
+
       <SidebarInset>
         <PageHeader title={currentPageName} />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-background">
-          {children}
-        </div>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-background">{children}</div>
       </SidebarInset>
     </SidebarProvider>
-  );
+  )
 }
 
 /**
  * Hook to determine if user can access superadmin layout
  */
 export function useSuperAdminAccess() {
-  const { data: session } = useSession();
+  const { data: session } = useSession()
 
   // Check if user is a superadmin (system-wide admin)
-  const isSuperAdmin = session?.user?.role === 'superadmin';
+  const isSuperAdmin = session?.user?.role === 'superadmin'
 
-  const canAccessSuperAdmin = isSuperAdmin;
+  const canAccessSuperAdmin = isSuperAdmin
 
   return {
     canAccessSuperAdmin,
     isSuperAdmin,
-    user: session?.user
-  };
+    user: session?.user,
+  }
 }

@@ -1,10 +1,14 @@
 import { useState, FormEvent } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { User, Building2 } from 'lucide-react'
+
 import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
 import { completeOnboarding } from '@/features/organization/lib/onboarding.server'
-import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
-import { User, Building2 } from 'lucide-react'
 import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
 
 interface OnboardingFormProps {
   invitationId?: string
@@ -16,12 +20,14 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
   const { refetch: refetchOrganizations } = useListOrganizations()
 
   const navigate = useNavigate()
+  const { t } = useTranslation('auth')
+  const { showError, showSuccess } = useErrorHandler()
 
   // Pre-fill from OAuth data if available
   const nameParts = session?.user?.name?.split(' ') || []
   const [formData, setFormData] = useState({
     firstName: nameParts[0] || '',
-    lastName: nameParts.slice(1).join(' ') || ''
+    lastName: nameParts.slice(1).join(' ') || '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -29,7 +35,14 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
     e.preventDefault()
 
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      toast.error('Please fill in all fields')
+      showError(
+        new AppError(
+          ERROR_CODES.VAL_REQUIRED_FIELD,
+          400,
+          { field: t('onboarding.firstName') },
+          t('onboarding.fillFields')
+        )
+      )
       return
     }
 
@@ -40,18 +53,18 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
         data: {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
-          invitationId
-        }
+          invitationId,
+        },
       })
 
       if (result.success) {
         // Set the active organization using utility function
         setActiveOrganizationId(result.organizationId)
 
-        toast.success(
+        showSuccess(
           result.isInvite
-            ? `Welcome to ${organizationName}!`
-            : 'Welcome! Your workspace has been created.'
+            ? t('welcome.organizationInvite', { organizationName })
+            : t('welcome.workspaceCreated')
         )
 
         // Refetch session to get updated user data
@@ -62,7 +75,7 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
         await navigate({ to: '/' })
       }
     } catch (error) {
-      toast.error('Failed to complete setup. Please try again.')
+      showError(error)
     } finally {
       setIsSubmitting(false)
     }
@@ -74,10 +87,8 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
         <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
           <User className="w-8 h-8 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Complete Your Profile</h1>
-        <p className="text-muted-foreground mt-2">
-          Just a few more details to get you started
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">{t('onboarding.completeProfile')}</h1>
+        <p className="text-muted-foreground mt-2">{t('onboarding.setupProfile')}</p>
       </div>
 
       {invitationId && organizationName && (
@@ -85,7 +96,7 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
           <div className="flex items-center gap-3">
             <Building2 className="w-5 h-5 text-info flex-shrink-0" />
             <p className="text-info text-sm">
-              You'll join <strong>{organizationName}</strong> after completing setup
+              {t('onboarding.joinOrganization', { organizationName })}
             </p>
           </div>
         </div>
@@ -94,15 +105,15 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-1">
-            First Name
+            {t('onboarding.firstName')}
           </label>
           <input
             id="firstName"
             type="text"
             value={formData.firstName}
-            onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+            onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
             className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-            placeholder="John"
+            placeholder={t('onboarding.firstNamePlaceholder')}
             required
             disabled={isSubmitting}
           />
@@ -110,15 +121,15 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
 
         <div>
           <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-1">
-            Last Name
+            {t('onboarding.lastName')}
           </label>
           <input
             id="lastName"
             type="text"
             value={formData.lastName}
-            onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+            onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
             className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-            placeholder="Doe"
+            placeholder={t('onboarding.lastNamePlaceholder')}
             required
             disabled={isSubmitting}
           />
@@ -129,7 +140,7 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
           disabled={isSubmitting}
           className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Setting up...' : 'Complete Setup'}
+          {isSubmitting ? t('onboarding.settingUp') : t('onboarding.complete')}
         </button>
       </form>
     </div>

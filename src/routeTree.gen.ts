@@ -18,6 +18,7 @@ import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSelectOrganizationRouteImport } from './routes/_authenticated/select-organization'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
@@ -68,6 +69,12 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSelectOrganizationRoute =
+  AuthenticatedSelectOrganizationRouteImport.update({
+    id: '/select-organization',
+    path: '/select-organization',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -142,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/billing': typeof AuthenticatedBillingRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/team': typeof AuthenticatedTeamRoute
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
@@ -173,6 +182,7 @@ export interface FileRoutesById {
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/_authenticated/team': typeof AuthenticatedTeamRoute
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/onboarding'
     | '/profile'
+    | '/select-organization'
     | '/settings'
     | '/superadmin'
     | '/team'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/onboarding'
     | '/profile'
+    | '/select-organization'
     | '/settings'
     | '/team'
     | '/auth/signin'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
     | '/_authenticated/billing'
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
+    | '/_authenticated/select-organization'
     | '/_authenticated/settings'
     | '/_authenticated/superadmin'
     | '/_authenticated/team'
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/select-organization': {
+      id: '/_authenticated/select-organization'
+      path: '/select-organization'
+      fullPath: '/select-organization'
+      preLoaderRoute: typeof AuthenticatedSelectOrganizationRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -470,6 +490,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedSelectOrganizationRoute: typeof AuthenticatedSelectOrganizationRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRouteWithChildren
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
@@ -481,6 +502,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedSelectOrganizationRoute: AuthenticatedSelectOrganizationRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRouteWithChildren,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,

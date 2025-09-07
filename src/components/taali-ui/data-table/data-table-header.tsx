@@ -1,6 +1,7 @@
-import * as React from "react"
-import { Button } from "../ui/button"
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
+import * as React from 'react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+
+import { Button } from '../ui/button'
 
 interface DataTableHeaderProps {
   column: any
@@ -8,28 +9,24 @@ interface DataTableHeaderProps {
   sortable?: boolean
 }
 
-export function DataTableHeader({ 
-  column, 
-  children, 
-  sortable = false 
-}: DataTableHeaderProps) {
+export function DataTableHeader({ column, children, sortable = false }: DataTableHeaderProps) {
   if (!sortable || !column.getCanSort()) {
     return <span className="font-medium">{children}</span>
   }
 
   const sortDirection = column.getIsSorted()
-  
+
   return (
     <Button
       variant="ghost"
-      onClick={() => column.toggleSorting(sortDirection === "asc")}
+      onClick={() => column.toggleSorting(sortDirection === 'asc')}
       className="h-auto px-2 py-1 -ml-2 hover:bg-accent hover:text-accent-foreground"
     >
       {children}
       <div className="ml-2 h-4 w-4">
-        {sortDirection === "asc" ? (
+        {sortDirection === 'asc' ? (
           <ArrowUp className="h-4 w-4" />
-        ) : sortDirection === "desc" ? (
+        ) : sortDirection === 'desc' ? (
           <ArrowDown className="h-4 w-4" />
         ) : (
           <ArrowUpDown className="h-4 w-4 opacity-50" />

@@ -6,7 +6,5 @@ export const Route = createFileRoute('/_authenticated/superadmin')({
 
 function SuperAdminPage() {
   // Use our SuperAdminLayout component which has purple sidebar
-  return (
-    <Outlet />
-  )
+  return <Outlet />
 }

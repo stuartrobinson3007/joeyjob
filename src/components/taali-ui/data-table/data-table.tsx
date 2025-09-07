@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import {
   ColumnDef,
@@ -14,23 +14,16 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table"
-import * as React from "react"
+} from '@tanstack/react-table'
+import * as React from 'react'
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table"
-import { DataTablePagination } from "./data-table-pagination"
-import { DataTableToolbar } from "./data-table-toolbar"
-import { DataTableBulkActions } from "./data-table-bulk-actions"
-import { DataTableConfig, SelectionState, ServerQueryParams } from "./types"
-import { cn } from "../lib/utils"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { cn } from '../lib/utils'
 
+import { DataTablePagination } from './data-table-pagination'
+import { DataTableToolbar } from './data-table-toolbar'
+import { DataTableBulkActions } from './data-table-bulk-actions'
+import { DataTableConfig, SelectionState, ServerQueryParams } from './types'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -69,11 +62,10 @@ export function DataTable<TData, TValue>({
   toolbarClassName,
   containerClassName,
 }: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [globalFilter, setGlobalFilter] = React.useState("")
+  const [globalFilter, setGlobalFilter] = React.useState('')
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({})
 
   // Simplified ID-based selection state
@@ -85,7 +77,6 @@ export function DataTable<TData, TValue>({
     manualPagination = false,
     manualSorting = false,
     enableColumnFilters = true,
-    enableSorting = true,
     enableRowSelection = false,
     paginationConfig = {},
     selectionConfig = {},
@@ -95,14 +86,11 @@ export function DataTable<TData, TValue>({
 
   const {
     enableColumnResizing = true,
-    columnResizeMode = "onChange",
-    columnResizeDirection = "ltr",
+    columnResizeMode = 'onChange',
+    columnResizeDirection = 'ltr',
   } = resizingConfig
 
-  const {
-    skeletonRowCount = 5,
-    showSkeletonOnRefetch = false,
-  } = loadingConfig
+  const { skeletonRowCount = 5, showSkeletonOnRefetch = false } = loadingConfig
 
   // Get ID from row data - assumes 'id' property exists
   const getRowId = React.useCallback((row: any) => {
@@ -128,62 +116,68 @@ export function DataTable<TData, TValue>({
   }, [data, selectedIds, isAllSelected, getRowId])
 
   // Handle row selection changes from TanStack Table
-  const handleRowSelectionChange = React.useCallback((updater: any) => {
-    const newIndexSelection = typeof updater === 'function' ? updater(currentPageRowSelection) : updater
+  const handleRowSelectionChange = React.useCallback(
+    (updater: any) => {
+      const newIndexSelection =
+        typeof updater === 'function' ? updater(currentPageRowSelection) : updater
 
-    // Check if this is a "select/deselect all" operation (all current page items)
-    const currentPageSize = data.length
-    const newSelectionSize = Object.keys(newIndexSelection).filter(key => newIndexSelection[key]).length
-    const isSelectingAllCurrentPage = newSelectionSize === currentPageSize
-    const isDeselectingAll = newSelectionSize === 0
+      // Check if this is a "select/deselect all" operation (all current page items)
+      const currentPageSize = data.length
+      const newSelectionSize = Object.keys(newIndexSelection).filter(
+        key => newIndexSelection[key]
+      ).length
+      const isSelectingAllCurrentPage = newSelectionSize === currentPageSize
+      const isDeselectingAll = newSelectionSize === 0
 
-    if (isDeselectingAll) {
-      // Deselect all - clear everything regardless of current mode
-      setSelectedIds(new Set())
-      setIsAllSelected(false)
-      setRowSelection({})
-      return
-    }
+      if (isDeselectingAll) {
+        // Deselect all - clear everything regardless of current mode
+        setSelectedIds(new Set())
+        setIsAllSelected(false)
+        setSelectedIds(new Set())
+        return
+      }
 
-    if (isSelectingAllCurrentPage && Object.keys(currentPageRowSelection).length === 0) {
-      // Selecting all on current page - just add current page items
+      if (isSelectingAllCurrentPage && Object.keys(currentPageRowSelection).length === 0) {
+        // Selecting all on current page - just add current page items
+        const newSelectedIds = new Set(selectedIds)
+        data.forEach((row, index) => {
+          const id = getRowId(row)
+          if (newIndexSelection[index.toString()]) {
+            newSelectedIds.add(id)
+          }
+        })
+        setSelectedIds(newSelectedIds)
+        setIsAllSelected(false) // Keep in normal mode, not "all selected"
+        // Selection handled by ID-based system
+        return
+      }
+
+      // Individual item selection/deselection
       const newSelectedIds = new Set(selectedIds)
+
+      // If we were in "all selected" mode, exit it when individual items are toggled
+      if (isAllSelected) {
+        setIsAllSelected(false)
+      }
+
+      // Update selectedIds based on current page changes
       data.forEach((row, index) => {
         const id = getRowId(row)
-        if (newIndexSelection[index.toString()]) {
+        const indexStr = index.toString()
+
+        if (newIndexSelection[indexStr]) {
           newSelectedIds.add(id)
+        } else if (currentPageRowSelection[indexStr]) {
+          // This row was previously selected but now isn't
+          newSelectedIds.delete(id)
         }
       })
+
       setSelectedIds(newSelectedIds)
-      setIsAllSelected(false) // Keep in normal mode, not "all selected"
-      setRowSelection(newIndexSelection)
-      return
-    }
-
-    // Individual item selection/deselection
-    const newSelectedIds = new Set(selectedIds)
-
-    // If we were in "all selected" mode, exit it when individual items are toggled
-    if (isAllSelected) {
-      setIsAllSelected(false)
-    }
-
-    // Update selectedIds based on current page changes
-    data.forEach((row, index) => {
-      const id = getRowId(row)
-      const indexStr = index.toString()
-
-      if (newIndexSelection[indexStr]) {
-        newSelectedIds.add(id)
-      } else if (currentPageRowSelection[indexStr]) {
-        // This row was previously selected but now isn't
-        newSelectedIds.delete(id)
-      }
-    })
-
-    setSelectedIds(newSelectedIds)
-    setRowSelection(newIndexSelection)
-  }, [currentPageRowSelection, isAllSelected, selectedIds, data, getRowId])
+      // Selection handled by ID-based system
+    },
+    [currentPageRowSelection, isAllSelected, selectedIds, data, getRowId]
+  )
 
   const table = useReactTable({
     data,
@@ -217,8 +211,8 @@ export function DataTable<TData, TValue>({
     manualSorting,
     ...(manualPagination && totalCount
       ? {
-        pageCount: Math.ceil(totalCount / (paginationConfig.defaultPageSize || 10)),
-      }
+          pageCount: Math.ceil(totalCount / (paginationConfig.defaultPageSize || 10)),
+        }
       : {}),
   })
 
@@ -250,17 +244,20 @@ export function DataTable<TData, TValue>({
   }, [paginationConfig.defaultPageSize, table])
 
   // Current selection state for parent component
-  const selectionState: SelectionState = React.useMemo(() => ({
-    selectedIds,
-    isAllSelected,
-    totalSelectedCount: isAllSelected ? (totalCount || 0) : selectedIds.size
-  }), [selectedIds, isAllSelected, totalCount])
+  const selectionState: SelectionState = React.useMemo(
+    () => ({
+      selectedIds,
+      isAllSelected,
+      totalSelectedCount: isAllSelected ? totalCount || 0 : selectedIds.size,
+    }),
+    [selectedIds, isAllSelected, totalCount]
+  )
 
   // Clear selection function to pass to parent
   const clearSelection = React.useCallback(() => {
     setSelectedIds(new Set())
     setIsAllSelected(false)
-    setRowSelection({})
+    setSelectedIds(new Set())
   }, [])
 
   // Notify parent of selection changes
@@ -274,36 +271,34 @@ export function DataTable<TData, TValue>({
   React.useEffect(() => {
     setSelectedIds(new Set())
     setIsAllSelected(false)
-    setRowSelection({})
+    setSelectedIds(new Set())
   }, [columnFilters, globalFilter])
 
   return (
-    <div className={cn("space-y-4", containerClassName)}>
+    <div className={cn('space-y-4', containerClassName)}>
       {enableColumnFilters && (
-        <DataTableToolbar
-          table={table}
-          config={config}
-          className={toolbarClassName}
-        />
+        <DataTableToolbar table={table} config={config} className={toolbarClassName} />
       )}
-      <div className={cn(
-        "rounded-md border overflow-x-auto",
-        className,
-        isFetching && !isLoading && "animate-pulse opacity-75 pointer-events-none"
-      )}>
+      <div
+        className={cn(
+          'rounded-md border overflow-x-auto',
+          className,
+          isFetching && !isLoading && 'animate-pulse opacity-75 pointer-events-none'
+        )}
+      >
         <Table className="table-fixed w-full min-w-max">
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map(header => {
                   const meta = header.column.columnDef.meta as any
                   return (
                     <TableHead
                       key={header.id}
                       className={cn(
-                        header.column.getCanSort() && "cursor-pointer select-none",
+                        header.column.getCanSort() && 'cursor-pointer select-none',
                         meta?.headerClassName,
-                        "relative"
+                        'relative'
                       )}
                       style={{
                         width: header.getSize(),
@@ -312,29 +307,26 @@ export function DataTable<TData, TValue>({
                     >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
 
                       {/* Resize Handle */}
                       {enableColumnResizing && header.column.getCanResize() && (
                         <div
                           className={cn(
-                            "touch-hitbox z-10 absolute! inset-y-2 right-0 w-0.5 cursor-col-resize select-none touch-none ",
-                            "bg-border opacity-50 hover:opacity-100",
-                            "transition-opacity duration-200",
-                            header.column.getIsResizing() && "opacity-50! bg-primary w-1"
+                            'touch-hitbox z-10 absolute! inset-y-2 right-0 w-0.5 cursor-col-resize select-none touch-none ',
+                            'bg-border opacity-50 hover:opacity-100',
+                            'transition-opacity duration-200',
+                            header.column.getIsResizing() && 'opacity-50! bg-primary w-1'
                           )}
-                          onMouseDown={(e) => {
+                          onMouseDown={e => {
                             e.stopPropagation()
                             header.getResizeHandler()(e)
                           }}
-                          onTouchStart={(e) => {
+                          onTouchStart={e => {
                             e.stopPropagation()
                             header.getResizeHandler()(e)
                           }}
-                          onClick={(e) => {
+                          onClick={e => {
                             e.preventDefault()
                             e.stopPropagation()
                           }}
@@ -358,36 +350,36 @@ export function DataTable<TData, TValue>({
                         width: column.getSize(),
                       }}
                     >
-                      <div
-                        className="h-4 bg-muted animate-pulse rounded w-3/4"
-                      />
+                      <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => {
+              table.getRowModel().rows.map(row => {
                 const rowId = getRowIdProp ? getRowIdProp(row.original as TData) : row.id
                 const isRowLoading = loadingRows?.has(rowId)
                 return (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
+                    data-state={row.getIsSelected() && 'selected'}
                     className={cn(
-                      isRowLoading && "animate-pulse opacity-75 pointer-events-none",
-                      onRowClick && "cursor-pointer hover:bg-muted/50"
+                      isRowLoading && 'animate-pulse opacity-75 pointer-events-none',
+                      onRowClick && 'cursor-pointer hover:bg-muted/50'
                     )}
-                    onClick={(e) => {
+                    onClick={e => {
                       // Don't trigger row click if clicking on interactive elements
                       const target = e.target as HTMLElement
-                      const isInteractive = target.closest('button, input, select, textarea, a, [role="button"], [tabindex]:not([tabindex="-1"])')
+                      const isInteractive = target.closest(
+                        'button, input, select, textarea, a, [role="button"], [tabindex]:not([tabindex="-1"])'
+                      )
 
                       if (!isInteractive) {
                         onRowClick?.(row.original as TData)
                       }
                     }}
                   >
-                    {row.getVisibleCells().map((cell) => {
+                    {row.getVisibleCells().map(cell => {
                       const meta = cell.column.columnDef.meta as any
                       const enableTruncation = meta?.enableTextTruncation ?? false
 
@@ -395,18 +387,19 @@ export function DataTable<TData, TValue>({
                         <TableCell
                           key={cell.id}
                           className={cn(
-                            enableTruncation && "truncate max-w-0",
+                            enableTruncation && 'truncate max-w-0',
                             meta?.cellClassName
                           )}
                           style={{
                             width: cell.column.getSize(),
                           }}
-                          title={enableTruncation && typeof cell.getValue() === 'string' ? cell.getValue() as string : undefined}
+                          title={
+                            enableTruncation && typeof cell.getValue() === 'string'
+                              ? (cell.getValue() as string)
+                              : undefined
+                          }
                         >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       )
                     })}
@@ -415,10 +408,7 @@ export function DataTable<TData, TValue>({
               })
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={table.getAllLeafColumns().length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -429,25 +419,27 @@ export function DataTable<TData, TValue>({
       <DataTablePagination table={table} config={paginationConfig} totalCount={totalCount} />
 
       {/* Bulk Actions Bar */}
-      {enableRowSelection && selectionConfig.enableBulkActions && (selectionState.totalSelectedCount > 0) && (
-        <DataTableBulkActions
-          selection={selectionState}
-          totalCount={totalCount || 0}
-          onSelectAll={async () => {
-            if (onSelectAll && currentFilters) {
-              const allIds = await onSelectAll(currentFilters)
-              setSelectedIds(new Set(allIds))
-              setIsAllSelected(true)
-            }
-          }}
-          onClearSelection={() => {
-            setSelectedIds(new Set())
-            setIsAllSelected(false)
-            setRowSelection({})
-          }}
-          bulkActions={selectionConfig.bulkActions}
-        />
-      )}
+      {enableRowSelection &&
+        selectionConfig.enableBulkActions &&
+        selectionState.totalSelectedCount > 0 && (
+          <DataTableBulkActions
+            selection={selectionState}
+            totalCount={totalCount || 0}
+            onSelectAll={async () => {
+              if (onSelectAll && currentFilters) {
+                const allIds = await onSelectAll(currentFilters)
+                setSelectedIds(new Set(allIds))
+                setIsAllSelected(true)
+              }
+            }}
+            onClearSelection={() => {
+              setSelectedIds(new Set())
+              setIsAllSelected(false)
+              setSelectedIds(new Set())
+            }}
+            bulkActions={selectionConfig.bulkActions}
+          />
+        )}
     </div>
   )
 }

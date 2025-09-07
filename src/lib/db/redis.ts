@@ -7,7 +7,7 @@ if (!redisUrl) {
 }
 
 export const redis = createClient({
-  url: redisUrl
+  url: redisUrl,
 })
 
 // Async connection function
@@ -21,7 +21,7 @@ async function connectRedis() {
 
 // Event handlers
 redis.on('connect', () => console.log('✅ Redis connected'))
-redis.on('error', (err) => console.error('❌ Redis error:', err))
+redis.on('error', err => console.error('❌ Redis error:', err))
 redis.on('end', () => console.log('🔴 Redis connection closed'))
 
 // Connect immediately but don't await at top level

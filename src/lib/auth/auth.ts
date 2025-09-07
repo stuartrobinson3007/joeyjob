@@ -5,25 +5,26 @@ import { organization, magicLink, admin, emailOTP } from 'better-auth/plugins'
 import { stripe as stripePlugin } from '@better-auth/stripe'
 import { createAccessControl } from 'better-auth/plugins/access'
 import Stripe from 'stripe'
-import { defaultStatements, adminAc } from 'better-auth/plugins/organization/access'
+import { defaultStatements } from 'better-auth/plugins/organization/access'
 import { reactStartCookies } from 'better-auth/react-start'
+import { and, eq } from 'drizzle-orm'
+
 import { db } from '@/lib/db/db'
 import { redis } from '@/lib/db/redis'
 import { sendMagicLinkEmail, sendInvitationEmail, sendOTPEmail } from '@/lib/utils/email'
 import * as schema from '@/database/schema'
-import { and, eq } from 'drizzle-orm'
 
 // Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia'
+  apiVersion: '2025-08-27.basil',
 })
 
 // Use default statements and add our custom resource
 const statement = {
-  ...defaultStatements,  // Includes invitation permissions needed for invites to work
-  todos: ["create", "read", "update", "delete", "assign"],
-  billing: ["view", "manage"], // Add billing permissions
-  invitation: ["create", "read", "delete", "cancel"] // Add cancel permission for Better Auth compatibility
+  ...defaultStatements, // Includes invitation permissions needed for invites to work
+  todos: ['create', 'read', 'update', 'delete', 'assign'],
+  billing: ['view', 'manage'], // Add billing permissions
+  invitation: ['create', 'read', 'delete', 'cancel'], // Add cancel permission for Better Auth compatibility
 } as const
 
 // Create access control instance
@@ -31,33 +32,28 @@ const ac = createAccessControl(statement)
 
 // Define roles with specific permissions
 const viewer = ac.newRole({
-  todos: ["read"],
-  member: ["read"],
-  invitation: ["read"],
-  billing: ["view"]
+  billing: ['view'],
 })
 
 const member = ac.newRole({
-  todos: ["create", "read", "update", "delete"],
-  member: ["read"],
-  invitation: ["read"],
-  billing: ["view"]
+  todos: ['create', 'update', 'delete'],
+  billing: ['view'],
 })
 
 const orgAdmin = ac.newRole({
-  organization: ["update"],
-  member: ["create", "read", "update", "delete"],
-  invitation: ["create", "read", "delete", "cancel"],
-  todos: ["create", "read", "update", "delete", "assign"],
-  billing: ["view", "manage"]
+  organization: ['update'],
+  member: ['create', 'update', 'delete'],
+  invitation: ['create', 'delete', 'cancel'],
+  todos: ['create', 'update', 'delete', 'assign'],
+  billing: ['view', 'manage'],
 })
 
 const owner = ac.newRole({
-  organization: ["update", "delete"],
-  member: ["create", "read", "update", "delete"],
-  invitation: ["create", "read", "delete", "cancel"],
-  todos: ["create", "read", "update", "delete", "assign"],
-  billing: ["view", "manage"]
+  organization: ['update', 'delete'],
+  member: ['create', 'update', 'delete'],
+  invitation: ['create', 'delete', 'cancel'],
+  todos: ['create', 'update', 'delete', 'assign'],
+  billing: ['view', 'manage'],
 })
 
 const getAuthConfig = serverOnly(() =>
@@ -65,26 +61,30 @@ const getAuthConfig = serverOnly(() =>
     baseURL: process.env.BETTER_AUTH_URL!,
     database: drizzleAdapter(db, {
       provider: 'pg',
-      schema: schema
+      schema: schema,
     }),
-
 
     user: {
       additionalFields: {
         firstName: {
-          type: "string",
-          required: false
+          type: 'string',
+          required: false,
         },
         lastName: {
-          type: "string",
-          required: false
+          type: 'string',
+          required: false,
         },
         onboardingCompleted: {
-          type: "boolean",
+          type: 'boolean',
           defaultValue: false,
-          required: false
-        }
-      }
+          required: false,
+        },
+        language: {
+          type: 'string',
+          defaultValue: 'en',
+          required: false,
+        },
+      },
     },
 
     // session: {
@@ -97,7 +97,7 @@ const getAuthConfig = serverOnly(() =>
     // },
 
     secondaryStorage: {
-      get: async (key) => {
+      get: async key => {
         return await redis.get(key)
       },
       set: async (key, value, ttl) => {
@@ -107,9 +107,9 @@ const getAuthConfig = serverOnly(() =>
           await redis.set(key, value)
         }
       },
-      delete: async (key) => {
+      delete: async key => {
         await redis.del(key)
-      }
+      },
     },
 
     socialProviders: {
@@ -121,8 +121,8 @@ const getAuthConfig = serverOnly(() =>
         github: {
           clientId: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-        }
-      })
+        },
+      }),
     },
 
     plugins: [
@@ -130,17 +130,17 @@ const getAuthConfig = serverOnly(() =>
         sendMagicLink: async ({ email, url }) => {
           await sendMagicLinkEmail(email, url)
         },
-        expiresIn: 60 * 5 // 5 minutes
+        expiresIn: 60 * 5, // 5 minutes
       }),
       emailOTP({
         async sendVerificationOTP({ email, otp, type }) {
           await sendOTPEmail(email, otp, type)
         },
-        disableSignUp: false // Allow automatic account creation for invitations
+        disableSignUp: false, // Allow automatic account creation for invitations
       }),
       admin({
-        adminRoles: ["superadmin"], // TODO: Not sure if this actually does anything. We keep the superadmin role in the user db for quick checks
-        adminUserIds: ["xCkr7sfb6x0GKsY2vCkQThP4IiSHjG7p"] // But its this that actually makes a user an admin (superadmin as we call it)
+        adminRoles: ['superadmin'], // TODO: Not sure if this actually does anything. We keep the superadmin role in the user db for quick checks
+        adminUserIds: ['xCkr7sfb6x0GKsY2vCkQThP4IiSHjG7p'], // But its this that actually makes a user an admin (superadmin as we call it)
       }),
       stripePlugin({
         stripeClient: stripe,
@@ -150,16 +150,18 @@ const getAuthConfig = serverOnly(() =>
         cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
         subscription: {
           enabled: true,
-          authorizeReference: async ({ user, referenceId, action }) => {
+          authorizeReference: async ({ user, referenceId }) => {
             // Allow users to manage subscriptions for their organizations
             // Check if user is a member of the organization with billing permissions
             const membership = await db
               .select()
               .from(schema.member)
-              .where(and(
-                eq(schema.member.userId, user.id),
-                eq(schema.member.organizationId, referenceId)
-              ))
+              .where(
+                and(
+                  eq(schema.member.userId, user.id),
+                  eq(schema.member.organizationId, referenceId)
+                )
+              )
               .limit(1)
 
             if (membership.length === 0) {
@@ -172,29 +174,27 @@ const getAuthConfig = serverOnly(() =>
           },
           plans: [
             {
-              name: "pro",
+              name: 'pro',
               priceId: process.env.STRIPE_PRO_MONTHLY_PRICE_ID!,
               annualDiscountPriceId: process.env.STRIPE_PRO_ANNUAL_PRICE_ID!,
               limits: {
                 todos: -1,
                 members: 10,
-                storage: 5000
+                storage: 5000,
               },
-              seats: 10
             },
             {
-              name: "business",
+              name: 'business',
               priceId: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID!,
               annualDiscountPriceId: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID!,
               limits: {
                 todos: -1,
                 members: -1,
-                storage: -1
+                storage: -1,
               },
-              seats: 50
-            }
-          ]
-        }
+            },
+          ],
+        },
       }),
       organization({
         allowUserToCreateOrganization: true,
@@ -202,7 +202,7 @@ const getAuthConfig = serverOnly(() =>
         invitationExpiresIn: 60 * 60 * 48, // 48 hours
         cancelPendingInvitationsOnReInvite: false,
         requireEmailVerificationOnInvitation: false,
-        sendInvitationEmail: async (data) => {
+        sendInvitationEmail: async data => {
           const inviteUrl = `${process.env.BETTER_AUTH_URL}/invite/${data.id}`
           await sendInvitationEmail(
             data.email,
@@ -216,11 +216,11 @@ const getAuthConfig = serverOnly(() =>
           owner,
           admin: orgAdmin,
           member,
-          viewer
-        }
+          viewer,
+        },
       }),
-      reactStartCookies() // Must be last plugin
-    ]
+      reactStartCookies(), // Must be last plugin
+    ],
   })
 )
 
@@ -229,6 +229,6 @@ export const roles = {
   owner,
   admin: orgAdmin,
   member,
-  viewer
+  viewer,
 }
 export { ac }

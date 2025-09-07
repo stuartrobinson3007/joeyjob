@@ -1,0 +1,77 @@
+{
+  "title": "Facturación y Suscripción",
+  "subscription": {
+    "title": "Suscripción",
+    "current": "Plan Actual",
+    "manage": "Gestionar Suscripción",
+    "viewHistory": "Ver Historial de Facturación",
+    "manageTitle": "Gestiona facturación, métodos de pago y facturas",
+    "updated": "¡Suscripción actualizada exitosamente!",
+    "cancelled": "Pago cancelado",
+    "createFailed": "Error al crear sesión de pago",
+    "portalFailed": "Error al generar URL del portal. Inténtalo de nuevo.",
+    "noPermission": "No tienes permisos para gestionar la facturación",
+    "noOrganization": "No hay organización seleccionada. Por favor selecciona una organización primero.",
+    "portalOpenFailed": "Error al abrir el portal de facturación. Inténtalo más tarde.",
+    "reactivate": "Reactivar",
+    "changePlan": "Cambiar Plan",
+    "upgrade": "Actualizar",
+    "downgrade": "Degradar",
+    "currentPlan": "Plan Actual",
+    "status": {
+      "pastDue": "Atrasado"
+    }
+  },
+  "usage": {
+    "title": "Uso",
+    "current": "Uso actual",
+    "limit": "Límite mensual",
+    "reset": "Se reinicia {{date}}",
+    "overage": "Pueden aplicar cargos adicionales",
+    "loading": "Cargando información de facturación...",
+    "failed": "Error al cargar información de facturación. Por favor actualiza la página o contacta soporte.",
+    "todos": "Tareas",
+    "teamMembers": "Miembros del Equipo",
+    "storage": "Almacenamiento (MB)",
+    "unlimited": "(Ilimitado)"
+  },
+  "plans": {
+    "free": "Gratuito",
+    "starter": "Inicial",
+    "pro": "Pro",
+    "business": "Empresarial",
+    "enterprise": "Empresa",
+    "mostPopular": "Más Popular",
+    "monthly": "Mensual",
+    "annual": "Anual (Ahorra 20%)",
+    "month": "mes",
+    "year": "año"
+  },
+  "features": {
+    "unlimited": "Ilimitado",
+    "customFields": "Campos personalizados",
+    "apiAccess": "Acceso API",
+    "prioritySupport": "Soporte prioritario"
+  },
+  "payment": {
+    "card": "Tarjeta de crédito",
+    "last4": "terminada en {{digits}}",
+    "expires": "Expira {{date}}",
+    "update": "Actualizar método de pago",
+    "add": "Agregar método de pago",
+    "default": "Por defecto"
+  },
+  "invoice": {
+    "date": "Fecha",
+    "amount": "Cantidad",
+    "status": "Estado",
+    "download": "Descargar PDF",
+    "paid": "Pagado",
+    "pending": "Pendiente",
+    "failed": "Fallido"
+  },
+  "unlimited": "Ilimitado",
+  "labels": {
+    "mostPopular": "Más Popular"
+  }
+}

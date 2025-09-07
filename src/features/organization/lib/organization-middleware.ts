@@ -1,63 +1,59 @@
 import { createMiddleware } from '@tanstack/react-start'
 import { getWebRequest } from '@tanstack/react-start/server'
-import { authMiddleware } from '@/lib/auth/auth-middleware'
-import { db } from '@/lib/db/db'
-import { member } from '@/database/schema'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { authMiddleware } from '@/lib/auth/auth-middleware'
+import { db } from '@/lib/db/db'
+import { member } from '@/database/schema'
+
 export const organizationMiddleware = createMiddleware({ type: 'function' })
-  .middleware([authMiddleware])  // Chain with auth middleware to get user context
+  .middleware([authMiddleware]) // Chain with auth middleware to get user context
   .client(async ({ next }) => {
     // Read organizationId from sessionStorage (tab-specific)
-    const organizationId = typeof window !== 'undefined' 
-      ? sessionStorage.getItem('activeOrganizationId')
-      : null
-    
-    
+    const organizationId =
+      typeof window !== 'undefined' ? sessionStorage.getItem('activeOrganizationId') : null
+
     return next({
       sendContext: {
-        organizationId
-      }
+        organizationId,
+      },
     })
   })
   .server(async ({ next, context }) => {
     const request = getWebRequest()
-    
+
     let validatedOrgId: string | null = null
-    
+
     if (context.organizationId && context.user) {
       try {
-        
         // Validate it's a string
         const orgId = z.string().parse(context.organizationId)
-        
+
         // Verify user has access to this organization
         const membership = await db
           .select()
           .from(member)
-          .where(and(
-            eq(member.userId, context.user.id),
-            eq(member.organizationId, orgId)
-          ))
+          .where(and(eq(member.userId, context.user.id), eq(member.organizationId, orgId)))
           .limit(1)
-        
-        
+
         if (membership.length > 0) {
           validatedOrgId = orgId
         } else {
+          // User is not a member of this organization - validatedOrgId stays null
         }
-      } catch (error) {
+      } catch {
+        // Error validating organization silently ignored - user will see no active org
       }
     } else {
+      // No organizationId or user - validatedOrgId stays null
     }
-
 
     return next({
       context: {
-        ...context,  // Preserve existing context from auth middleware
+        ...context, // Preserve existing context from auth middleware
         organizationId: validatedOrgId,
-        headers: request.headers  // Add headers for BetterAuth API calls
-      }
+        headers: request.headers, // Add headers for BetterAuth API calls
+      },
     })
   })

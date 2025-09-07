@@ -1,5 +1,15 @@
 import { format, formatDistance, formatRelative, parseISO } from 'date-fns'
 import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz'
+import { enUS, es } from 'date-fns/locale'
+
+const locales = {
+  en: enUS,
+  es: es,
+} as const
+
+export function getDateLocale(language: string) {
+  return locales[language as keyof typeof locales] || enUS
+}
 
 /**
  * Get the user's timezone from the browser
@@ -18,7 +28,7 @@ export function getUserTimezone(): string {
  */
 export function toUserTimezone(date: Date | string | null | undefined): Date | null {
   if (!date) return null
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userTimezone = getUserTimezone()
   return toZonedTime(utcDate, userTimezone)
@@ -29,7 +39,7 @@ export function toUserTimezone(date: Date | string | null | undefined): Date | n
  */
 export function toUTC(date: Date | string | null | undefined): Date | null {
   if (!date) return null
-  
+
   const localDate = typeof date === 'string' ? parseISO(date) : date
   const userTimezone = getUserTimezone()
   return fromZonedTime(localDate, userTimezone)
@@ -39,15 +49,24 @@ export function toUTC(date: Date | string | null | undefined): Date | null {
  * Format a date in the user's timezone
  * @param date - The date to format (assumed to be in UTC)
  * @param formatString - Optional format string (defaults to 'MMM d, yyyy')
+ * @param language - Optional language for localization
  */
 export function formatDate(
   date: Date | string | null | undefined,
-  formatString: string = 'MMM d, yyyy'
+  formatString: string = 'MMM d, yyyy',
+  language?: string
 ): string {
   if (!date) return '-'
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userTimezone = getUserTimezone()
+  const userDate = toZonedTime(utcDate, userTimezone)
+
+  if (language) {
+    const locale = getDateLocale(language)
+    return format(userDate, formatString, { locale })
+  }
+
   return formatInTimeZone(utcDate, userTimezone, formatString)
 }
 
@@ -61,7 +80,7 @@ export function formatDateTime(
   formatString: string = 'MMM d, yyyy h:mm a'
 ): string {
   if (!date) return '-'
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userTimezone = getUserTimezone()
   return formatInTimeZone(utcDate, userTimezone, formatString)
@@ -70,29 +89,47 @@ export function formatDateTime(
 /**
  * Format a date as relative time (e.g., "2 hours ago")
  * @param date - The date to format (assumed to be in UTC)
+ * @param language - Optional language for localization
  */
-export function formatRelativeTime(date: Date | string | null | undefined): string {
+export function formatRelativeTime(
+  date: Date | string | null | undefined,
+  language?: string
+): string {
   if (!date) return '-'
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userDate = toUserTimezone(utcDate)
   if (!userDate) return '-'
-  
-  return formatDistance(userDate, new Date(), { addSuffix: true })
+
+  const options: any = { addSuffix: true }
+  if (language) {
+    options.locale = getDateLocale(language)
+  }
+
+  return formatDistance(userDate, new Date(), options)
 }
 
 /**
  * Format a date relative to today (e.g., "yesterday", "last Monday")
  * @param date - The date to format (assumed to be in UTC)
+ * @param language - Optional language for localization
  */
-export function formatRelativeDate(date: Date | string | null | undefined): string {
+export function formatRelativeDate(
+  date: Date | string | null | undefined,
+  language?: string
+): string {
   if (!date) return '-'
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userDate = toUserTimezone(utcDate)
   if (!userDate) return '-'
-  
-  return formatRelative(userDate, new Date())
+
+  const options: any = {}
+  if (language) {
+    options.locale = getDateLocale(language)
+  }
+
+  return formatRelative(userDate, new Date(), options)
 }
 
 /**
@@ -105,7 +142,7 @@ export function formatTime(
   formatString: string = 'h:mm a'
 ): string {
   if (!date) return '-'
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userTimezone = getUserTimezone()
   return formatInTimeZone(utcDate, userTimezone, formatString)
@@ -115,11 +152,9 @@ export function formatTime(
  * Get a display string showing both local time and timezone
  * Useful for showing timezone context to users
  */
-export function formatDateTimeWithTimezone(
-  date: Date | string | null | undefined
-): string {
+export function formatDateTimeWithTimezone(date: Date | string | null | undefined): string {
   if (!date) return '-'
-  
+
   const utcDate = typeof date === 'string' ? parseISO(date) : date
   const userTimezone = getUserTimezone()
   const formatted = formatInTimeZone(utcDate, userTimezone, 'MMM d, yyyy h:mm a zzz')

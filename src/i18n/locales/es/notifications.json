@@ -1,0 +1,53 @@
+{
+  "success": {
+    "saved": "Cambios guardados exitosamente",
+    "created": "{{item}} creado exitosamente",
+    "updated": "{{item}} actualizado exitosamente",
+    "deleted": "{{item}} eliminado exitosamente",
+    "uploaded": "Archivo subido exitosamente",
+    "copied": "Copiado al portapapeles",
+    "sent": "{{item}} enviado exitosamente",
+    "organizationDeleted": "Organización eliminada",
+    "organizationCreated": "¡Organización creada!",
+    "organizationSwitched": "Organización cambiada",
+    "avatarUploaded": "¡Avatar subido exitosamente!",
+    "avatarRemoved": "¡Avatar removido exitosamente!",
+    "userBanned": "Usuario prohibido",
+    "userUnbanned": "Usuario desbloqueado",
+    "welcomeToOrganization": "¡Bienvenido a {{organizationName}}!"
+  },
+  "error": {
+    "generic": "Algo salió mal",
+    "saveError": "Error al guardar cambios",
+    "loadError": "Error al cargar {{item}}",
+    "deleteError": "Error al eliminar {{item}}",
+    "uploadError": "Error al subir archivo",
+    "networkError": "Error de conexión de red",
+    "permissionError": "No tienes permisos para realizar esta acción",
+    "organizationDeleteFailed": "Error al eliminar organización",
+    "organizationCreateFailed": "Error al crear organización",
+    "organizationNameRequired": "Por favor ingresa un nombre de organización",
+    "invalidImageFile": "Por favor selecciona un archivo de imagen válido (JPEG, PNG, GIF, o WebP)",
+    "selectImageFirst": "Por favor selecciona una imagen primero",
+    "failedToCreateWorkspace": "Error al crear espacio de trabajo"
+  },
+  "confirmations": {
+    "deleteOrganization": "¿Estás seguro de que quieres eliminar \"{{orgName}}\"? Esto eliminará permanentemente todos los datos asociados con esta organización.",
+    "removeMember": "¿Estás seguro de que quieres eliminar a {{memberName}} de este espacio de trabajo?",
+    "resendInvitation": "¿Reenviar invitación a {{email}}?",
+    "deleteTodos": "¿Estás seguro de que quieres eliminar {{count}} tarea{{plural}}?"
+  },
+  "warning": {
+    "unsavedChanges": "Tienes cambios sin guardar",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este {{item}}?",
+    "permanentAction": "Esta acción no se puede deshacer",
+    "expiringSoon": "{{item}} expira pronto"
+  },
+  "info": {
+    "autoSaved": "Guardado automático",
+    "loading": "Cargando {{item}}...",
+    "processing": "Procesando solicitud...",
+    "noChanges": "No hay cambios para guardar",
+    "selectOrganization": "Por favor selecciona una organización"
+  }
+}

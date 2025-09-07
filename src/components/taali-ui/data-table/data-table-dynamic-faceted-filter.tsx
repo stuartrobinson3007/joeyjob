@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { Column } from "@tanstack/react-table"
-import { PlusCircle, Loader2 } from "lucide-react"
-import * as React from "react"
-import { useQuery } from "@tanstack/react-query"
+import { Column } from '@tanstack/react-table'
+import { PlusCircle, Loader2 } from 'lucide-react'
+import * as React from 'react'
+import { useQuery } from '@tanstack/react-query'
 
-import { Badge } from "../ui/badge"
-import { Button } from "../ui/button"
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
 import {
   Faceted,
   FacetedBadgeList,
@@ -17,10 +17,13 @@ import {
   FacetedItem,
   FacetedList,
   FacetedTrigger,
-} from "../ui/faceted"
-import { Separator } from "../ui/separator"
-import { DataTableFilterOption } from "./types"
-import { cn } from "../lib/utils"
+} from '../ui/faceted'
+import { Separator } from '../ui/separator'
+import { cn } from '../lib/utils'
+
+import { DataTableFilterOption } from './types'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface DataTableDynamicFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -35,8 +38,9 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
   loadOptions,
   multiple = true,
 }: DataTableDynamicFacetedFilterProps<TData, TValue>) {
+  const { t } = useTranslation('common')
   const [shouldFetch, setShouldFetch] = React.useState(false)
-  
+
   const selectedValues = column?.getFilterValue() as string[] | string | undefined
   const normalizedValues = React.useMemo(() => {
     if (!selectedValues) return []
@@ -60,7 +64,11 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
   }
 
   // Only fetch when shouldFetch becomes true
-  const { data: optionsData, isLoading, error } = useQuery({
+  const {
+    data: optionsData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['dynamic-filter-options', title],
     queryFn: loadOptions,
     enabled: shouldFetch,
@@ -73,13 +81,13 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
   return (
     <Faceted
       value={multiple ? normalizedValues : normalizedValues[0]}
-      onValueChange={handleValueChange as any}
+      onValueChange={handleValueChange}
       multiple={multiple}
     >
       <FacetedTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="h-8 border-dashed"
           onMouseEnter={handleMouseEnter}
         >
@@ -95,16 +103,13 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
               />
               <div className="hidden space-x-1 lg:flex">
                 {normalizedValues.length > 2 ? (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal"
-                  >
+                  <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                     {normalizedValues.length} selected
                   </Badge>
                 ) : (
                   options
-                    .filter((option) => normalizedValues.includes(option.value))
-                    .map((option) => (
+                    .filter(option => normalizedValues.includes(option.value))
+                    .map(option => (
                       <Badge
                         variant="secondary"
                         key={option.value}
@@ -125,31 +130,26 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
           {isLoading && (
             <div className="flex items-center justify-center p-4">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-muted-foreground">Loading options...</span>
+              <span className="text-sm text-muted-foreground">{t('common:filters.loadingOptions')}</span>
             </div>
           )}
           {error && (
-            <div className="p-4 text-sm text-muted-foreground">
-              Failed to load options
-            </div>
+            <div className="p-4 text-sm text-muted-foreground">{t('common:filters.loadingError')}</div>
           )}
           {!isLoading && !error && options.length === 0 && (
-            <FacetedEmpty>No options found.</FacetedEmpty>
+            <FacetedEmpty>{t('common:filters.noOptions')}</FacetedEmpty>
           )}
           {!isLoading && !error && options.length > 0 && (
             <FacetedGroup>
-              {options.map((option) => {
+              {options.map(option => {
                 const isSelected = normalizedValues.includes(option.value)
                 return (
-                  <FacetedItem
-                    key={option.value}
-                    value={option.value}
-                  >
+                  <FacetedItem key={option.value} value={option.value}>
                     {option.icon && (
                       <option.icon
                         className={cn(
-                          "mr-2 h-4 w-4 text-muted-foreground",
-                          isSelected && "text-foreground"
+                          'mr-2 h-4 w-4 text-muted-foreground',
+                          isSelected && 'text-foreground'
                         )}
                       />
                     )}
@@ -172,7 +172,7 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
                 className="w-full justify-center"
                 onClick={() => column?.setFilterValue(undefined)}
               >
-                Clear filter
+                {t('common:filters.clearFilter')}
               </Button>
             </div>
           )}

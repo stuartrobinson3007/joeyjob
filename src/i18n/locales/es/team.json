@@ -1,0 +1,92 @@
+{
+  "title": "Equipo",
+  "teamLabel": "Equipo",
+  "members": "Miembros",
+  "invite": {
+    "title": "Invitar Miembro del Equipo",
+    "email": "Dirección de Correo",
+    "emailPlaceholder": "miembro@ejemplo.com",
+    "role": "Rol",
+    "sendInvite": "Enviar Invitación",
+    "pending": "Invitaciones pendientes",
+    "resend": "Reenviar",
+    "revoke": "Revocar",
+    "success": "Invitación enviada exitosamente",
+    "error": "Error al enviar invitación"
+  },
+  "roles": {
+    "owner": "Propietario",
+    "admin": "Administrador",
+    "member": "Miembro",
+    "viewer": "Visualizador",
+    "viewerDescription": "Acceso de solo lectura",
+    "memberDescription": "Puede crear y editar",
+    "adminDescription": "Puede gestionar equipo y configuración"
+  },
+  "permissions": {
+    "billing": "Gestionar facturación",
+    "members": "Gestionar miembros",
+    "settings": "Gestionar configuración",
+    "delete": "Eliminar espacio de trabajo"
+  },
+  "members": {
+    "search": "Buscar miembros...",
+    "filter": "Filtrar por rol",
+    "sort": "Ordenar por",
+    "actions": "Acciones",
+    "changeRole": "Cambiar rol",
+    "remove": "Remover del equipo",
+    "removeConfirm": "¿Estás seguro de que deseas remover a {{name}} del equipo?"
+  },
+  "labels": {
+    "emailAddress": "Dirección de correo",
+    "role": "Rol"
+  },
+  "empty": {
+    "title": "Aún no hay miembros del equipo",
+    "subtitle": "Invita a tu primer miembro del equipo para colaborar"
+  },
+  "table": {
+    "member": "Miembro",
+    "email": "Correo",
+    "role": "Rol",
+    "status": "Estado",
+    "joined": "Se unió/Expira",
+    "actions": "Acciones",
+    "search": "Buscar miembros...",
+    "noOrganization": "Por favor selecciona una organización para ver los miembros del equipo."
+  },
+  "status": {
+    "active": "Activo",
+    "pending": "Pendiente"
+  },
+  "actions": {
+    "setViewer": "Establecer como Visualizador",
+    "setMember": "Establecer como Miembro",
+    "setAdmin": "Establecer como Administrador",
+    "setAsAdmin": "Establecer como Administrador",
+    "inviteMember": "Invitar Miembro",
+    "removeMember": "Remover Miembro",
+    "resendInvitation": "Reenviar Invitación",
+    "cancelInvitation": "Cancelar Invitación"
+  },
+  "dialogs": {
+    "inviteDescription": "Envía una invitación para unirse a tu espacio de trabajo. Recibirán un correo con instrucciones.",
+    "emailLabel": "Dirección de Correo",
+    "emailPlaceholder": "miembro@ejemplo.com",
+    "roleLabel": "Rol",
+    "sendButton": "Enviar Invitación",
+    "cancel": "Cancelar"
+  },
+  "messages": {
+    "notAuthorized": "No tienes permisos para realizar esta acción",
+    "emailRequired": "Por favor ingresa una dirección de correo",
+    "invitationSent": "¡Invitación enviada!",
+    "memberRemoved": "Miembro removido exitosamente",
+    "roleUpdated": "Rol actualizado exitosamente",
+    "invitationCancelled": "Invitación cancelada",
+    "invitationResent": "¡Invitación reenviada!",
+    "notAuthorizedToInvite": "No autorizado para invitar miembros",
+    "invitationAlreadySent": "Ya se ha enviado una invitación a este correo electrónico"
+  }
+}

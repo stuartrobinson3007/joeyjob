@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { authClient } from '@/lib/auth/auth-client'
+
 import { getActiveOrganizationId, setActiveOrganizationId as setOrgId } from './organization-utils'
+
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 
 interface OrganizationContextValue {
@@ -23,12 +24,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
       if (orgId) {
         setActiveOrganizationId(orgId)
-      } else if (organizations && organizations.length > 0) {
-        // If no stored org, use the first available
-        const firstOrgId = organizations[0].id
-        setActiveOrganizationId(firstOrgId)
-        setOrgId(firstOrgId) // Use the utility function to set it in storage
       }
+      // Don't auto-select first organization anymore
+      // Let the user explicitly choose via the organization selector page
     }
   }, [organizations])
 
@@ -49,11 +47,11 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
 
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('org-changed' as any, handleOrgChange)
+    window.addEventListener('org-changed' as keyof WindowEventMap, handleOrgChange as EventListener)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('org-changed' as any, handleOrgChange)
+      window.removeEventListener('org-changed' as keyof WindowEventMap, handleOrgChange as EventListener)
     }
   }, [])
 
@@ -71,7 +69,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         activeOrganizationId,
         activeOrganization,
         setActiveOrganization,
-        isLoading: isPending
+        isLoading: isPending,
       }}
     >
       {children}

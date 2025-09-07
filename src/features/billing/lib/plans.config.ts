@@ -13,7 +13,7 @@ export const BILLING_PLANS = {
       todos: 10,
       members: 2,
       storage: 100, // MB
-    }
+    },
   },
   pro: {
     name: 'Pro',

@@ -1,43 +1,99 @@
+import { ERROR_CODES, type ErrorCode } from '@/lib/errors/codes'
+
+export { ERROR_CODES } from '@/lib/errors/codes'
+
+export interface ErrorContext {
+  [key: string]: any
+}
+
+export interface ErrorAction {
+  action: 'retry' | 'login' | 'upgrade' | 'support' | 'goBack'
+  label?: string
+  data?: any
+}
+
 export class AppError extends Error {
   constructor(
-    public userMessage: string,
-    public technicalMessage: string,
+    public code: ErrorCode | string,
     public statusCode: number = 500,
-    public context?: any
+    public context?: ErrorContext,
+    public fallbackMessage?: string,
+    public actions?: ErrorAction[]
   ) {
-    super(technicalMessage)
+    // Use fallback message for Error.message (for logs/debugging)
+    super(fallbackMessage || code)
     this.name = 'AppError'
+  }
+
+  // Helper to create common errors
+  static notFound(resource: string): AppError {
+    return new AppError(ERROR_CODES.BIZ_NOT_FOUND, 404, { resource }, `${resource} not found`)
+  }
+
+  static unauthorized(message?: string): AppError {
+    return new AppError(
+      ERROR_CODES.AUTH_NOT_AUTHENTICATED,
+      401,
+      undefined,
+      message || 'Authentication required'
+    )
+  }
+
+  static forbidden(action?: string): AppError {
+    return new AppError(
+      ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+      403,
+      { action },
+      `Insufficient permissions${action ? ` for ${action}` : ''}`
+    )
+  }
+
+  static validation(fields: Record<string, string | string[]>): AppError {
+    return new AppError(ERROR_CODES.VAL_INVALID_FORMAT, 400, { fields }, 'Validation failed')
+  }
+
+  static limitExceeded(resource: string): AppError {
+    return new AppError(
+      ERROR_CODES.BIZ_LIMIT_EXCEEDED,
+      403,
+      { resource },
+      `Limit exceeded for ${resource}`,
+      [{ action: 'upgrade' }]
+    )
   }
 }
 
+// Keep existing error classes but update them to use codes
 export class AuthError extends AppError {
-  constructor(userMessage: string, technicalMessage: string = 'Authentication failed') {
-    super(userMessage, technicalMessage, 401)
+  constructor(
+    code: ErrorCode = ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+    fallbackMessage: string = 'Authentication failed'
+  ) {
+    super(code, 401, undefined, fallbackMessage)
     this.name = 'AuthError'
   }
 }
 
 export class PermissionError extends AppError {
-  constructor(userMessage: string = "You don't have permission to perform this action", technicalMessage: string = 'Permission denied') {
-    super(userMessage, technicalMessage, 403)
+  constructor(action?: string, fallbackMessage: string = 'Permission denied') {
+    super(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 403, { action }, fallbackMessage)
     this.name = 'PermissionError'
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(userMessage: string, technicalMessage: string = 'Validation failed', errors?: any) {
-    super(userMessage, technicalMessage, 400, { errors })
+  constructor(
+    fields: Record<string, string | string[]>,
+    fallbackMessage: string = 'Validation failed'
+  ) {
+    super(ERROR_CODES.VAL_INVALID_FORMAT, 400, { fields }, fallbackMessage)
     this.name = 'ValidationError'
   }
 }
 
 export class NotFoundError extends AppError {
   constructor(resource: string) {
-    super(
-      `${resource} not found`,
-      `Resource not found: ${resource}`,
-      404
-    )
+    super(ERROR_CODES.BIZ_NOT_FOUND, 404, { resource }, `${resource} not found`)
     this.name = 'NotFoundError'
   }
 }
@@ -46,6 +102,7 @@ export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError
 }
 
+// Legacy handleError function - kept for backward compatibility
 export function handleError(error: unknown): {
   userMessage: string
   technicalMessage: string
@@ -54,10 +111,10 @@ export function handleError(error: unknown): {
 } {
   if (isAppError(error)) {
     return {
-      userMessage: error.userMessage,
-      technicalMessage: error.technicalMessage,
+      userMessage: error.fallbackMessage || error.code,
+      technicalMessage: error.fallbackMessage || error.message,
       statusCode: error.statusCode,
-      context: error.context
+      context: error.context,
     }
   }
 
@@ -66,7 +123,7 @@ export function handleError(error: unknown): {
     return {
       userMessage: 'An unexpected error occurred. Please try again.',
       technicalMessage: error.message,
-      statusCode: 500
+      statusCode: 500,
     }
   }
 
@@ -74,7 +131,6 @@ export function handleError(error: unknown): {
   return {
     userMessage: 'An unexpected error occurred. Please try again.',
     technicalMessage: 'Unknown error',
-    statusCode: 500
+    statusCode: 500,
   }
 }
-

@@ -1,25 +1,20 @@
 import { createServerFn } from '@tanstack/react-start'
+import { eq, and, desc, asc, count, like, ilike, inArray } from 'drizzle-orm'
+import { z } from 'zod'
+
+import errorTranslations from '@/i18n/locales/en/errors.json'
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { db } from '@/lib/db/db'
 import { todos, user } from '@/database/schema'
-import { eq, and, desc, asc, count, like, ilike, inArray, sql } from 'drizzle-orm'
-import { z } from 'zod'
-import { buildColumnFilter, buildSearchFilter, parseFilterValue, preprocessFilterValue } from '@/lib/utils/table-filters'
-import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
-
-// Schema for query params
-const queryParamsSchema = z.object({
-  search: z.string().optional(),
-  filters: z.record(z.any()).optional(),
-  sorting: z.array(z.object({
-    id: z.string(),
-    desc: z.boolean()
-  })).optional(),
-  pagination: z.object({
-    pageIndex: z.number(),
-    pageSize: z.number()
-  }).optional()
-})
+import {
+  buildColumnFilter,
+  buildSearchFilter,
+  parseFilterValue,
+  preprocessFilterValue,
+} from '@/lib/utils/table-filters'
+import { ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
 
 // Get todos with filtering, sorting, and pagination
 export const getTodosTable = createServerFn({ method: 'POST' })
@@ -27,17 +22,22 @@ export const getTodosTable = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }: { data: any; context: any }) => {
     const orgId = context.organizationId
     if (!orgId) {
-      throw new Error('No organization ID in context')
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: errorTranslations.server.organizationIdRequired },
+        errorTranslations.server.noOrganizationContext
+      )
     }
-    
+
     // Default values if data is not provided
     const queryData = data || {}
-    
-    const { 
-      search = '', 
-      filters = {}, 
-      sorting = [], 
-      pagination = { pageIndex: 0, pageSize: 10 } 
+
+    const {
+      search = '',
+      filters = {},
+      sorting = [],
+      pagination = { pageIndex: 0, pageSize: 10 },
     } = queryData
 
     // Build where conditions
@@ -45,10 +45,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
 
     // Add search filter (searches title only since description can be null)
     if (search) {
-      const searchFilter = buildSearchFilter(
-        [todos.title], 
-        search
-      )
+      const searchFilter = buildSearchFilter([todos.title], search)
       if (searchFilter) conditions.push(searchFilter)
     }
 
@@ -62,7 +59,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
         conditions.push(titleFilter)
         return
       }
-      
+
       // Parse the filter value to get operator and actual value
       const { operator, value: filterValue } = parseFilterValue(value)
 
@@ -83,38 +80,41 @@ export const getTodosTable = createServerFn({ method: 'POST' })
       const column = columnMap[columnId]
       if (column) {
         const processedValue = preprocessFilterValue(columnId, filterValue)
-        
+
         const filter = buildColumnFilter({
           column,
           operator,
-          value: processedValue
+          value: processedValue,
         })
         if (filter) conditions.push(filter)
       }
     })
 
     // Build order by
-    const orderBy = sorting.length > 0
-      ? sorting.map(sort => {
-          const columnMap: Record<string, any> = {
-            title: todos.title,
-            priority: todos.priority,
-            completed: todos.completed,
-            createdByName: user.name,
-            dueDate: todos.dueDate,
-            createdAt: todos.createdAt,
-            updatedAt: todos.updatedAt,
-          }
-          const column = columnMap[sort.id]
-          return column ? (sort.desc ? desc(column) : asc(column)) : null
-        }).filter(Boolean) as any[]
-      : [desc(todos.createdAt)]
+    const orderBy =
+      sorting.length > 0
+        ? (sorting
+            .map((sort: any) => {
+              const columnMap: Record<string, any> = {
+                title: todos.title,
+                priority: todos.priority,
+                completed: todos.completed,
+                createdByName: user.name,
+                dueDate: todos.dueDate,
+                createdAt: todos.createdAt,
+                updatedAt: todos.updatedAt,
+              }
+              const column = columnMap[sort.id]
+              return column ? (sort.desc ? desc(column) : asc(column)) : null
+            })
+            .filter(Boolean) as any[])
+        : [desc(todos.createdAt)]
 
     // Check if we need user join for filtering
     const needsUserJoin = Object.keys(filters).includes('createdByName')
-    
+
     // Get total count for pagination
-    let countQuery = db.select({ totalCount: count() }).from(todos)
+    let countQuery = db.select({ totalCount: count(todos.id) }).from(todos)
     if (needsUserJoin) {
       countQuery = countQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
     }
@@ -146,10 +146,10 @@ export const getTodosTable = createServerFn({ method: 'POST' })
       .limit(pageSize)
       .offset(offset)
 
-    const response: ServerQueryResponse<typeof todoList[0]> = {
+    const response: ServerQueryResponse<(typeof todoList)[0]> = {
       data: todoList,
       totalCount,
-      pageCount: Math.ceil(totalCount / pageSize)
+      pageCount: Math.ceil(totalCount / pageSize),
     }
 
     return response
@@ -161,24 +161,23 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }: { data: any; context: any }) => {
     const orgId = context.organizationId
     if (!orgId) {
-      throw new Error('No organization ID in context')
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: errorTranslations.server.organizationIdRequired },
+        errorTranslations.server.noOrganizationContext
+      )
     }
-    
+
     const queryData = data || {}
-    const { 
-      search = '', 
-      filters = {},
-    } = queryData
+    const { search = '', filters = {} } = queryData
 
     // Build where conditions (same logic as getTodosTable)
     const conditions: any[] = [eq(todos.organizationId, orgId)]
 
     // Add search filter
     if (search) {
-      const searchFilter = buildSearchFilter(
-        [todos.title], 
-        search
-      )
+      const searchFilter = buildSearchFilter([todos.title], search)
       if (searchFilter) conditions.push(searchFilter)
     }
 
@@ -191,7 +190,7 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
         conditions.push(titleFilter)
         return
       }
-      
+
       const { operator, value: filterValue } = parseFilterValue(value)
       const columnMap: Record<string, any> = {
         title: todos.title,
@@ -212,11 +211,11 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
         if (columnId === 'completed') {
           processedValue = filterValue === 'true' || filterValue === true
         }
-        
+
         const filter = buildColumnFilter({
           column,
           operator,
-          value: processedValue
+          value: processedValue,
         })
         if (filter) conditions.push(filter)
       }
@@ -224,9 +223,9 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
 
     // Check if we need user join for filtering
     const needsUserJoin = Object.keys(filters).includes('createdByName')
-    
+
     // Get count
-    let countQuery = db.select({ totalCount: count() }).from(todos)
+    let countQuery = db.select({ totalCount: count(todos.id) }).from(todos)
     if (needsUserJoin) {
       countQuery = countQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
     }
@@ -241,24 +240,23 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }: { data: any; context: any }) => {
     const orgId = context.organizationId
     if (!orgId) {
-      throw new Error('No organization ID in context')
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: errorTranslations.server.organizationIdRequired },
+        errorTranslations.server.noOrganizationContext
+      )
     }
-    
+
     const queryData = data || {}
-    const { 
-      search = '', 
-      filters = {},
-    } = queryData
+    const { search = '', filters = {} } = queryData
 
     // Build where conditions (same logic as getTodosTable)
     const conditions: any[] = [eq(todos.organizationId, orgId)]
 
     // Add search filter
     if (search) {
-      const searchFilter = buildSearchFilter(
-        [todos.title], 
-        search
-      )
+      const searchFilter = buildSearchFilter([todos.title], search)
       if (searchFilter) conditions.push(searchFilter)
     }
 
@@ -271,7 +269,7 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
         conditions.push(titleFilter)
         return
       }
-      
+
       const { operator, value: filterValue } = parseFilterValue(value)
       const columnMap: Record<string, any> = {
         title: todos.title,
@@ -292,11 +290,11 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
         if (columnId === 'completed') {
           processedValue = filterValue === 'true' || filterValue === true
         }
-        
+
         const filter = buildColumnFilter({
           column,
           operator,
-          value: processedValue
+          value: processedValue,
         })
         if (filter) conditions.push(filter)
       }
@@ -304,22 +302,20 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
 
     // Check if we need user join for filtering
     const needsUserJoin = Object.keys(filters).includes('createdByName')
-    
+
     // Get all IDs (limit to reasonable number for safety)
     let idsQuery = db.select({ id: todos.id }).from(todos)
     if (needsUserJoin) {
       idsQuery = idsQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
     }
-    const allIds = await idsQuery
-      .where(and(...conditions))
-      .limit(10000) // Safety limit
+    const allIds = await idsQuery.where(and(...conditions)).limit(10000) // Safety limit
 
     return { ids: allIds.map(row => row.id) }
   })
 
 // Schema for bulk delete - now simplified to just IDs
 const bulkDeleteSchema = z.object({
-  ids: z.array(z.string())
+  ids: z.array(z.string()),
 })
 
 // Bulk delete todos
@@ -328,7 +324,12 @@ export const bulkDeleteTodos = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }: { data: any; context: any }) => {
     const orgId = context.organizationId
     if (!orgId) {
-      throw new Error('No organization ID in context')
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: errorTranslations.server.organizationIdRequired },
+        errorTranslations.server.noOrganizationContext
+      )
     }
 
     const { ids } = bulkDeleteSchema.parse(data)
@@ -338,13 +339,8 @@ export const bulkDeleteTodos = createServerFn({ method: 'POST' })
     }
 
     // Delete specific IDs, but verify they belong to the organization
-    await db
-      .delete(todos)
-      .where(and(
-        inArray(todos.id, ids),
-        eq(todos.organizationId, orgId)
-      ))
-    
+    await db.delete(todos).where(and(inArray(todos.id, ids), eq(todos.organizationId, orgId)))
+
     return { success: true, deletedCount: ids.length }
   })
 
@@ -354,7 +350,12 @@ export const getTodoCreators = createServerFn({ method: 'POST' })
   .handler(async ({ context }: { context: any }) => {
     const orgId = context.organizationId
     if (!orgId) {
-      throw new Error('No organization ID in context')
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: errorTranslations.server.organizationIdRequired },
+        errorTranslations.server.noOrganizationContext
+      )
     }
 
     // Get distinct users who have created todos in this organization

@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Navigate } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
+
 import { MagicLinkSignIn } from '@/features/auth/components/magic-link-sign-in'
 import { GoogleSignIn } from '@/features/auth/components/google-sign-in'
 import { GitHubSignIn } from '@/features/auth/components/github-sign-in'
-import { Navigate } from '@tanstack/react-router'
 import { useSession } from '@/lib/auth/auth-hooks'
-import { Loader2 } from 'lucide-react'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 export const Route = createFileRoute('/auth/signin')({
   component: SignInPage,
@@ -12,6 +14,7 @@ export const Route = createFileRoute('/auth/signin')({
 
 function SignInPage() {
   const { data: session, isPending } = useSession()
+  const { t } = useTranslation('auth')
 
   if (isPending) {
     return (
@@ -29,13 +32,13 @@ function SignInPage() {
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Welcome back</h1>
-          <p className="text-muted-foreground mt-2">Sign in to your account to continue</p>
+          <h1 className="text-3xl font-bold">{t('signin.title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('signin.subtitle')}</p>
         </div>
 
         <div className="bg-card p-8 rounded-xl shadow-lg space-y-6">
           <div>
-            <h2 className="text-lg font-medium mb-4">Sign in with email</h2>
+            <h2 className="text-lg font-medium mb-4">{t('signin.emailLabel')}</h2>
             <MagicLinkSignIn />
           </div>
 
@@ -44,7 +47,7 @@ function SignInPage() {
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
+              <span className="px-2 bg-card text-muted-foreground">{t('signin.or')}</span>
             </div>
           </div>
 
@@ -55,13 +58,13 @@ function SignInPage() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          By signing in, you agree to our{' '}
+          {t('signin.terms')}{' '}
           <a href="/terms" className="text-primary hover:underline">
-            Terms of Service
+            {t('signin.termsLink')}
           </a>{' '}
-          and{' '}
+          {t('signin.and')}{' '}
           <a href="/privacy" className="text-primary hover:underline">
-            Privacy Policy
+            {t('signin.privacyLink')}
           </a>
         </p>
       </div>

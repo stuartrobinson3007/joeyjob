@@ -1,0 +1,116 @@
+{
+  "general": {
+    "unknown": "An unknown error occurred",
+    "tryAgain": "Please try again",
+    "contactSupport": "If the problem persists, contact support"
+  },
+  "network": {
+    "offline": "No internet connection",
+    "timeout": "Request timed out",
+    "serverError": "Server error",
+    "notFound": "Resource not found",
+    "forbidden": "You don't have permission to access this resource",
+    "unauthorized": "Please sign in to continue"
+  },
+  "validation": {
+    "required": "{{field}} is required",
+    "email": "Please enter a valid email address",
+    "minLength": "{{field}} must be at least {{min}} characters",
+    "maxLength": "{{field}} must be no more than {{max}} characters",
+    "pattern": "{{field}} format is invalid",
+    "unique": "{{field}} already exists",
+    "passwordMatch": "Passwords do not match"
+  },
+  "auth": {
+    "invalidCredentials": "Invalid email or password",
+    "accountLocked": "Account has been locked",
+    "emailNotVerified": "Please verify your email address",
+    "sessionExpired": "Your session has expired",
+    "invalidToken": "Invalid or expired token"
+  },
+  "todos": {
+    "loadFailed": "Failed to load todos",
+    "saveFailed": "Failed to save todo",
+    "deleteFailed": "Failed to delete todo",
+    "notFound": "Todo not found"
+  },
+  "team": {
+    "inviteFailed": "Failed to send invitation",
+    "removeFailed": "Failed to remove team member",
+    "updateFailed": "Failed to update member role",
+    "notAuthorized": "You're not authorized to manage team members"
+  },
+  "billing": {
+    "paymentFailed": "Payment failed",
+    "cardDeclined": "Card was declined",
+    "insufficientFunds": "Insufficient funds",
+    "updateFailed": "Failed to update payment method",
+    "cancelFailed": "Failed to cancel subscription"
+  },
+  "codes": {
+    "AUTH_INVALID_CREDENTIALS": "Invalid email or password",
+    "AUTH_SESSION_EXPIRED": "Your session has expired. Please sign in again",
+    "AUTH_INSUFFICIENT_PERMISSIONS": "You don't have permission to perform this action",
+    "AUTH_ACCOUNT_LOCKED": "Your account has been locked. Please contact support",
+    "AUTH_NOT_AUTHENTICATED": "Please sign in to continue",
+    "VAL_REQUIRED_FIELD": "{{field}} is required",
+    "VAL_INVALID_FORMAT": "Please enter a valid format",
+    "VAL_INVALID_EMAIL": "Please enter a valid email address",
+    "VAL_PASSWORD_TOO_WEAK": "Password must be at least 8 characters",
+    "BIZ_LIMIT_EXCEEDED": "You've reached your plan limit for {{resource}}",
+    "BIZ_DUPLICATE_ENTRY": "This {{resource}} already exists",
+    "BIZ_NOT_FOUND": "{{resource}} not found",
+    "BIZ_INVALID_STATE": "This action cannot be performed in the current state",
+    "BIZ_PAYMENT_FAILED": "Payment failed. Please check your payment method",
+    "SYS_SERVER_ERROR": "Something went wrong. Please try again",
+    "SYS_RATE_LIMIT": "Too many requests. Please slow down",
+    "SYS_CONFIG_ERROR": "Configuration error. Please contact support",
+    "NET_CONNECTION_ERROR": "Connection problem. Please check your internet",
+    "NET_TIMEOUT": "The request took too long. Please try again"
+  },
+  "actions": {
+    "retry": "Try Again",
+    "login": "Sign In",
+    "upgrade": "Upgrade Plan",
+    "support": "Contact Support",
+    "goBack": "Go Back",
+    "dismiss": "Dismiss"
+  },
+  "server": {
+    "validationFailed": "Validation failed",
+    "alreadyMember": "Already a member",
+    "invitationAlreadySent": "Invitation already sent",
+    "cannotChangeOwnerRole": "Cannot change owner role",
+    "failedToUpdateRole": "Failed to update role",
+    "invitationCreationFailed": "Invitation creation failed",
+    "invitationCancellationFailed": "Invitation cancellation failed",
+    "onlyPendingInvitationsResent": "Only pending invitations can be resent",
+    "failedToCancelInvitation": "Failed to cancel existing invitation",
+    "failedToCreateInvitation": "Failed to create new invitation",
+    "organizationIdRequired": "Organization ID required",
+    "noOrganizationContext": "No organization ID in context",
+    "paymentFailed": "Payment failed",
+    "checkoutSessionFailed": "Failed to create checkout session - no URL returned",
+    "billingPortalFailed": "Failed to create billing portal session",
+    "noBillingHistory": "No billing history available. Please subscribe to a plan first.",
+    "failedToAcceptInvitation": "Failed to accept invitation",
+    "failedToCreateOrganization": "Failed to create organization",
+    "invitationNotFoundOrExpired": "Invitation not found or expired",
+    "defaultInviterName": "Team Member",
+    "saveFailed": "Save failed",
+    "genericError": "An error occurred"
+  },
+  "fields": {
+    "email": "Email",
+    "name": "Name",
+    "organization": "Organization"
+  },
+  "titles": {
+    "error": "Error",
+    "validationError": "Please check your input",
+    "networkError": "Connection Problem",
+    "permissionError": "Access Denied",
+    "notFound": "Not Found",
+    "serverError": "Server Error"
+  }
+}

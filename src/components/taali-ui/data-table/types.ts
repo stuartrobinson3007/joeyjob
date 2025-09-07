@@ -1,17 +1,16 @@
-import { Column, Table } from "@tanstack/react-table"
-import { z } from "zod"
+import { z } from 'zod'
 
-export type DataTableFilterType = 
-  | "text" 
-  | "number" 
-  | "date" 
-  | "dateRange"
-  | "select" 
-  | "multiSelect"
-  | "boolean"
-  | "numberRange"
-  | "dynamicSelect"
-  | "dynamicMultiSelect"
+export type DataTableFilterType =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'dateRange'
+  | 'select'
+  | 'multiSelect'
+  | 'boolean'
+  | 'numberRange'
+  | 'dynamicSelect'
+  | 'dynamicMultiSelect'
 
 export interface DataTableFilterOption {
   label: string
@@ -28,7 +27,7 @@ export interface DataTableFilterConfig {
   min?: number
   max?: number
   step?: number
-  align?: "start" | "center" | "end"
+  align?: 'start' | 'center' | 'end'
   loadOptions?: () => Promise<{ options: DataTableFilterOption[] }>
 }
 
@@ -50,8 +49,8 @@ export interface DataTablePaginationConfig {
 
 export interface DataTableResizingConfig {
   enableColumnResizing?: boolean
-  columnResizeMode?: "onChange" | "onEnd"
-  columnResizeDirection?: "ltr" | "rtl"
+  columnResizeMode?: 'onChange' | 'onEnd'
+  columnResizeDirection?: 'ltr' | 'rtl'
 }
 
 export interface DataTableLoadingConfig {
@@ -59,7 +58,7 @@ export interface DataTableLoadingConfig {
   showSkeletonOnRefetch?: boolean
 }
 
-export interface DataTableConfig<TData> {
+export interface DataTableConfig<TData = unknown> {
   searchConfig?: DataTableSearchConfig
   paginationConfig?: DataTablePaginationConfig
   selectionConfig?: DataTableSelectionConfig
@@ -71,13 +70,14 @@ export interface DataTableConfig<TData> {
   manualFiltering?: boolean
   manualPagination?: boolean
   manualSorting?: boolean
+  _dataType?: TData // Phantom type to use TData parameter
 }
 
 export interface DataTableState {
   search: string
   columnFilters: Array<{
     id: string
-    value: any
+    value: unknown
   }>
   sorting: Array<{
     id: string
@@ -111,7 +111,7 @@ export interface BulkAction {
 
 export interface ServerQueryParams {
   search?: string
-  filters?: Record<string, any>
+  filters?: Record<string, unknown>
   sorting?: Array<{ id: string; desc: boolean }>
   pagination?: {
     pageIndex: number
@@ -126,30 +126,30 @@ export interface ServerQueryResponse<TData> {
 }
 
 export const filterOperatorSchema = z.enum([
-  "eq",
-  "neq", 
-  "contains",
-  "startsWith",
-  "endsWith",
-  "gt",
-  "gte", 
-  "lt",
-  "lte",
-  "between",
-  "in",
-  "notIn",
-  "isNull",
-  "isNotNull"
+  'eq',
+  'neq',
+  'contains',
+  'startsWith',
+  'endsWith',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'between',
+  'in',
+  'notIn',
+  'isNull',
+  'isNotNull',
 ])
 
 export type FilterOperator = z.infer<typeof filterOperatorSchema>
 
 export interface FilterValue {
   operator: FilterOperator
-  value: any
+  value: unknown
 }
 
 export interface ColumnFilter {
   id: string
-  value: any
+  value: unknown
 }

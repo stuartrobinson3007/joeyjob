@@ -1,0 +1,25 @@
+{
+  "title": "Settings",
+  "organization": {
+    "name": "Organization Name",
+    "slug": "Organization Slug",
+    "namePlaceholder": "Enter organization name",
+    "slugPlaceholder": "organization-slug",
+    "notFound": "Organization not found",
+    "update": "Update Organization",
+    "updateSuccess": "Organization updated successfully",
+    "updateFailed": "Failed to update organization",
+    "slugHelp": "Used in URLs and API endpoints. Use lowercase letters, numbers, and hyphens only."
+  },
+  "danger": {
+    "title": "Danger Zone",
+    "delete": "Delete Organization",
+    "deleteWorkspace": "Delete Workspace",
+    "deleteDescription": "Permanently delete this organization and all its data. This action cannot be undone.",
+    "deleteConfirm": "Are you sure you want to delete this organization?",
+    "deleteSuccess": "Organization deleted successfully",
+    "deleteFailed": "Failed to delete organization",
+    "deleteWarning": "Once you delete an organization, there is no going back. This will permanently delete all todos, members, and data associated with this organization.",
+    "deleteConfirmWithName": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+  }
+}

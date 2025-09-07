@@ -1,0 +1,119 @@
+{
+  "title": "Configuración del Perfil",
+  "subtitle": "Gestiona la información de tu cuenta y preferencias",
+  "backToDashboard": "Volver al Panel",
+  "tabs": {
+    "basic": "Información Básica",
+    "sessions": "Sesiones"
+  },
+  "personalInfo": {
+    "title": "Información Personal",
+    "description": "Actualiza tus datos personales e información de la cuenta",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo Electrónico",
+    "firstNamePlaceholder": "Ingresa tu nombre",
+    "lastNamePlaceholder": "Ingresa tu apellido",
+    "emailPlaceholder": "Ingresa tu correo electrónico",
+    "fullName": "Nombre Completo",
+    "updateProfilePicture": "Actualizar Foto de Perfil"
+  },
+  "account": {
+    "title": "Detalles de la Cuenta",
+    "description": "Ve el estado de tu cuenta y metadatos",
+    "userId": "ID de Usuario",
+    "role": "Rol",
+    "accountCreated": "Cuenta Creada",
+    "emailVerified": "Correo Verificado"
+  },
+  "preferences": {
+    "title": "Preferencias",
+    "description": "Personaliza la configuración de tu aplicación",
+    "language": "Idioma"
+  },
+  "security": {
+    "title": "Seguridad",
+    "description": "Gestiona la configuración de seguridad de tu cuenta",
+    "twoFactor": "Autenticación de Dos Factores",
+    "changePassword": "Cambiar Contraseña",
+    "passwordDescription": "Actualiza tu contraseña regularmente para mejor seguridad",
+    "notice": "Aviso de Seguridad",
+    "revokeSessionTitle": "¿Revocar Sesión?",
+    "revokeSessionAction": "Revocar Sesión",
+    "revokeAllTitle": "¿Revocar Todas las Otras Sesiones?",
+    "warning": "Advertencia",
+    "securityNoticeDescription": "Si notas dispositivos o ubicaciones desconocidas, revoca esas sesiones inmediatamente y cambia tu contraseña.",
+    "revokeAllSessionsDescription": "Esto cerrará sesión en todos los otros dispositivos de tu cuenta excepto el actual. Todos los usuarios necesitarán iniciar sesión nuevamente para acceder a tu cuenta.",
+    "revokeWarning": "Esta acción no se puede deshacer. Asegúrate de reconocer el dispositivo actual antes de continuar.",
+    "twoFactorEnabled": "La autenticación de dos factores está habilitada para tu cuenta",
+    "twoFactorDisabled": "Agrega una capa extra de seguridad a tu cuenta"
+  },
+  "sessions": {
+    "title": "Sesiones Activas",
+    "subtitle": "Sesiones",
+    "description": "Gestiona tus sesiones activas en diferentes dispositivos",
+    "alertDescription": "Ve y gestiona todos los dispositivos que están actualmente conectados a tu cuenta. La sesión actual está resaltada y no puede ser revocada.",
+    "empty": "No se encontraron sesiones activas",
+    "current": "Sesión Actual",
+    "revoke": "Revocar",
+    "revokeAll": "Revocar Todas las Otras Sesiones",
+    "revokeAllOthers": "Revocar Todas las Otras",
+    "lastActivity": "Última actividad",
+    "unknown": "Navegador Desconocido",
+    "unknownOS": "SO Desconocido",
+    "unknownDevice": "Dispositivo Desconocido",
+    "expires": "Expira {{date}}",
+    "notFound": "No se encontró sesión",
+    "information": "Información de Sesión",
+    "session": "Sesión",
+    "expiresLabel": "Expira:",
+    "ipAddress": "IP:"
+  },
+  "labels": {
+    "user": "Usuario"
+  },
+  "dialogs": {
+    "revokeSession": "¿Revocar Sesión?",
+    "revokeSessionDescription": "Esto cerrará la sesión en este dispositivo. Necesitarás iniciar sesión de nuevo en ese dispositivo.",
+    "revokeAllSessions": "¿Revocar Todas las Otras Sesiones?",
+    "revokeAllDescription": "Esto cerrará la sesión en todos los otros dispositivos. Te mantendrás conectado en este dispositivo.",
+    "warning": "Advertencia",
+    "securityWarning": "Si sospechas acceso no autorizado, revoca todas las sesiones y cambia tu contraseña inmediatamente."
+  },
+  "messages": {
+    "profileUpdated": "Perfil actualizado exitosamente",
+    "profileUpdateFailed": "Error al actualizar el perfil",
+    "sessionRevoked": "Sesión revocada exitosamente",
+    "sessionRevokeFailed": "Error al revocar sesión",
+    "allSessionsRevoked": "Todas las otras sesiones revocadas exitosamente",
+    "allSessionsRevokeFailed": "Error al revocar sesiones"
+  },
+  "avatar": {
+    "title": "Actualizar Foto de Perfil",
+    "description": "Elige una nueva foto de perfil. La imagen será redimensionada a 128x128 píxeles.",
+    "preview": "Vista previa de tu nueva foto de perfil",
+    "uploadInstructions": "Haz clic para subir o arrastra y suelta",
+    "fileTypes": "JPEG, PNG, GIF o WebP (máx 10MB)",
+    "validating": "Validando imagen...",
+    "chooseFile": "Elegir Archivo",
+    "validatingButton": "Validando...",
+    "upload": "Subir",
+    "uploading": "Subiendo...",
+    "remove": "Quitar",
+    "cancel": "Cancelar",
+    "errors": {
+      "invalidFileType": "Por favor selecciona un archivo de imagen válido (JPEG, PNG, GIF, o WebP)",
+      "noFileSelected": "Por favor selecciona una imagen primero",
+      "invalidImage": "Archivo de imagen inválido",
+      "fileSizeExceeds": "El tamaño del archivo ({{size}}MB) excede el límite de 10MB",
+      "dimensionsTooLarge": "Las dimensiones de la imagen {{width}}x{{height}} exceden el máximo de {{maxWidth}}x{{maxHeight}} píxeles",
+      "dimensionsTooSmall": "Las dimensiones de la imagen {{width}}x{{height}} están por debajo del mínimo de {{minWidth}}x{{minHeight}} píxeles",
+      "uploadFailed": "Error al subir avatar",
+      "removeFailed": "Error al eliminar avatar"
+    },
+    "success": {
+      "uploaded": "¡Avatar subido exitosamente!",
+      "removed": "¡Avatar removido exitosamente!"
+    }
+  }
+}

@@ -1,5 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Upload, X, Camera, Loader2 } from 'lucide-react'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +15,6 @@ import {
 } from '@/components/taali-ui/ui/dialog'
 import { Button } from '@/components/taali-ui/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/taali-ui/ui/avatar'
-import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/auth-hooks'
 
 interface AvatarUploadDialogProps {
@@ -22,15 +26,17 @@ interface AvatarUploadDialogProps {
 export function AvatarUploadDialog({
   currentAvatarUrl,
   userName,
-  onUploadComplete
+  onUploadComplete,
 }: AvatarUploadDialogProps) {
   const [open, setOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const { showError, showSuccess } = useErrorHandler()
   const [isValidating, setIsValidating] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { refetch } = useSession()
+  const { t } = useTranslation('profile')
 
   // Cleanup preview URLs to prevent memory leaks
   useEffect(() => {
@@ -60,14 +66,28 @@ export function AvatarUploadDialog({
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
       if (!allowedTypes.includes(file.type)) {
-        toast.error('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+        showError(
+          new AppError(
+            ERROR_CODES.VAL_INVALID_FORMAT,
+            400,
+            { allowedTypes: allowedTypes.join(', ') },
+            t('profile:avatar.errors.invalidFileType')
+          )
+        )
         return
       }
 
       // Validate file size (10MB max)
       const maxSize = 10 * 1024 * 1024
       if (file.size > maxSize) {
-        toast.error(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds the 10MB limit`)
+        showError(
+          new AppError(
+            ERROR_CODES.VAL_INVALID_FORMAT,
+            400,
+            { maxSizeMB: 10, actualSizeMB: (file.size / 1024 / 1024).toFixed(1) },
+            t('profile:avatar.errors.fileSizeExceeds', { size: '10MB' })
+          )
+        )
         return
       }
 
@@ -80,18 +100,36 @@ export function AvatarUploadDialog({
           URL.revokeObjectURL(imageUrl)
 
           // Check dimensions - reasonable limits for avatars
-          const maxWidth = 4096  // 4K max
+          const maxWidth = 4096 // 4K max
           const maxHeight = 4096
-          const minWidth = 32    // Minimum readable size
+          const minWidth = 32 // Minimum readable size
           const minHeight = 32
 
           if (img.width > maxWidth || img.height > maxHeight) {
-            reject(new Error(`Image dimensions ${img.width}x${img.height} exceed maximum ${maxWidth}x${maxHeight} pixels`))
+            reject(
+              new Error(
+                t('profile:avatar.errors.dimensionsTooLarge', {
+                  width: img.width,
+                  height: img.height,
+                  maxWidth,
+                  maxHeight,
+                })
+              )
+            )
             return
           }
 
           if (img.width < minWidth || img.height < minHeight) {
-            reject(new Error(`Image dimensions ${img.width}x${img.height} are below minimum ${minWidth}x${minHeight} pixels`))
+            reject(
+              new Error(
+                t('profile:avatar.errors.dimensionsTooSmall', {
+                  width: img.width,
+                  height: img.height,
+                  minWidth,
+                  minHeight,
+                })
+              )
+            )
             return
           }
 
@@ -100,7 +138,7 @@ export function AvatarUploadDialog({
 
         img.onerror = () => {
           URL.revokeObjectURL(imageUrl)
-          reject(new Error('Invalid image file'))
+          reject(new Error(t('profile:avatar.errors.invalidImage')))
         }
 
         img.src = imageUrl
@@ -114,28 +152,44 @@ export function AvatarUploadDialog({
         setPreviewUrl(reader.result as string)
       }
       reader.readAsDataURL(file)
-      
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Invalid image file')
+      showError(error)
     } finally {
       setIsValidating(false)
     }
-  }, [])
+  }, [showError, t])
 
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
 
-    const file = event.dataTransfer.files?.[0]
-    if (!file) return
+      const file = event.dataTransfer.files?.[0]
+      if (!file) return
 
-    // Create a fake event to reuse the file select handler
-    const fakeEvent = {
-      target: { files: [file] }
-    } as React.ChangeEvent<HTMLInputElement>
+      // Create a fake event to reuse the file select handler
+      const fakeEvent = {
+        target: { files: [file] },
+        currentTarget: { files: [file] },
+        nativeEvent: {},
+        bubbles: false,
+        cancelable: false,
+        defaultPrevented: false,
+        eventPhase: 0,
+        isTrusted: false,
+        preventDefault: () => {},
+        isDefaultPrevented: () => false,
+        stopPropagation: () => {},
+        isPropagationStopped: () => false,
+        persist: () => {},
+        timeStamp: Date.now(),
+        type: 'change',
+      } as unknown as React.ChangeEvent<HTMLInputElement>
 
-    handleFileSelect(fakeEvent)
-  }, [handleFileSelect])
+      handleFileSelect(fakeEvent)
+    },
+    [handleFileSelect]
+  )
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -144,7 +198,7 @@ export function AvatarUploadDialog({
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      toast.error('Please select an image first')
+      showError(new AppError(ERROR_CODES.VAL_REQUIRED_FIELD, 400, { field: 'File' }))
       return
     }
 
@@ -157,16 +211,16 @@ export function AvatarUploadDialog({
       const response = await fetch('/api/avatars/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload avatar')
+        throw new Error(data.error || t('profile:avatar.errors.uploadFailed'))
       }
 
-      toast.success('Avatar uploaded successfully!')
+      showSuccess(t('profile:avatar.success.uploaded'))
 
       // Call callback if provided
       onUploadComplete?.(data.avatarUrl)
@@ -189,7 +243,7 @@ export function AvatarUploadDialog({
       }
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to upload avatar')
+      showError(error)
     } finally {
       setIsUploading(false)
     }
@@ -203,16 +257,16 @@ export function AvatarUploadDialog({
     try {
       const response = await fetch('/api/avatars/delete', {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to remove avatar')
+        throw new Error(data.error || t('profile:avatar.errors.removeFailed'))
       }
 
-      toast.success('Avatar removed successfully!')
+      showSuccess(t('profile:avatar.success.removed'))
 
       // Call callback with empty string to indicate removal
       onUploadComplete?.('')
@@ -224,7 +278,7 @@ export function AvatarUploadDialog({
       setOpen(false)
     } catch (error) {
       console.error('Remove error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to remove avatar')
+      showError(error)
     } finally {
       setIsUploading(false)
     }
@@ -245,15 +299,10 @@ export function AvatarUploadDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative group h-24 w-24 rounded-full p-0"
-        >
+        <Button variant="ghost" className="relative group h-24 w-24 rounded-full p-0">
           <Avatar className="h-24 w-24">
             <AvatarImage src={currentAvatarUrl || undefined} />
-            <AvatarFallback className="text-2xl">
-              {getUserInitials()}
-            </AvatarFallback>
+            <AvatarFallback className="text-2xl">{getUserInitials()}</AvatarFallback>
           </Avatar>
           <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="h-6 w-6 text-white" />
@@ -262,10 +311,8 @@ export function AvatarUploadDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Update Profile Picture</DialogTitle>
-          <DialogDescription>
-            Choose a new profile picture. The image will be resized to 128x128 pixels.
-          </DialogDescription>
+          <DialogTitle>{t('profile:avatar.title')}</DialogTitle>
+          <DialogDescription>{t('profile:avatar.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -275,9 +322,7 @@ export function AvatarUploadDialog({
               <div className="relative">
                 <Avatar className="h-32 w-32">
                   <AvatarImage src={previewUrl} className="object-cover" />
-                  <AvatarFallback className="text-2xl">
-                    {getUserInitials()}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-2xl">{getUserInitials()}</AvatarFallback>
                 </Avatar>
                 <Button
                   variant="ghost"
@@ -288,9 +333,7 @@ export function AvatarUploadDialog({
                   <X className="h-3 w-3" />
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Preview of your new profile picture
-              </p>
+              <p className="text-sm text-muted-foreground text-center">{t('profile:avatar.preview')}</p>
             </div>
           ) : (
             <div
@@ -302,19 +345,15 @@ export function AvatarUploadDialog({
               {isValidating ? (
                 <>
                   <Loader2 className="mx-auto h-12 w-12 text-muted-foreground animate-spin" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Validating image...
-                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">{t('profile:avatar.validating')}</p>
                 </>
               ) : (
                 <>
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Click to upload or drag and drop
+                    {t('profile:avatar.uploadInstructions')}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    JPEG, PNG, GIF or WebP (max 10MB)
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('profile:avatar.fileTypes')}</p>
                 </>
               )}
             </div>
@@ -339,7 +378,7 @@ export function AvatarUploadDialog({
                   disabled={isUploading || isValidating}
                   className="flex-1"
                 >
-                  Cancel
+                  {t('profile:avatar.cancel')}
                 </Button>
                 <Button
                   onClick={handleUpload}
@@ -349,10 +388,10 @@ export function AvatarUploadDialog({
                   {isUploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
+                      {t('profile:avatar.uploading')}
                     </>
                   ) : (
-                    'Upload'
+                    t('profile:avatar.upload')
                   )}
                 </Button>
               </>
@@ -364,18 +403,14 @@ export function AvatarUploadDialog({
                   disabled={isUploading || isValidating}
                   className="flex-1"
                 >
-                  {isValidating ? 'Validating...' : 'Choose File'}
+                  {isValidating ? t('profile:avatar.validatingButton') : t('profile:avatar.chooseFile')}
                 </Button>
                 {currentAvatarUrl && (
-                  <Button
-                    variant="destructive"
-                    onClick={handleRemoveAvatar}
-                    disabled={isUploading}
-                  >
+                  <Button variant="destructive" onClick={handleRemoveAvatar} disabled={isUploading}>
                     {isUploading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      'Remove'
+                      t('profile:avatar.remove')
                     )}
                   </Button>
                 )}

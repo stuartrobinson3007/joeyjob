@@ -1,6 +1,7 @@
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
-import { cn } from '@/components/taali-ui/lib/utils'
+
 import { Badge } from '@/components/taali-ui/ui/badge'
+// import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface SaveStatusIndicatorProps {
   isSaving: boolean
@@ -10,19 +11,20 @@ interface SaveStatusIndicatorProps {
   className?: string
 }
 
-export function SaveStatusIndicator({ 
-  isSaving, 
-  lastSaved, 
+export function SaveStatusIndicator({
+  isSaving,
+  lastSaved,
   isDirty,
   errors = [],
-  className
+  className,
 }: SaveStatusIndicatorProps) {
+  // const { t } = useTranslation('common')
   // Show errors if any
   if (errors.length > 0) {
     return (
-      <Badge 
-        variant="destructive" 
-        style="soft" 
+      <Badge
+        variant="destructive"
+        appearance="soft"
         startIcon={<AlertCircle className="h-3 w-3" />}
         className={className}
       >
@@ -34,9 +36,9 @@ export function SaveStatusIndicator({
   // Show saving state
   if (isSaving) {
     return (
-      <Badge 
-        variant="muted" 
-        style="soft" 
+      <Badge
+        variant="muted"
+        appearance="soft"
         startIcon={<Loader2 className="h-3 w-3 animate-spin" />}
         className={className}
       >
@@ -48,9 +50,9 @@ export function SaveStatusIndicator({
   // Show saved state
   if (lastSaved && !isDirty) {
     return (
-      <Badge 
-        variant="success" 
-        style="soft" 
+      <Badge
+        variant="success"
+        appearance="soft"
         startIcon={<CheckCircle className="h-3 w-3" />}
         className={className}
       >
@@ -62,12 +64,7 @@ export function SaveStatusIndicator({
   // Show unsaved changes
   if (isDirty) {
     return (
-      <Badge 
-        variant="warning" 
-        style="soft" 
-        status
-        className={className}
-      >
+      <Badge variant="warning" appearance="soft" status className={className}>
         Unsaved changes
       </Badge>
     )

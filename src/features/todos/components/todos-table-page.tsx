@@ -1,33 +1,47 @@
-"use client"
+'use client'
 
 import * as React from 'react'
 import { useMemo } from 'react'
-import { ColumnDef } from "@tanstack/react-table"
-import { formatDate } from '@/lib/utils/date'
-import { MoreHorizontal, Clock, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Plus, Loader2, Undo2, Check } from 'lucide-react'
+import { ColumnDef } from '@tanstack/react-table'
+import { MoreHorizontal, Clock, Trash2, Edit2, Plus, Loader2, Undo2, Check } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
+
+import {
+  getTodosTable,
+  getAllTodosIds,
+  bulkDeleteTodos,
+  getTodoCreators,
+} from '../lib/todos-table.server'
+import { toggleTodo, deleteTodo, createTodo } from '../lib/todos.server'
+import { todoKeys } from '../lib/query-keys'
+
+import { formatDate } from '@/lib/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useLoadingItems } from '@/lib/hooks/use-loading-state'
 import { DataTable, DataTableHeader } from '@/components/taali-ui/data-table'
 import { useTableQuery } from '@/components/taali-ui/data-table'
-import { getTodosTable, getAllTodosIds, bulkDeleteTodos, getTodoCreators } from '../lib/todos-table.server'
-import { toggleTodo, deleteTodo, createTodo } from '../lib/todos.server'
-import { todoKeys } from '../lib/query-keys'
-import { DataTableConfig, DataTableColumnMeta, SelectionState, BulkAction } from '@/components/taali-ui/data-table'
+import {
+  DataTableConfig,
+  DataTableColumnMeta,
+  SelectionState,
+  BulkAction,
+} from '@/components/taali-ui/data-table'
 import { Button } from '@/components/taali-ui/ui/button'
 import { Badge } from '@/components/taali-ui/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/taali-ui/ui/dropdown-menu'
-import { toast } from 'sonner'
 import { Checkbox } from '@/components/taali-ui/ui/checkbox'
 import { usePermissions } from '@/lib/hooks/use-permissions'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
 
 interface Todo {
   id: string
@@ -47,41 +61,44 @@ interface Todo {
 export function TodosTablePage() {
   const { activeOrganizationId } = useActiveOrganization()
   const navigate = useNavigate()
-  const { canCreateTodo, canUpdateTodo, canDeleteTodo, isLoading: permissionsLoading } = usePermissions()
+  const { canCreateTodo, canUpdateTodo, canDeleteTodo } = usePermissions()
+  const { t } = useTranslation('todos')
+  const { t: tCommon } = useTranslation('common')
+  const { t: tNotifications } = useTranslation('notifications')
+  const { showError, showSuccess } = useErrorHandler()
   const [isCreating, setIsCreating] = React.useState(false)
   const [currentFilters, setCurrentFilters] = React.useState({})
-  const [currentSelection, setCurrentSelection] = React.useState<SelectionState>({
-    selectedIds: new Set(),
-    isAllSelected: false,
-    totalSelectedCount: 0,
-  })
   const [clearSelectionFn, setClearSelectionFn] = React.useState<(() => void) | null>(null)
 
   // Loading states for individual todo actions
-  const { isLoading: isLoadingTodo, startLoading: startTodoLoading, stopLoading: stopTodoLoading, loadingItems: loadingTodos } = useLoadingItems<string>()
+  const {
+    isLoading: isLoadingTodo,
+    startLoading: startTodoLoading,
+    stopLoading: stopTodoLoading,
+    loadingItems: loadingTodos,
+  } = useLoadingItems<string>()
   const [isBulkDeleting, setIsBulkDeleting] = React.useState(false)
 
   // Use the table query hook with hierarchical query keys
-  const {
-    data,
-    totalCount,
-    isLoading,
-    isFetching,
-    onStateChange,
-    refetch,
-  } = useTableQuery<Todo>({
-    queryKey: activeOrganizationId ? todoKeys.tables(activeOrganizationId) : [],
-    queryFn: (params) => {
+  const { data, totalCount, isLoading, isFetching, onStateChange, refetch } = useTableQuery<Todo>({
+    queryKey: activeOrganizationId ? [...todoKeys.tables(activeOrganizationId)] : [],
+    queryFn: (params: any) => {
       setCurrentFilters(params)
       return getTodosTable({ data: params })
     },
     enabled: !!activeOrganizationId,
   })
 
-
   const handleCreateTodo = React.useCallback(async () => {
     if (!activeOrganizationId) {
-      toast.error('Please select an organization')
+      showError(
+        new AppError(
+          ERROR_CODES.VAL_REQUIRED_FIELD,
+          400,
+          { field: tCommon('labels.organization') },
+          t('edit.noOrganizationMessage')
+        )
+      )
       return
     }
 
@@ -89,95 +106,110 @@ export function TodosTablePage() {
     try {
       const created = await createTodo({
         data: {
-          title: 'Untitled Todo',
+          title: t('untitled'),
           description: '',
           priority: 'medium',
-        }
+        },
       })
 
-      toast.success('Todo created! Opening editor...')
+      showSuccess(t('common:messages.created'))
       navigate({ to: `/todos/${created.id}/edit` })
-    } catch (error: any) {
-      toast.error(error.userMessage || 'Failed to create todo')
+    } catch (error) {
+      showError(error)
       setIsCreating(false)
     }
   }, [activeOrganizationId, navigate])
 
-
-  const handleToggle = React.useCallback(async (id: string) => {
-    startTodoLoading(id)
-    try {
-      await toggleTodo({ data: { id } })
-      refetch()
-      toast.success('Todo updated')
-    } catch (error: any) {
-      toast.error(error.userMessage || 'Failed to update todo')
-    } finally {
-      stopTodoLoading(id)
-    }
-  }, [refetch, startTodoLoading, stopTodoLoading])
-
-  const handleDelete = React.useCallback(async (id: string) => {
-    if (!confirm('Are you sure you want to delete this todo?')) return
-
-    startTodoLoading(id)
-    try {
-      await deleteTodo({ data: { id } })
-      refetch()
-      toast.success('Todo deleted')
-    } catch (error: any) {
-      toast.error(error.userMessage || 'Failed to delete todo')
-    } finally {
-      stopTodoLoading(id)
-    }
-  }, [refetch, startTodoLoading, stopTodoLoading])
-
-  const handleBulkDelete = React.useCallback(async (selectedIds: string[], isAllSelected: boolean) => {
-    const count = selectedIds.length
-
-    if (!confirm(`Are you sure you want to delete ${count} todo${count !== 1 ? 's' : ''}?`)) return
-
-    setIsBulkDeleting(true)
-    // Add all selected items to loading state
-    selectedIds.forEach(id => startTodoLoading(id))
-
-    try {
-      await bulkDeleteTodos({
-        data: {
-          ids: selectedIds
-        }
-      })
-
-      // Clear selection after successful delete
-      if (clearSelectionFn) {
-        clearSelectionFn()
+  const handleToggle = React.useCallback(
+    async (id: string) => {
+      startTodoLoading(id)
+      try {
+        await toggleTodo({ data: { id } })
+        refetch()
+        showSuccess(t('common:messages.updated'))
+      } catch (error) {
+        showError(error)
+      } finally {
+        stopTodoLoading(id)
       }
+    },
+    [refetch, startTodoLoading, stopTodoLoading]
+  )
 
-      refetch()
-      toast.success(`${count} todo${count !== 1 ? 's' : ''} deleted`)
-    } catch (error: any) {
-      toast.error(error.userMessage || 'Failed to delete todos')
-    } finally {
-      // Clear all loading states
-      selectedIds.forEach(id => stopTodoLoading(id))
-      setIsBulkDeleting(false)
-    }
-  }, [refetch, clearSelectionFn, startTodoLoading, stopTodoLoading])
+  const handleDelete = React.useCallback(
+    async (id: string) => {
+      if (!confirm(t('common:messages.deleteConfirm'))) return
+
+      startTodoLoading(id)
+      try {
+        await deleteTodo({ data: { id } })
+        refetch()
+        showSuccess(t('common:messages.deleted'))
+      } catch (error) {
+        showError(error)
+      } finally {
+        stopTodoLoading(id)
+      }
+    },
+    [refetch, startTodoLoading, stopTodoLoading]
+  )
+
+  const handleBulkDelete = React.useCallback(
+    async (selectedIds: string[]) => {
+      const count = selectedIds.length
+
+      if (
+        !confirm(
+          tNotifications('confirmations.deleteTodos', { count, plural: count !== 1 ? 's' : '' })
+        )
+      )
+        return
+
+      setIsBulkDeleting(true)
+      // Add all selected items to loading state
+      selectedIds.forEach(id => startTodoLoading(id))
+
+      try {
+        await (bulkDeleteTodos as any)({
+          ids: selectedIds,
+        })
+
+        // Clear selection after successful delete
+        if (clearSelectionFn) {
+          clearSelectionFn()
+        }
+
+        refetch()
+        showSuccess(`Successfully deleted ${count} todo${count !== 1 ? 's' : ''}`)
+      } catch (error) {
+        showError(error)
+      } finally {
+        // Clear all loading states
+        selectedIds.forEach(id => stopTodoLoading(id))
+        setIsBulkDeleting(false)
+      }
+    },
+    [refetch, clearSelectionFn, startTodoLoading, stopTodoLoading]
+  )
 
   const handleSelectAll = React.useCallback(async (filters: any) => {
     const result = await getAllTodosIds({ data: filters })
     return result.ids
   }, [])
 
-  const handleSelectionChange = React.useCallback((selection: SelectionState, clearSelection: () => void) => {
-    setCurrentSelection(selection)
-    setClearSelectionFn(() => clearSelection)
-  }, [])
+  const handleSelectionChange = React.useCallback(
+    (_: SelectionState, clearSelection: () => void) => {
+      setClearSelectionFn(() => clearSelection)
+    },
+    []
+  )
 
-  const handleRowClick = React.useCallback((todo: Todo) => {
-    navigate({ to: `/todos/${todo.id}/edit` })
-  }, [navigate])
-
+  const handleRowClick = React.useCallback(
+    (todo: Todo) => {
+      navigate({ to: `/todos/${todo.id}/edit` })
+    },
+    [navigate]
+  )
 
   const columns: ColumnDef<Todo>[] = useMemo(() => {
     const cols: ColumnDef<Todo>[] = []
@@ -185,22 +217,22 @@ export function TodosTablePage() {
     // Only add select column if user can delete
     if (canDeleteTodo()) {
       cols.push({
-        id: "select",
+        id: 'select',
         header: ({ table }) => (
           <Checkbox
             checked={
               table.getIsAllPageRowsSelected() ||
-              (table.getIsSomePageRowsSelected() && "indeterminate")
+              (table.getIsSomePageRowsSelected() && 'indeterminate')
             }
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-            aria-label="Select all"
+            onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+            aria-label={tCommon('table.selectAll')}
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Select row"
+            onCheckedChange={value => row.toggleSelected(!!value)}
+            aria-label={tCommon('table.selectRow')}
           />
         ),
         enableSorting: false,
@@ -213,7 +245,7 @@ export function TodosTablePage() {
     // Add all other columns
     cols.push(
       {
-        accessorKey: "completed",
+        accessorKey: 'completed',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
             Status
@@ -223,34 +255,30 @@ export function TodosTablePage() {
         enableSorting: true,
         size: 100,
         cell: ({ row }) => {
-          const completed = row.getValue("completed") as boolean
+          const completed = row.getValue('completed') as boolean
           return (
-            <Badge
-              variant={completed ? "success" : "warning"}
-              style="soft"
-              status={completed}
-            >
-              {completed ? "Done" : "Pending"}
+            <Badge variant={completed ? 'success' : 'warning'} appearance="soft" status={completed}>
+              {completed ? t('status.completed') : t('status.pending')}
             </Badge>
           )
         },
         meta: {
           filterConfig: {
-            type: "select",
-            title: "Status",
+            type: 'select',
+            title: tCommon('labels.status'),
             options: [
-              { label: "Done", value: "true" },
-              { label: "Pending", value: "false" },
+              { label: t('status.completed'), value: 'true' },
+              { label: t('status.pending'), value: 'false' },
             ],
           },
           enableTextTruncation: false,
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "title",
+        accessorKey: 'title',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Title
+            {t('common:fields.title')}
           </DataTableHeader>
         ),
         enableSorting: true,
@@ -258,7 +286,7 @@ export function TodosTablePage() {
         cell: ({ row }) => {
           return (
             <div>
-              <div className="font-medium truncate">{row.getValue("title")}</div>
+              <div className="font-medium truncate">{row.getValue('title')}</div>
               {row.original.description && (
                 <div className="text-sm text-muted-foreground truncate">
                   {row.original.description}
@@ -272,23 +300,23 @@ export function TodosTablePage() {
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "priority",
+        accessorKey: 'priority',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Priority
+            {t('common:fields.priority')}
           </DataTableHeader>
         ),
         enableColumnFilter: true,
         enableSorting: true,
         size: 80,
         cell: ({ row }) => {
-          const priority = row.getValue("priority") as number
+          const priority = row.getValue('priority') as number
           return <span className="font-mono">{priority}</span>
         },
         meta: {
           filterConfig: {
-            type: "numberRange",
-            title: "Priority",
+            type: 'numberRange',
+            title: tCommon('fields.priority'),
             min: 1,
             max: 5,
             step: 1,
@@ -297,17 +325,17 @@ export function TodosTablePage() {
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "dueDate",
+        accessorKey: 'dueDate',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Due Date
+            {t('common:fields.dueDate')}
           </DataTableHeader>
         ),
         enableColumnFilter: true,
         enableSorting: true,
         size: 120,
         cell: ({ row }) => {
-          const dueDate = row.getValue("dueDate") as Date | null
+          const dueDate = row.getValue('dueDate') as Date | null
           if (!dueDate) return <span className="text-muted-foreground">-</span>
 
           return (
@@ -319,55 +347,55 @@ export function TodosTablePage() {
         },
         meta: {
           filterConfig: {
-            type: "dateRange",
-            title: "Due Date",
+            type: 'dateRange',
+            title: t('common:fields.dueDate'),
           },
           enableTextTruncation: false,
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "createdAt",
+        accessorKey: 'createdAt',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Created
+            {t('columns.created')}
           </DataTableHeader>
         ),
         enableColumnFilter: true,
         enableSorting: true,
         size: 120,
         cell: ({ row }) => {
-          return formatDate(row.getValue("createdAt"))
+          return formatDate(row.getValue('createdAt'))
         },
         meta: {
           filterConfig: {
-            type: "dateRange",
-            title: "Created Date",
+            type: 'dateRange',
+            title: t('columns.created'),
           },
           enableTextTruncation: true,
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "createdByName",
+        accessorKey: 'createdByName',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Created By
+            {t('columns.createdBy')}
           </DataTableHeader>
         ),
         enableColumnFilter: true,
         enableSorting: true,
         size: 130,
         cell: ({ row }) => {
-          const createdByName = row.getValue("createdByName") as string | null
+          const createdByName = row.getValue('createdByName') as string | null
           return createdByName ? (
             <span className="text-sm">{createdByName}</span>
           ) : (
-            <span className="text-muted-foreground text-sm">Unknown</span>
+            <span className="text-muted-foreground text-sm">{tCommon('table.unknown')}</span>
           )
         },
         meta: {
           filterConfig: {
-            type: "dynamicMultiSelect",
-            title: "Created By",
+            type: 'dynamicMultiSelect',
+            title: t('columns.createdBy'),
             loadOptions: async () => {
               const result = await getTodoCreators()
               return result
@@ -377,7 +405,7 @@ export function TodosTablePage() {
         } as DataTableColumnMeta,
       },
       {
-        id: "markDone",
+        id: 'markDone',
         enableHiding: false,
         enableResizing: false,
         size: 120,
@@ -395,13 +423,13 @@ export function TodosTablePage() {
               onClick={() => handleToggle(row.original.id)}
               className="h-7"
             >
-              Mark as Done
+              {t('common:actions.markComplete')}
             </Button>
           )
         },
       },
       {
-        id: "actions",
+        id: 'actions',
         header: () => null,
         enableHiding: false,
         enableResizing: false,
@@ -418,7 +446,7 @@ export function TodosTablePage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}>
-                  <span className="sr-only">Open menu</span>
+                  <span className="sr-only">{tCommon('accessibility.openMenu')}</span>
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -433,23 +461,24 @@ export function TodosTablePage() {
                       onClick={() => handleToggle(row.original.id)}
                       disabled={isLoading}
                     >
-                      {row.original.completed ?
+                      {row.original.completed ? (
                         <>
                           <Undo2 />
-                          <>Mark incomplete</>
-                        </> :
+                          <>{t('common:actions.markIncomplete')}</>
+                        </>
+                      ) : (
                         <>
                           <Check />
-                          <>Mark complete</>
+                          <>{t('common:actions.markComplete')}</>
                         </>
-                      }
+                      )}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => navigate({ to: `/todos/${row.original.id}/edit` })}
                       disabled={isLoading}
                     >
                       <Edit2 />
-                      Edit
+                      {tCommon('actions.edit')}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -461,7 +490,7 @@ export function TodosTablePage() {
                       disabled={isLoading}
                     >
                       <Trash2 />
-                      Delete
+                      {tCommon('actions.delete')}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -481,7 +510,7 @@ export function TodosTablePage() {
     if (canDeleteTodo()) {
       actions.push({
         id: 'delete',
-        label: isBulkDeleting ? 'Deleting...' : 'Delete',
+        label: isBulkDeleting ? tCommon('states.uploading') : tCommon('actions.delete'),
         icon: Trash2,
         variant: 'destructive',
         onClick: handleBulkDelete,
@@ -492,33 +521,34 @@ export function TodosTablePage() {
     return actions
   }, [handleBulkDelete, isBulkDeleting, canDeleteTodo])
 
-  const config = React.useMemo<DataTableConfig<Todo>>(() => ({
-    searchConfig: {
-      placeholder: "Search todos..."
-    },
-    paginationConfig: {
-      pageSizeOptions: [10, 20, 30, 50],
-      defaultPageSize: 10,
-    },
-    selectionConfig: {
-      enableBulkActions: canDeleteTodo(),
-      bulkActions,
-    },
-    enableColumnFilters: true,
-    enableSorting: true,
-    enableRowSelection: canDeleteTodo(),
-    manualFiltering: true,
-    manualPagination: true,
-    manualSorting: true,
-  }), [bulkActions, canDeleteTodo])
+  const config = React.useMemo<DataTableConfig<Todo>>(
+    () => ({
+      searchConfig: {
+        placeholder: t('table.search'),
+      },
+      paginationConfig: {
+        pageSizeOptions: [10, 20, 30, 50],
+        defaultPageSize: 10,
+      },
+      selectionConfig: {
+        enableBulkActions: canDeleteTodo(),
+        bulkActions,
+      },
+      enableColumnFilters: true,
+      enableSorting: true,
+      enableRowSelection: canDeleteTodo(),
+      manualFiltering: true,
+      manualPagination: true,
+      manualSorting: true,
+    }),
+    [bulkActions, canDeleteTodo]
+  )
 
   if (!activeOrganizationId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h2 className="text-2xl font-bold mb-4">No Organization Selected</h2>
-        <p className="text-muted-foreground">
-          Please select an organization from the switcher above to view todos.
-        </p>
+        <h2 className="text-2xl font-bold mb-4">{t('edit.noOrganization')}</h2>
+        <p className="text-muted-foreground">{t('edit.noOrganizationDescription')}</p>
       </div>
     )
   }
@@ -526,17 +556,15 @@ export function TodosTablePage() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title="Todos"
-        actions={canCreateTodo() ? (
-          <Button
-            size="sm"
-            onClick={handleCreateTodo}
-            disabled={isCreating}
-          >
-            <Plus />
-            {isCreating ? 'Creating...' : 'Add Todo'}
-          </Button>
-        ) : undefined}
+        title={t('title')}
+        actions={
+          canCreateTodo() ? (
+            <Button size="sm" onClick={handleCreateTodo} disabled={isCreating}>
+              <Plus />
+              {isCreating ? tCommon('states.uploading') : t('new')}
+            </Button>
+          ) : undefined
+        }
       />
 
       {/* Main Content */}
@@ -548,19 +576,13 @@ export function TodosTablePage() {
                 <Plus className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">Create your first to-do</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Get started by creating your first to-do item
-                </p>
+                <h3 className="text-lg font-semibold">{t('empty.title')}</h3>
+                <p className="text-sm text-muted-foreground mt-2">{t('empty.description')}</p>
               </div>
               {canCreateTodo() && (
-                <Button
-                  onClick={handleCreateTodo}
-                  disabled={isCreating}
-                  className="mt-4"
-                >
+                <Button onClick={handleCreateTodo} disabled={isCreating} className="mt-4">
                   <Plus />
-                  {isCreating ? 'Creating...' : 'Add your first to-do'}
+                  {isCreating ? tCommon('states.uploading') : t('empty.title')}
                 </Button>
               )}
             </div>
@@ -578,9 +600,9 @@ export function TodosTablePage() {
             isLoading={isLoading}
             isFetching={isFetching}
             loadingRows={loadingTodos}
-            getRowIdProp={(row) => row.id}
+            getRowIdProp={row => row.id}
             onRowClick={handleRowClick}
-            className='max-h-[600px]'
+            className="max-h-[600px]"
           />
         )}
       </div>

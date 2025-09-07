@@ -1,0 +1,25 @@
+{
+  "title": "Configuración",
+  "organization": {
+    "name": "Nombre de la Organización",
+    "slug": "URL de la Organización",
+    "namePlaceholder": "Ingresa el nombre de la organización",
+    "slugPlaceholder": "url-organizacion",
+    "notFound": "Organización no encontrada",
+    "update": "Actualizar Organización",
+    "updateSuccess": "Organización actualizada exitosamente",
+    "updateFailed": "Error al actualizar la organización",
+    "slugHelp": "Usado en URLs y endpoints de API. Usa solo letras minúsculas, números y guiones."
+  },
+  "danger": {
+    "title": "Zona de Peligro",
+    "delete": "Eliminar Organización",
+    "deleteWorkspace": "Eliminar Espacio de Trabajo",
+    "deleteDescription": "Eliminar permanentemente esta organización y todos sus datos. Esta acción no se puede deshacer.",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar esta organización?",
+    "deleteSuccess": "Organización eliminada exitosamente",
+    "deleteFailed": "Error al eliminar la organización",
+    "deleteWarning": "Una vez que elimines una organización, no hay vuelta atrás. Esto eliminará permanentemente todas las tareas, miembros y datos asociados con esta organización.",
+    "deleteConfirmWithName": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Esta acción no se puede deshacer."
+  }
+}

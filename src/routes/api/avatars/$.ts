@@ -1,13 +1,15 @@
-import { createServerFileRoute } from '@tanstack/react-start/server'
-import { createLocalStorageService } from '@/lib/storage/local-storage-service'
 import path from 'path'
+
+import { createServerFileRoute } from '@tanstack/react-start/server'
+
+import { createLocalStorageService } from '@/lib/storage/local-storage-service'
 
 export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
   GET: async ({ params }) => {
     try {
       const storage = createLocalStorageService()
       const filePath = params._splat || ''
-      
+
       if (!filePath) {
         return new Response('File path required', { status: 400 })
       }
@@ -30,7 +32,7 @@ export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
       // Get file and metadata
       const buffer = await storage.getFile(storageFilePath)
       const metadata = await storage.getFileMetadata(storageFilePath)
-      
+
       // Determine content type
       const ext = path.extname(filePath).toLowerCase()
       const contentTypeMap: Record<string, string> = {
@@ -38,22 +40,22 @@ export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
         '.gif': 'image/gif',
-        '.webp': 'image/webp'
+        '.webp': 'image/webp',
       }
       const contentType = metadata?.contentType || contentTypeMap[ext] || 'application/octet-stream'
 
       // Return file with appropriate headers
-      return new Response(buffer, {
+      return new Response(Buffer.from(buffer), {
         status: 200,
         headers: {
           'Content-Type': contentType,
           'Cache-Control': 'public, max-age=2592000', // Cache for 30 days
-          'Content-Length': buffer.length.toString()
-        }
+          'Content-Length': buffer.length.toString(),
+        },
       })
     } catch (error) {
       console.error('Error serving avatar:', error)
       return new Response('Internal server error', { status: 500 })
     }
-  }
+  },
 })

@@ -5,7 +5,7 @@ import { organization, member } from '@/database/schema'
 import { ilike, desc, asc, count, or, eq, and } from 'drizzle-orm'
 import { z } from 'zod'
 import { buildColumnFilter, parseFilterValue, preprocessFilterValue } from '@/lib/utils/table-filters'
-import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { ServerQueryResponse } from '@/components/taali-ui/data-table'
 
 export type AdminWorkspace = {
   id: string
@@ -18,7 +18,7 @@ export type AdminWorkspace = {
 // Schema for query params validation
 const queryParamsSchema = z.object({
   search: z.string().optional(),
-  filters: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
   sorting: z.array(z.object({
     id: z.string(),
     desc: z.boolean()
@@ -104,7 +104,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
 
       // Add conditions to query
       if (conditions.length > 0) {
-        workspacesQuery = workspacesQuery.where(and(...conditions))
+        workspacesQuery = workspacesQuery.where(and(...conditions)) as any
       }
 
       // Apply sorting with SQL
@@ -114,28 +114,28 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
         
         switch (sort.id) {
           case 'id':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.id))
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.id)) as any
             break
           case 'organization':
           case 'name':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.name))
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.name)) as any
             break
           case 'createdAt':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.createdAt))
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.createdAt)) as any
             break
           case 'memberCount':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(count(member.id)))
+            workspacesQuery = workspacesQuery.orderBy(sortFn(count(member.id))) as any
             break
         }
       } else {
         // Default sort by created date
-        workspacesQuery = workspacesQuery.orderBy(desc(organization.createdAt))
+        workspacesQuery = workspacesQuery.orderBy(desc(organization.createdAt)) as any
       }
 
       // Get total count for pagination (need separate query since we have groupBy)
-      let totalCountQuery = db.select({ count: count() }).from(organization)
+      let totalCountQuery = db.select({ count: count(organization.id) }).from(organization)
       if (conditions.length > 0) {
-        totalCountQuery = totalCountQuery.where(and(...conditions))
+        totalCountQuery = totalCountQuery.where(and(...conditions)) as any
       }
 
       // Execute queries in parallel
@@ -180,10 +180,10 @@ export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
   .handler(async () => {
     try {
       // Get total organizations count
-      const totalOrgsResult = await db.select({ count: count() }).from(organization)
+      const totalOrgsResult = await db.select({ count: count(organization.id) }).from(organization)
       
       // Get total members count across all organizations
-      const totalMembersResult = await db.select({ count: count() }).from(member)
+      const totalMembersResult = await db.select({ count: count(member.id) }).from(member)
       
       const totalOrgs = Number(totalOrgsResult[0]?.count || 0)
       const totalMembers = Number(totalMembersResult[0]?.count || 0)

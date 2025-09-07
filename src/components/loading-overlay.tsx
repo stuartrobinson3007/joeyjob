@@ -11,21 +11,12 @@ interface LoadingOverlayProps {
  */
 export function LoadingOverlay({ className, variant = 'table-row' }: LoadingOverlayProps) {
   const baseClasses = 'absolute inset-0 bg-background/50 animate-pulse pointer-events-none z-10'
-  
+
   const variantClasses = {
     'table-row': 'rounded-md',
-    'card': 'rounded-lg',
-    'full': ''
+    card: 'rounded-lg',
+    full: '',
   }
 
-  return (
-    <div 
-      className={cn(
-        baseClasses,
-        variantClasses[variant],
-        className
-      )}
-      aria-hidden="true"
-    />
-  )
+  return <div className={cn(baseClasses, variantClasses[variant], className)} aria-hidden="true" />
 }

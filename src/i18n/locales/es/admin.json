@@ -1,0 +1,97 @@
+{
+  "title": "Super Admin",
+  "actions": {
+    "leave": "Salir de Super Admin"
+  },
+  "sidebar": {
+    "subtitle": "Gestión del Sistema"
+  },
+  "users": {
+    "title": "Usuarios",
+    "search": "Buscar usuarios",
+    "impersonate": "Suplantar",
+    "suspend": "Suspender",
+    "activate": "Activar",
+    "delete": "Eliminar usuario",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este usuario?",
+    "role": "Rol",
+    "status": "Estado",
+    "lastActive": "Última actividad",
+    "created": "Creado",
+    "banned": "Usuario bloqueado",
+    "unbanned": "Usuario desbloqueado",
+    "ban": "Bloquear",
+    "unban": "Desbloquear",
+    "viewSessions": "Ver Todas las Sesiones",
+    "sessionsDescription": "Ver y gestionar todas las sesiones activas de este usuario.",
+    "exitImpersonation": "Salir de suplantación y volver a la tabla de usuarios",
+    "userSessions": "Sesiones de Usuario",
+    "joinedDate": "Fecha de Registro",
+    "adminAction": "Acción de Admin",
+    "superAdminRole": "Super Admin",
+    "admin": "Administrador",
+    "user": "Usuario",
+    "active": "Activo",
+    "bannedStatus": "Bloqueado",
+    "unknown": "Desconocido"
+  },
+  "workspaces": {
+    "title": "Espacios de Trabajo",
+    "search": "Buscar espacios de trabajo",
+    "createdDate": "Fecha de Creación",
+    "owner": "Propietario",
+    "members": "Miembros",
+    "plan": "Plan",
+    "created": "Creado",
+    "actions": "Acciones",
+    "organization": "Organización",
+    "noSlug": "Sin slug",
+    "deleteOrganization": "Eliminar Organización"
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "totalUsers": "Total de Usuarios",
+    "activeUsers": "Usuarios Activos",
+    "bannedUsers": "Usuarios Bloqueados",
+    "totalWorkspaces": "Total de Organizaciones",
+    "totalMembers": "Total de Miembros",
+    "avgMembersPerOrg": "Promedio de Miembros por Org",
+    "revenue": "Ingresos"
+  },
+  "settings": {
+    "title": "Configuración del Sistema",
+    "maintenance": "Modo de Mantenimiento",
+    "registrations": "Permitir Registros",
+    "invitations": "Permitir Invitaciones"
+  },
+  "messages": {
+    "banStatusUpdated": "Estado de bloqueo de usuario actualizado",
+    "banStatusFailed": "Error al actualizar estado de bloqueo de usuario",
+    "allSessionsRevoked": "Todas las sesiones de usuario revocadas",
+    "allSessionsRevokeFailed": "Error al revocar sesiones de usuario",
+    "sessionRevoked": "Sesión revocada",
+    "sessionRevokeFailed": "Error al revocar sesión",
+    "sessionLoadFailed": "Error al cargar sesiones de usuario",
+    "impersonationStarted": "Suplantación iniciada",
+    "impersonationFailed": "Error al suplantar usuario",
+    "organizationDeleted": "Organización eliminada",
+    "organizationDeleteFailed": "Error al eliminar organización"
+  },
+  "tables": {
+    "sessionToken": "Token de Sesión",
+    "created": "Creado",
+    "expires": "Expira",
+    "device": "Dispositivo",
+    "ipAddress": "Dirección IP",
+    "status": "Estado",
+    "id": "ID",
+    "user": "Usuario",
+    "joined": "Se unió"
+  },
+  "sessions": {
+    "title": "Sesiones de Usuario",
+    "description": "Ver y gestionar todas las sesiones activas de este usuario.",
+    "noSessions": "No se encontraron sesiones activas",
+    "revokeAll": "Revocar Todas las Sesiones"
+  }
+}

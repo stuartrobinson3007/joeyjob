@@ -1,26 +1,29 @@
 import { useMutation } from '@tanstack/react-query'
+
 import { checkPlanLimit } from '../lib/billing.server'
-import { toast } from 'sonner'
+
+import { AppError } from '@/lib/utils/errors'
 
 export function usePlanLimits() {
   const checkLimit = useMutation({
-    mutationFn: checkPlanLimit,
-    onError: (error) => {
+    mutationFn: checkPlanLimit as any,
+    onError: error => {
       console.error('Failed to check plan limit:', error)
-    }
+    },
   })
 
   const canCreate = async (resource: 'todos' | 'members' | 'storage') => {
-    const result = await checkLimit.mutateAsync({ 
-      resource, 
-      action: 'create' 
-    })
-    
-    if (!result.allowed && result.reason) {
-      toast.error(result.reason)
+    const result = await checkLimit.mutateAsync({
+      resource,
+      action: 'create',
+    } as any)
+
+    const typedResult = result as any
+    if (!typedResult.allowed && typedResult.reason) {
+      throw AppError.limitExceeded(resource)
     }
-    
-    return result.allowed
+
+    return typedResult.allowed
   }
 
   return {
@@ -29,4 +32,3 @@ export function usePlanLimits() {
     isChecking: checkLimit.isPending,
   }
 }
-

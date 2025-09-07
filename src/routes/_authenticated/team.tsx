@@ -1,21 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { PageHeader } from '@/components/page-header'
-import { useLoadingItems } from '@/lib/hooks/use-loading-state'
-import { usePermissions } from '@/lib/hooks/use-permissions'
-import { DataTable, DataTableHeader, useTableQuery, DataTableConfig, DataTableColumnMeta } from '@/components/taali-ui/data-table'
-import {
-  getTeamMembersTable,
-  inviteTeamMember,
-  removeTeamMember,
-  updateTeamMemberRole,
-  cancelTeamInvitation,
-  resendTeamInvitation,
-  type TeamMember
-} from '@/features/team/lib/team.server'
-import { toast } from 'sonner'
 import {
   UserPlus,
   Mail,
@@ -26,9 +11,36 @@ import {
   Eye,
   MoreHorizontal,
   Clock,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react'
+
+import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { PageHeader } from '@/components/page-header'
+import { useLoadingItems } from '@/lib/hooks/use-loading-state'
+import { usePermissions } from '@/lib/hooks/use-permissions'
+import {
+  DataTable,
+  DataTableHeader,
+  useTableQuery,
+  DataTableConfig,
+  DataTableColumnMeta,
+} from '@/components/taali-ui/data-table'
+import {
+  getTeamMembersTable,
+  inviteTeamMember,
+  removeTeamMember,
+  updateTeamMemberRole,
+  cancelTeamInvitation,
+  resendTeamInvitation,
+  type TeamMember,
+} from '@/features/team/lib/team.server'
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
+import { ErrorState } from '@/components/error-state'
+import { parseError } from '@/lib/errors/client-handler'
 import { formatDate } from '@/lib/utils/date'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { Button } from '@/components/taali-ui/ui/button'
 import {
   Dialog,
@@ -49,12 +61,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/taali-ui/ui/dropdown-menu'
 import { Badge } from '@/components/taali-ui/ui/badge'
 import { Input } from '@/components/taali-ui/ui/input'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/taali-ui/ui/separator'
+import { FormField } from '@/components/form/form-field'
+import { useFieldError } from '@/lib/errors/hooks'
 
 export const Route = createFileRoute('/_authenticated/team')({
   component: Team,
@@ -62,44 +77,58 @@ export const Route = createFileRoute('/_authenticated/team')({
 
 function Team() {
   const { activeOrganizationId } = useActiveOrganization()
-  const { canInviteMembers, canManageMembers, canCancelInvitations, hasPermission } = usePermissions()
+  const { canInviteMembers, canCancelInvitations, hasPermission } = usePermissions()
   const [isInviteDialogOpen, setIsInviteDialogOpen] = React.useState(false)
   const [inviteEmail, setInviteEmail] = React.useState('')
   const [inviteRole, setInviteRole] = React.useState<'viewer' | 'member' | 'admin'>('member')
   const [inviteLoading, setInviteLoading] = React.useState(false)
+  const [inviteError, setInviteError] = React.useState<unknown>(null)
+  const { t } = useTranslation('team')
+  const { t: tNotifications } = useTranslation('notifications')
+  const { showError, showSuccess } = useErrorHandler()
+  const emailError = useFieldError(inviteError, 'email')
+  const roleError = useFieldError(inviteError, 'role')
 
   // Loading states for individual member actions
-  const { isLoading: isLoadingMember, startLoading: startMemberLoading, stopLoading: stopMemberLoading, loadingItems: loadingMembers } = useLoadingItems<string>()
+  const {
+    isLoading: isLoadingMember,
+    startLoading: startMemberLoading,
+    stopLoading: stopMemberLoading,
+    loadingItems: loadingMembers,
+  } = useLoadingItems<string>()
 
   // Use the table query hook
-  const {
-    data,
-    totalCount,
-    isLoading,
-    isFetching,
-    onStateChange,
-    refetch,
-  } = useTableQuery<TeamMember>({
-    queryKey: activeOrganizationId ? ['team', 'table', activeOrganizationId] : [],
-    queryFn: (params) => {
-      return getTeamMembersTable({
-        data: {
-          organizationId: activeOrganizationId || '',
-          ...params
-        }
-      })
-    },
-    enabled: !!activeOrganizationId,
-  })
+  const { data, totalCount, isLoading, isFetching, isError, error, onStateChange, refetch } =
+    useTableQuery<TeamMember>({
+      queryKey: activeOrganizationId ? ['team', 'table', activeOrganizationId] : [],
+      queryFn: params => {
+        return getTeamMembersTable({
+          data: {
+            organizationId: activeOrganizationId || '',
+            ...params,
+          },
+        })
+      },
+      enabled: !!activeOrganizationId,
+    })
 
   const handleInviteMember = async () => {
     if (!canInviteMembers()) {
-      toast.error('You do not have permission to invite members')
+      showError(
+        new AppError(
+          ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+          403,
+          undefined,
+          t('common:messages.notAuthorizedToInvite')
+        )
+      )
       return
     }
 
     if (!inviteEmail.trim()) {
-      toast.error('Please enter an email address')
+      showError(
+        new AppError(ERROR_CODES.VAL_REQUIRED_FIELD, 400, { field: t('common:labels.emailAddress') })
+      )
       return
     }
 
@@ -109,17 +138,18 @@ function Team() {
         data: {
           organizationId: activeOrganizationId || '',
           email: inviteEmail,
-          role: inviteRole
-        }
+          role: inviteRole,
+        },
       })
 
-      toast.success('Invitation sent!')
+      showSuccess(t('common:messages.invitationSent'))
       setInviteEmail('')
       setInviteRole('member')
       setIsInviteDialogOpen(false)
       refetch()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send invitation')
+    } catch (error) {
+      setInviteError(error)
+      showError(error)
     } finally {
       setInviteLoading(false)
     }
@@ -131,148 +161,172 @@ function Team() {
     if (!open) {
       setInviteEmail('')
       setInviteRole('member')
+      setInviteError(null)
     }
   }
 
+  const handleRemoveMember = React.useCallback(
+    async (memberId: string, memberName: string) => {
+      if (!hasPermission('member', 'delete')) {
+        showError(AppError.forbidden('remove members'))
+        return
+      }
 
-  const handleRemoveMember = React.useCallback(async (memberId: string, memberName: string) => {
-    if (!hasPermission('member', 'delete')) {
-      toast.error('You do not have permission to remove members')
-      return
-    }
+      const confirmed = confirm(tNotifications('confirmations.removeMember', { memberName }))
+      if (!confirmed) return
 
-    const confirmed = confirm(`Are you sure you want to remove ${memberName} from this workspace?`)
-    if (!confirmed) return
+      startMemberLoading(memberId)
+      try {
+        await removeTeamMember({
+          data: {
+            organizationId: activeOrganizationId || '',
+            memberIdOrEmail: memberId,
+          },
+        })
 
-    startMemberLoading(memberId)
-    try {
-      await removeTeamMember({
-        data: {
-          organizationId: activeOrganizationId || '',
-          memberIdOrEmail: memberId
-        }
-      })
+        showSuccess(t('common:messages.memberRemoved'))
+        refetch()
+      } catch (error) {
+        showError(error)
+      } finally {
+        stopMemberLoading(memberId)
+      }
+    },
+    [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch]
+  )
 
-      toast.success('Member removed')
-      refetch()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to remove member')
-    } finally {
-      stopMemberLoading(memberId)
-    }
-  }, [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch])
+  const handleUpdateRole = React.useCallback(
+    async (memberId: string, newRole: 'viewer' | 'member' | 'admin' | 'owner') => {
+      if (!hasPermission('member', 'update')) {
+        showError(AppError.forbidden('update member roles'))
+        return
+      }
 
-  const handleUpdateRole = React.useCallback(async (memberId: string, newRole: 'viewer' | 'member' | 'admin' | 'owner') => {
-    if (!hasPermission('member', 'update')) {
-      toast.error('You do not have permission to update member roles')
-      return
-    }
+      startMemberLoading(memberId)
+      try {
+        await updateTeamMemberRole({
+          data: {
+            organizationId: activeOrganizationId || '',
+            memberId,
+            role: newRole,
+          },
+        })
 
-    startMemberLoading(memberId)
-    try {
-      await updateTeamMemberRole({
-        data: {
-          organizationId: activeOrganizationId || '',
-          memberId,
-          role: newRole
-        }
-      })
+        showSuccess(t('common:messages.roleUpdated'))
+        refetch()
+      } catch (error) {
+        showError(error)
+      } finally {
+        stopMemberLoading(memberId)
+      }
+    },
+    [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch]
+  )
 
-      toast.success('Role updated')
-      refetch()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update role')
-    } finally {
-      stopMemberLoading(memberId)
-    }
-  }, [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch])
+  const handleCancelInvitation = React.useCallback(
+    async (invitationId: string) => {
+      if (!canCancelInvitations()) {
+        showError(AppError.forbidden('cancel invitations'))
+        return
+      }
 
-  const handleCancelInvitation = React.useCallback(async (invitationId: string) => {
-    if (!canCancelInvitations()) {
-      toast.error('You do not have permission to cancel invitations')
-      return
-    }
+      const confirmed = confirm(t('common:messages.notAuthorized'))
+      if (!confirmed) return
 
-    const confirmed = confirm('Are you sure you want to cancel this invitation?')
-    if (!confirmed) return
+      startMemberLoading(invitationId)
+      try {
+        await cancelTeamInvitation({
+          data: {
+            organizationId: activeOrganizationId || '',
+            invitationId,
+          },
+        })
 
-    startMemberLoading(invitationId)
-    try {
-      await cancelTeamInvitation({
-        data: {
-          organizationId: activeOrganizationId || '',
-          invitationId
-        }
-      })
+        showSuccess(t('common:messages.invitationCancelled'))
+        refetch()
+      } catch (error) {
+        showError(error)
+      } finally {
+        stopMemberLoading(invitationId)
+      }
+    },
+    [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch, canCancelInvitations]
+  )
 
-      toast.success('Invitation cancelled')
-      refetch()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to cancel invitation')
-    } finally {
-      stopMemberLoading(invitationId)
-    }
-  }, [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch, canCancelInvitations])
+  const handleResendInvitation = React.useCallback(
+    async (invitationId: string, email: string) => {
+      const canCreate = hasPermission('invitation', 'create')
+      const canCancel = canCancelInvitations()
 
-  const handleResendInvitation = React.useCallback(async (invitationId: string, email: string) => {
-    const canCreate = hasPermission('invitation', 'create')
-    const canCancel = canCancelInvitations()
+      if (!canCreate || !canCancel) {
+        showError(AppError.forbidden('resend invitations'))
+        return
+      }
 
-    if (!canCreate || !canCancel) {
-      toast.error('You do not have permission to resend invitations (requires both create and cancel permissions)')
-      return
-    }
+      const confirmed = confirm(tNotifications('confirmations.resendInvitation', { email }))
+      if (!confirmed) return
 
-    const confirmed = confirm(`Resend invitation to ${email}?`)
-    if (!confirmed) return
+      startMemberLoading(invitationId)
+      try {
+        await resendTeamInvitation({
+          data: {
+            organizationId: activeOrganizationId || '',
+            invitationId,
+          },
+        })
 
-    startMemberLoading(invitationId)
-    try {
-      await resendTeamInvitation({
-        data: {
-          organizationId: activeOrganizationId || '',
-          invitationId
-        }
-      })
-
-      toast.success('Invitation resent!')
-      refetch()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to resend invitation')
-    } finally {
-      stopMemberLoading(invitationId)
-    }
-  }, [activeOrganizationId, startMemberLoading, stopMemberLoading, refetch, hasPermission, canCancelInvitations])
+        showSuccess(t('common:messages.invitationResent'))
+        refetch()
+      } catch (error) {
+        showError(error)
+      } finally {
+        stopMemberLoading(invitationId)
+      }
+    },
+    [
+      activeOrganizationId,
+      startMemberLoading,
+      stopMemberLoading,
+      refetch,
+      hasPermission,
+      canCancelInvitations,
+    ]
+  )
 
   const getRoleIcon = React.useCallback((role: string) => {
     switch (role) {
-      case 'owner': return <Crown className="w-4 h-4 text-yellow-600" />
-      case 'admin': return <Shield className="w-4 h-4 text-primary" />
-      case 'viewer': return <Eye className="w-4 h-4 text-muted-foreground" />
-      default: return <UserIcon className="w-4 h-4 text-muted-foreground" />
+      case 'owner':
+        return <Crown className="w-4 h-4 text-yellow-600" />
+      case 'admin':
+        return <Shield className="w-4 h-4 text-primary" />
+      case 'viewer':
+        return <Eye className="w-4 h-4 text-muted-foreground" />
+      default:
+        return <UserIcon className="w-4 h-4 text-muted-foreground" />
     }
   }, [])
 
-  const getRoleDisplayName = React.useCallback((role: string) => {
-    const roleDisplayMap: Record<string, string> = {
-      'owner': 'Owner',
-      'admin': 'Admin',
-      'member': 'Member',
-      'viewer': 'Viewer'
-    }
-    return roleDisplayMap[role] || role
-  }, [])
-
-
+  const getRoleDisplayName = React.useCallback(
+    (role: string) => {
+      const roleDisplayMap: Record<string, string> = {
+        owner: t('roles.owner'),
+        admin: t('roles.admin'),
+        member: t('roles.member'),
+        viewer: t('roles.viewer'),
+      }
+      return roleDisplayMap[role] || role
+    },
+    [t]
+  )
 
   // Column definitions
   const columns = React.useMemo<ColumnDef<TeamMember>[]>(() => {
     const cols: ColumnDef<TeamMember>[] = [
       {
-        id: "member",
+        id: 'member',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Member
+            {t('table.member')}
           </DataTableHeader>
         ),
         enableSorting: true,
@@ -302,10 +356,10 @@ function Team() {
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "email",
+        accessorKey: 'email',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Email
+            {t('table.email')}
           </DataTableHeader>
         ),
         enableSorting: true,
@@ -315,10 +369,10 @@ function Team() {
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "role",
+        accessorKey: 'role',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Role
+            {t('table.role')}
           </DataTableHeader>
         ),
         enableSorting: true,
@@ -327,8 +381,10 @@ function Team() {
           const member = row.original
           return (
             <Badge
-              variant={member.role === 'owner' ? 'warning' : member.role === 'admin' ? 'primary' : 'muted'}
-              style="soft"
+              variant={
+                member.role === 'owner' ? 'warning' : member.role === 'admin' ? 'primary' : 'muted'
+              }
+              appearance="soft"
               startIcon={getRoleIcon(member.role)}
             >
               {getRoleDisplayName(member.role)}
@@ -337,23 +393,23 @@ function Team() {
         },
         meta: {
           filterConfig: {
-            type: "select",
-            title: "Role",
+            type: 'select',
+            title: t('table.role'),
             options: [
-              { label: "Owner", value: "owner" },
-              { label: "Admin", value: "admin" },
-              { label: "Member", value: "member" },
-              { label: "Viewer", value: "viewer" },
+              { label: t('roles.owner'), value: 'owner' },
+              { label: t('roles.admin'), value: 'admin' },
+              { label: t('roles.member'), value: 'member' },
+              { label: t('roles.viewer'), value: 'viewer' },
             ],
           },
           enableTextTruncation: false,
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "status",
+        accessorKey: 'status',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Status
+            {t('table.status')}
           </DataTableHeader>
         ),
         enableSorting: true,
@@ -362,42 +418,34 @@ function Team() {
           const member = row.original
           if (member.status === 'pending') {
             return (
-              <Badge
-                variant="warning"
-                style="soft"
-                startIcon={<Clock />}
-              >
-                Pending
+              <Badge variant="warning" appearance="soft" startIcon={<Clock />}>
+                {t('status.pending')}
               </Badge>
             )
           }
           return (
-            <Badge
-              variant="success"
-              style="soft"
-              status
-            >
-              Active
+            <Badge variant="success" appearance="soft" status>
+              {t('status.active')}
             </Badge>
           )
         },
         meta: {
           filterConfig: {
-            type: "select",
-            title: "Status",
+            type: 'select',
+            title: t('table.status'),
             options: [
-              { label: "Active", value: "active" },
-              { label: "Pending", value: "pending" },
+              { label: t('status.active'), value: 'active' },
+              { label: t('status.pending'), value: 'pending' },
             ],
           },
           enableTextTruncation: false,
         } as DataTableColumnMeta,
       },
       {
-        accessorKey: "joinedAt",
+        accessorKey: 'joinedAt',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
-            Joined/Expires
+            {t('table.joined')}
           </DataTableHeader>
         ),
         enableSorting: true,
@@ -406,9 +454,7 @@ function Team() {
           const member = row.original
           if (member.joinedAt) {
             return (
-              <span className="text-sm text-muted-foreground">
-                {formatDate(member.joinedAt)}
-              </span>
+              <span className="text-sm text-muted-foreground">{formatDate(member.joinedAt)}</span>
             )
           } else if (member.expiresAt) {
             return (
@@ -421,23 +467,25 @@ function Team() {
         },
         meta: {
           filterConfig: {
-            type: "date",
-            title: "Joined Date",
+            type: 'date',
+            title: t('table.joined'),
           },
           enableTextTruncation: false,
         } as DataTableColumnMeta,
-      }]
+      },
+    ]
 
     // Only add actions column if user has permissions
     const canUpdateMembers = hasPermission('member', 'update')
     const canDeleteMembers = hasPermission('member', 'delete')
     const canCancelInvitationsCheck = canCancelInvitations()
     const canResendInvitations = hasPermission('invitation', 'create') && canCancelInvitations()
-    const hasAnyPermission = canUpdateMembers || canDeleteMembers || canCancelInvitationsCheck || canResendInvitations
+    const hasAnyPermission =
+      canUpdateMembers || canDeleteMembers || canCancelInvitationsCheck || canResendInvitations
 
     if (hasAnyPermission) {
       cols.push({
-        id: "actions",
+        id: 'actions',
         header: () => null,
         size: 50,
         enableResizing: false,
@@ -450,9 +498,10 @@ function Team() {
           }
 
           // Check if user has any permissions for this member type
-          const canActOnMember = member.type === 'member' ?
-            (canUpdateMembers || canDeleteMembers) :
-            (canCancelInvitationsCheck || canResendInvitations)
+          const canActOnMember =
+            member.type === 'member'
+              ? canUpdateMembers || canDeleteMembers
+              : canCancelInvitationsCheck || canResendInvitations
 
           if (!canActOnMember) return null
 
@@ -474,21 +523,21 @@ function Team() {
                             disabled={member.role === 'viewer' || isLoading}
                           >
                             <Eye />
-                            Set as Viewer
+                            {t('common:actions.setViewer')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleUpdateRole(member.id, 'member')}
                             disabled={member.role === 'member' || isLoading}
                           >
                             <UserIcon />
-                            Set as Member
+                            {t('common:actions.setMember')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleUpdateRole(member.id, 'admin')}
                             disabled={member.role === 'admin' || isLoading}
                           >
                             <Shield />
-                            Set as Admin
+                            {t('common:actions.setAsAdmin')}
                           </DropdownMenuItem>
                         </>
                       )}
@@ -499,7 +548,7 @@ function Team() {
                           disabled={isLoading}
                         >
                           <Trash2 />
-                          Remove Member
+                          {t('common:actions.removeMember')}
                         </DropdownMenuItem>
                       )}
                     </>
@@ -511,17 +560,19 @@ function Team() {
                           disabled={isLoading}
                         >
                           <RefreshCw />
-                          Resend Invitation
+                          {t('common:actions.resendInvitation')}
                         </DropdownMenuItem>
                       )}
-                      {canResendInvitations && canCancelInvitationsCheck && <DropdownMenuSeparator />}
+                      {canResendInvitations && canCancelInvitationsCheck && (
+                        <DropdownMenuSeparator />
+                      )}
                       {canCancelInvitationsCheck && (
                         <DropdownMenuItem
                           onClick={() => handleCancelInvitation(member.id)}
                           disabled={isLoading}
                         >
                           <Trash2 />
-                          Cancel Invitation
+                          {t('common:actions.cancelInvitation')}
                         </DropdownMenuItem>
                       )}
                     </>
@@ -539,27 +590,44 @@ function Team() {
     }
 
     return cols
-  }, [getRoleIcon, getRoleDisplayName, isLoadingMember, handleUpdateRole, handleRemoveMember, handleCancelInvitation, handleResendInvitation, hasPermission])
+  }, [
+    getRoleIcon,
+    getRoleDisplayName,
+    isLoadingMember,
+    handleUpdateRole,
+    handleRemoveMember,
+    handleCancelInvitation,
+    handleResendInvitation,
+    hasPermission,
+  ])
 
   // DataTable configuration
-  const config = React.useMemo<DataTableConfig<TeamMember>>(() => ({
-    searchConfig: {
-      placeholder: "Search members..."
-    },
-    enableColumnFilters: true,
-    enableSorting: true,
-    enableRowSelection: false,
-    manualFiltering: true,
-    manualPagination: true,
-    manualSorting: true,
-    paginationConfig: {
-      pageSizeOptions: [10, 20, 30, 50],
-      defaultPageSize: 10,
-    },
-    resizingConfig: {
-      enableColumnResizing: true,
-    },
-  }), [])
+  const config = React.useMemo<DataTableConfig<TeamMember>>(
+    () => ({
+      searchConfig: {
+        placeholder: t('table.search'),
+      },
+      enableColumnFilters: true,
+      enableSorting: true,
+      enableRowSelection: false,
+      manualFiltering: true,
+      manualPagination: true,
+      manualSorting: true,
+      paginationConfig: {
+        pageSizeOptions: [10, 20, 30, 50],
+        defaultPageSize: 10,
+      },
+      resizingConfig: {
+        enableColumnResizing: true,
+      },
+    }),
+    []
+  )
+
+  // Handle table errors
+  if (isError && error && !isLoading) {
+    return <ErrorState error={parseError(error)} onRetry={refetch} />
+  }
 
   if (!activeOrganizationId) {
     return (
@@ -568,13 +636,11 @@ function Team() {
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
-            <span className="font-semibold">Team</span>
+            <span className="font-semibold">{t('teamLabel')}</span>
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">
-            Please select an organization to view team members.
-          </p>
+          <p className="text-muted-foreground">{t('table.noOrganization')}</p>
         </div>
       </div>
     )
@@ -584,13 +650,15 @@ function Team() {
     <div className="flex flex-col h-full">
       {/* Page Header */}
       <PageHeader
-        title="Team"
-        actions={canInviteMembers() ? (
-          <Button onClick={() => setIsInviteDialogOpen(true)}>
-            <UserPlus />
-            Invite Member
-          </Button>
-        ) : undefined}
+        title={t('title')}
+        actions={
+          canInviteMembers() ? (
+            <Button onClick={() => setIsInviteDialogOpen(true)}>
+              <UserPlus />
+              {t('common:actions.inviteMember')}
+            </Button>
+          ) : undefined
+        }
       />
 
       {/* Main Content */}
@@ -604,54 +672,54 @@ function Team() {
           isLoading={isLoading}
           isFetching={isFetching}
           loadingRows={loadingMembers}
-          getRowIdProp={(row) => row.id}
+          getRowIdProp={row => row.id}
         />
       </div>
 
       <Dialog open={isInviteDialogOpen} onOpenChange={handleDialogChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invite Team Member</DialogTitle>
-            <DialogDescription>
-              Send an invitation to join your workspace. They'll receive an email with instructions.
-            </DialogDescription>
+            <DialogTitle>{t('invite.title')}</DialogTitle>
+            <DialogDescription>{t('invitation.description')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="invite-email" className="text-sm font-medium">
-                Email Address
-              </label>
+            <FormField name="email" label={t('common:labels.emailAddress')} error={inviteError} required>
               <Input
                 id="invite-email"
                 type="email"
-                placeholder="member@example.com"
+                placeholder={t('invite.emailPlaceholder')}
                 value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+                onChange={e => setInviteEmail(e.target.value)}
                 autoComplete="off"
+                className={emailError ? 'border-destructive' : ''}
               />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="role" className="text-sm font-medium">
-                Role
-              </label>
-              <Select value={inviteRole} onValueChange={(value: any) => setInviteRole(value)}>
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select a role" />
+            </FormField>
+
+            <FormField name="role" label={t('common:labels.role')} error={inviteError}>
+              <Select value={inviteRole} onValueChange={(value: 'viewer' | 'member' | 'admin') => setInviteRole(value)}>
+                <SelectTrigger id="role" className={roleError ? 'border-destructive' : ''}>
+                  <SelectValue placeholder={t('invite.role')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
-                  <SelectItem value="member">Member - Can create and edit</SelectItem>
-                  <SelectItem value="admin">Admin - Can manage team and settings</SelectItem>
+                  <SelectItem value="viewer">
+                    {t('roles.viewer')} - {t('roles.viewerDescription')}
+                  </SelectItem>
+                  <SelectItem value="member">
+                    {t('roles.member')} - {t('roles.memberDescription')}
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    {t('roles.admin')} - {t('roles.adminDescription')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => handleDialogChange(false)}>
-              Cancel
+              {t('dialogs.cancel')}
             </Button>
             <Button onClick={handleInviteMember} loading={inviteLoading}>
-              Send Invitation
+              {t('dialogs.sendButton')}
             </Button>
           </DialogFooter>
         </DialogContent>

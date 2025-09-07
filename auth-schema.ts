@@ -25,6 +25,7 @@ export const user = pgTable("user", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  language: text("language").default("en").notNull(),
 });
 
 export const account = pgTable("account", {

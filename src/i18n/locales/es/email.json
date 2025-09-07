@@ -1,0 +1,43 @@
+{
+  "magicLink": {
+    "title": "Iniciar sesión en Todo App",
+    "heading": "Iniciar sesión en Todo App",
+    "description": "Haz clic en el botón de abajo para iniciar sesión en tu cuenta:",
+    "button": "Iniciar sesión en Todo App",
+    "alternative": "O copia y pega este enlace en tu navegador:",
+    "expiry": "Este enlace expirará en 5 minutos por razones de seguridad.",
+    "footer": "Si no solicitaste este correo, puedes ignorarlo de forma segura."
+  },
+  "invitation": {
+    "preview": "Invitación para unirse a {{organizationName}}",
+    "title": "¡Estás invitado!",
+    "message": "<strong>{{inviterName}}</strong> te ha invitado a unirte a <strong>{{organizationName}}</strong> en Todo App.",
+    "acceptButton": "Aceptar invitación",
+    "orCopy": "O copia y pega este enlace en tu navegador:",
+    "footer": "Si no quieres unirte a esta organización, puedes ignorar este correo de forma segura."
+  },
+  "otp": {
+    "signIn": {
+      "subject": "Tu código de inicio de sesión para Todo App",
+      "title": "Iniciar sesión en Todo App",
+      "message": "Usa este código para iniciar sesión en tu cuenta:"
+    },
+    "emailVerification": {
+      "subject": "Verifica tu correo electrónico para Todo App",
+      "title": "Verifica tu correo electrónico",
+      "message": "Usa este código para verificar tu dirección de correo electrónico:"
+    },
+    "forgetPassword": {
+      "subject": "Restablece tu contraseña para Todo App",
+      "title": "Restablece tu contraseña",
+      "message": "Usa este código para restablecer tu contraseña:"
+    },
+    "default": {
+      "subject": "Tu código de verificación para Todo App",
+      "title": "Código de verificación",
+      "message": "Tu código de verificación es:"
+    },
+    "expiry": "Este código expirará en 5 minutos por razones de seguridad.",
+    "footer": "Si no solicitaste este código, puedes ignorar este correo de forma segura."
+  }
+}

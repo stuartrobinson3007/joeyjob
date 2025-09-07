@@ -1,0 +1,33 @@
+{
+  "actions": {
+    "accept": "Accept Invitation",
+    "accepting": "Accepting invitation...",
+    "signInDifferent": "Sign in with different account",
+    "signOutAndUse": "Sign out and use invitation email",
+    "getAccessCode": "Get Access Code"
+  },
+  "invalid": "Invalid invitation",
+  "labels": {
+    "defaultRole": "Default role",
+    "invitedBy": "Invited by",
+    "organization": "Organization",
+    "role": "Role"
+  },
+  "messages": {
+    "acceptFailed": "Failed to accept invitation",
+    "authFailed": "Authentication failed",
+    "signedInAccepting": "You're signed in and accepting the invitation",
+    "signedInProfile": "You're already signed in with a different profile",
+    "verificationFailed": "Verification failed",
+    "verificationSent": "Verification email sent",
+    "wrongEmail": "Wrong email address",
+    "youreInvited": "You're Invited!",
+    "useCodeToSignIn": "Use this code to sign in to your account:",
+    "invalidOrExpired": "This invitation link is invalid or has expired.",
+    "signedInAs": "Signed in as {{email}}",
+    "sentToDifferentEmail": "This invitation was sent to {{invitationEmail}}, but you're signed in as {{currentEmail}}.",
+    "wrongUser": "Wrong user account",
+    "acceptInvitationFailed": "Failed to accept invitation",
+    "sendCodeVerification": "We'll send a code to <strong>{{email}}</strong> to verify it's you"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "actions": {
+    "accept": "Aceptar Invitación",
+    "accepting": "Aceptando invitación...",
+    "signInDifferent": "Iniciar sesión con cuenta diferente",
+    "signOutAndUse": "Cerrar sesión y usar email de invitación"
+  },
+  "invalid": "Invitación inválida",
+  "labels": {
+    "defaultRole": "Rol por defecto",
+    "invitedBy": "Invitado por",
+    "organization": "Organización",
+    "role": "Rol"
+  },
+  "messages": {
+    "acceptFailed": "Error al aceptar invitación",
+    "authFailed": "Error de autenticación",
+    "signedInAccepting": "Has iniciado sesión y estás aceptando la invitación",
+    "signedInProfile": "Ya has iniciado sesión con un perfil diferente",
+    "verificationFailed": "Error de verificación",
+    "verificationSent": "Correo de verificación enviado",
+    "wrongEmail": "Dirección de correo incorrecta",
+    "youreInvited": "¡Estás Invitado!",
+    "useCodeToSignIn": "Usa este código para iniciar sesión en tu cuenta:",
+    "invalidOrExpired": "Este enlace de invitación es inválido o ha expirado.",
+    "signedInAs": "Conectado como {{email}}",
+    "sentToDifferentEmail": "Esta invitación fue enviada a {{invitationEmail}}, pero estás conectado como {{currentEmail}}.",
+    "wrongUser": "Cuenta de usuario incorrecta",
+    "acceptInvitationFailed": "Error al aceptar invitación"
+  }
+}

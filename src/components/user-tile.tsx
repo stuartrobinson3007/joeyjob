@@ -1,14 +1,28 @@
 /**
  * User Tile Component
- * 
+ *
  * Displays user information and provides logout functionality.
  * Used in sidebars and admin interfaces.
  */
 
-import { useNavigate, useLocation } from '@tanstack/react-router';
-import { LogOut, User, MoreVertical, Check, Sun, Moon, Monitor, ShieldUser, Loader2, ArrowLeft } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/taali-ui/ui/avatar';
+import { useNavigate, useLocation } from '@tanstack/react-router'
+import {
+  LogOut,
+  User,
+  MoreVertical,
+  Check,
+  Sun,
+  Moon,
+  Monitor,
+  ShieldUser,
+  Loader2,
+  ArrowLeft,
+} from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { useMemo } from 'react'
+
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/taali-ui/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,58 +32,62 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuSeparator,
-} from '@/components/taali-ui/ui/dropdown-menu';
-import { SidebarMenuButton } from '@/components/ui/sidebar';
-import { useMemo } from 'react';
+} from '@/components/taali-ui/ui/dropdown-menu'
+import { SidebarMenuButton } from '@/components/ui/sidebar'
 
-interface User {
-  id: string;
-  email: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  name?: string;
-  image?: string | null;
-  role?: string | null;
-  isSuperAdmin?: boolean;
-  isImpersonating?: boolean;
+interface UserTileUser {
+  id: string
+  email?: string
+  firstName?: string | null
+  lastName?: string | null
+  name?: string
+  image?: string | null
+  role?: string | null
+  isSuperAdmin?: boolean
+  isImpersonating?: boolean
 }
 
 interface UserTileProps {
-  user?: User | null;
-  onLogout?: () => void;
-  isLoggingOut?: boolean;
+  user?: UserTileUser | null
+  onLogout?: () => void
+  isLoggingOut?: boolean
 }
 
 // Helper functions
-function getUserDisplayName(user: User | null | undefined): string {
-  if (!user) return 'User';
+function getUserDisplayName(user: UserTileUser | null | undefined, tCommon: (key: string) => string): string {
+  if (!user) return tCommon('labels.user')
 
-  if (user.name) return user.name;
+  if (user.name) return user.name
 
-  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-  if (fullName) return fullName;
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+  if (fullName) return fullName
 
-  return user.email.split('@')[0];
+  return user.email?.split('@')[0] || 'User'
 }
 
-function getUserInitials(user: User | null | undefined): string {
-  if (!user) return 'U';
+function getUserInitials(user: UserTileUser | null | undefined, tCommon: (key: string) => string): string {
+  if (!user) return 'U'
 
   if (user.firstName && user.lastName) {
-    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
   }
 
-  const displayName = getUserDisplayName(user);
-  return displayName.charAt(0).toUpperCase();
+  const displayName = getUserDisplayName(user, tCommon)
+  return displayName.charAt(0).toUpperCase()
 }
 
 export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { theme, setTheme } = useTheme();
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { theme, setTheme } = useTheme()
+  const { t } = useTranslation('admin')
+  const { t: tCommon } = useTranslation('common')
 
-  const isSuperAdmin = useMemo(() => user?.role === 'superadmin', [user]);
-  const isInSuperAdminPanel = useMemo(() => location.pathname.startsWith('/superadmin'), [location.pathname]);
+  const isSuperAdmin = useMemo(() => user?.role === 'superadmin', [user])
+  const isInSuperAdminPanel = useMemo(
+    () => location.pathname.startsWith('/superadmin'),
+    [location.pathname]
+  )
 
   if (!user) {
     return (
@@ -80,23 +98,23 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
           <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
         </div>
       </div>
-    );
+    )
   }
 
   const getThemeIcon = () => {
     switch (theme) {
       case 'light':
-        return Sun;
+        return Sun
       case 'dark':
-        return Moon;
+        return Moon
       case 'system':
-        return Monitor;
+        return Monitor
       default:
-        return Sun;
+        return Sun
     }
-  };
+  }
 
-  const ThemeIcon = getThemeIcon();
+  const ThemeIcon = getThemeIcon()
 
   return (
     <DropdownMenu>
@@ -104,14 +122,10 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
         <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
           <Avatar className="h-6 w-6">
             <AvatarImage src={user.image || undefined} />
-            <AvatarFallback>
-              {getUserInitials(user)}
-            </AvatarFallback>
+            <AvatarFallback>{getUserInitials(user, tCommon)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col items-start text-left flex-1">
-            <span className="text-sm font-medium">
-              {getUserDisplayName(user)}
-            </span>
+            <span className="text-sm font-medium">{getUserDisplayName(user, tCommon)}</span>
           </div>
           {isLoggingOut ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -123,25 +137,29 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
       <DropdownMenuContent side="right" align="end" className="w-56">
         <DropdownMenuItem onClick={() => navigate({ to: '/profile' })}>
           <User />
-          Profile
+          {tCommon('navigation.profile')}
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <ThemeIcon className="h-4 w-4 mr-2" />
-            Theme
+            {tCommon('theme.title')}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem onClick={() => setTheme('light')}>
-              <Check className={`h-4 w-4 mr-2 ${theme === 'light' ? 'opacity-100' : 'opacity-0'}`} />
-              Light
+              <Check
+                className={`h-4 w-4 mr-2 ${theme === 'light' ? 'opacity-100' : 'opacity-0'}`}
+              />
+              {tCommon('theme.light')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme('dark')}>
               <Check className={`h-4 w-4 mr-2 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`} />
-              Dark
+              {tCommon('theme.dark')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme('system')}>
-              <Check className={`h-4 w-4 mr-2 ${theme === 'system' ? 'opacity-100' : 'opacity-0'}`} />
-              System
+              <Check
+                className={`h-4 w-4 mr-2 ${theme === 'system' ? 'opacity-100' : 'opacity-0'}`}
+              />
+              {tCommon('theme.system')}
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
@@ -150,22 +168,24 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
         {isSuperAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              if (isInSuperAdminPanel) {
-                navigate({ to: '/' });
-              } else {
-                navigate({ to: '/superadmin/users' });
-              }
-            }}>
+            <DropdownMenuItem
+              onClick={() => {
+                if (isInSuperAdminPanel) {
+                  navigate({ to: '/' })
+                } else {
+                  navigate({ to: '/superadmin/users' })
+                }
+              }}
+            >
               {isInSuperAdminPanel ? (
                 <>
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Leave Super Admin
+                  {t('common:actions.leave')}
                 </>
               ) : (
                 <>
                   <ShieldUser className="h-4 w-4 mr-2" />
-                  Super Admin
+                  {t('title')}
                 </>
               )}
             </DropdownMenuItem>
@@ -173,14 +193,15 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
         )}
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={onLogout}
-          disabled={isLoggingOut || user?.isImpersonating}
-        >
+        <DropdownMenuItem onClick={onLogout} disabled={isLoggingOut || user?.isImpersonating}>
           <LogOut className="h-4 w-4 mr-2" />
-          {user?.isImpersonating ? 'Logout disabled during impersonation' : (isLoggingOut ? 'Signing out...' : 'Logout')}
+          {user?.isImpersonating
+            ? t('impersonation.logoutDisabled')
+            : isLoggingOut
+              ? tCommon('states.signingIn')
+              : tCommon('actions.signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

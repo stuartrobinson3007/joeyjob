@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 @source "../../packages/taali-ui/src/**/*.{js,jsx,ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
@@ -134,7 +134,7 @@
   position: relative;
 
   &:before {
-    content: "";
+    content: '';
     position: absolute;
     display: block;
     top: 50%;

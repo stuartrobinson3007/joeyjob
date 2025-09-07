@@ -1,21 +1,31 @@
-import { createFileRoute, Outlet, useNavigate, useRouterState, Link, useMatches } from '@tanstack/react-router'
-import React, { useEffect } from 'react'
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/app-sidebar'
-import { SuperAdminWrapper, useSuperAdminWrapper } from '@/features/admin/components/super-admin-wrapper'
-import { useSession } from '@/lib/auth/auth-hooks'
-import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout'
-import { Separator } from '@/components/taali-ui/ui/separator'
-import { authClient } from '@/lib/auth/auth-client'
+import {
+  createFileRoute,
+  Outlet,
+  useNavigate,
+  useRouterState,
+  useMatches,
+} from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
+import {
+  SuperAdminWrapper,
+  useSuperAdminWrapper,
+} from '@/features/admin/components/super-admin-wrapper'
+import { useSession, useListOrganizations } from '@/lib/auth/auth-hooks'
+import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout'
+import { authClient } from '@/lib/auth/auth-client'
+import { getActiveOrganizationId } from '@/features/organization/lib/organization-utils'
+
 export const Route = createFileRoute('/_authenticated')({
-  component: AuthenticatedLayout
+  component: AuthenticatedLayout,
 })
 
-
 function AuthenticatedLayout() {
-  const { data: session, isPending } = useSession()
+  const { data: session, isPending: sessionPending } = useSession()
+  const { data: organizations, isPending: orgsPending } = useListOrganizations()
   const navigate = useNavigate()
   const matches = useMatches()
 
@@ -25,7 +35,7 @@ function AuthenticatedLayout() {
   // Check if we're on superadmin routes
   // Use useRouterState for reactive pathname updates
   const currentPath = useRouterState({
-    select: (state) => state.location.pathname
+    select: state => state.location.pathname,
   })
   const isSuperAdminRoute = currentPath.startsWith('/superadmin')
 
@@ -35,7 +45,7 @@ function AuthenticatedLayout() {
   const showSidebar = currentMatch?.staticData?.sidebar !== false
 
   useEffect(() => {
-    if (!isPending) {
+    if (!sessionPending && !orgsPending) {
       if (!session) {
         navigate({ to: '/auth/signin' })
         return
@@ -46,8 +56,23 @@ function AuthenticatedLayout() {
         navigate({ to: '/onboarding' })
         return
       }
+
+      // Check if user needs to select an organization
+      // Skip this check for certain pages
+      const skipOrgCheckPaths = ['/onboarding', '/select-organization', '/superadmin']
+      const shouldSkipOrgCheck = skipOrgCheckPaths.some(path => currentPath.startsWith(path))
+      
+      if (!shouldSkipOrgCheck && session.user.onboardingCompleted) {
+        const activeOrgId = getActiveOrganizationId()
+        
+        // If no active org ID or the active org doesn't exist in user's organizations
+        if (!activeOrgId || (organizations && !organizations.find(org => org.id === activeOrgId))) {
+          navigate({ to: '/select-organization' })
+          return
+        }
+      }
     }
-  }, [session, isPending, navigate, currentPath])
+  }, [session, organizations, sessionPending, orgsPending, navigate, currentPath])
 
   // End impersonation when navigating to superadmin routes
   useEffect(() => {
@@ -62,12 +87,12 @@ function AuthenticatedLayout() {
       }
     }
 
-    if (!isPending && session) {
+    if (!sessionPending && session) {
       endImpersonationIfNeeded()
     }
-  }, [isSuperAdminRoute, session, isPending])
+  }, [isSuperAdminRoute, session, sessionPending])
 
-  if (isPending) {
+  if (sessionPending || orgsPending) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="size-6 animate-spin" />

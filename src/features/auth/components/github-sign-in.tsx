@@ -1,16 +1,21 @@
-import { authClient } from '@/lib/auth/auth-client'
 import { Github } from 'lucide-react'
-import { toast } from 'sonner'
+
+import { authClient } from '@/lib/auth/auth-client'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { useErrorHandler } from '@/lib/errors/hooks'
 
 export function GitHubSignIn() {
+  const { t } = useTranslation('auth')
+  const { showError } = useErrorHandler()
+
   const handleSignIn = async () => {
     try {
       await authClient.signIn.social({
         provider: 'github',
-        callbackURL: '/'
+        callbackURL: '/',
       })
     } catch (error) {
-      toast.error('Failed to sign in with GitHub')
+      showError(error)
       console.error('GitHub sign in error:', error)
     }
   }
@@ -26,7 +31,7 @@ export function GitHubSignIn() {
       className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors"
     >
       <Github className="w-5 h-5" />
-      Continue with GitHub
+      {t('signin.providers.github')}
     </button>
   )
 }
