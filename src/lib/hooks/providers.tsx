@@ -7,7 +7,7 @@ import { PageContextProvider } from './page-context'
 
 import { OrganizationProvider } from '@/features/organization/lib/organization-context'
 import i18n from '@/i18n/config'
-import { createQueryClient } from '@/lib/errors/query-client'
+import { createQueryClient } from '@/taali/errors/query-client'
 
 // Create a client with error handling
 export const queryClient = createQueryClient()

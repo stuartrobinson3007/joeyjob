@@ -13,7 +13,7 @@ import {
   checkSlugAvailability
 } from '@/lib/auth/organization-wrapper'
 import { useFormMutation } from '@/lib/hooks/use-form-mutation'
-import { useAsyncFieldValidator } from '@/lib/hooks/use-async-field-validator'
+import { useAsyncFieldValidator } from '@/taali/hooks/use-async-field-validator'
 import { useFormSync } from '@/lib/hooks/use-form-sync'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { clearActiveOrganizationId } from '@/features/organization/lib/organization-utils'

@@ -1,6 +1,6 @@
-import { ERROR_CODES, type ErrorCode } from '@/lib/errors/codes'
+import { ERROR_CODES, type ErrorCode } from '@/taali/errors/codes'
 
-export { ERROR_CODES } from '@/lib/errors/codes'
+export { ERROR_CODES } from '@/taali/errors/codes'
 
 export interface ErrorContext {
   [key: string]: unknown

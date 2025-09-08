@@ -8,7 +8,7 @@ import { setActiveOrganizationId } from '@/features/organization/lib/organizatio
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/lib/utils/errors'
-import { ERROR_CODES } from '@/lib/errors/codes'
+import { ERROR_CODES } from '@/taali/errors/codes'
 import { FormErrorBoundary } from '@/taali/components/form/form-error-boundary'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'

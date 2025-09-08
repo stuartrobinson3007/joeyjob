@@ -12,7 +12,7 @@ import {
   buildColumnFilter,
   parseFilterValue,
   preprocessFilterValue,
-} from '@/lib/utils/table-filters'
+} from '@/taali/utils/table-filters'
 import { ServerQueryResponse } from '@/taali/components/data-table'
 
 export type AdminUser = {

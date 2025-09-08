@@ -6,8 +6,8 @@ import { Building2, Users, Calendar, Trash2, MoreHorizontal, Eye } from 'lucide-
 import { useConfirm } from '@/ui/confirm-dialog'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { ErrorState } from '@/components/error-state'
-import { parseError } from '@/lib/errors/client-handler'
-import { useSupportingQuery } from '@/lib/hooks/use-supporting-query'
+import { parseError } from '@/taali/errors/client-handler'
+import { useSupportingQuery } from '@/taali/hooks/use-supporting-query'
 import { authClient } from '@/lib/auth/auth-client'
 import {
   DataTable,

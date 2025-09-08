@@ -2,9 +2,9 @@ import { AlertCircle, WifiOff, Lock, RefreshCw } from 'lucide-react'
 
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { Button } from '@/ui/button'
-import type { ParsedError } from '@/lib/errors/client-handler'
-import { handleErrorAction } from '@/lib/errors/client-handler'
-import { isErrorCode } from '@/lib/errors/codes'
+import type { ParsedError } from '@/taali/errors/client-handler'
+import { handleErrorAction } from '@/taali/errors/client-handler'
+import { isErrorCode } from '@/taali/errors/codes'
 
 interface ErrorStateProps {
   error: ParsedError

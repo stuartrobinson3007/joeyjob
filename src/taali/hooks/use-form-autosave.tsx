@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { debounce } from 'lodash'
 
-import errorTranslations from '@/i18n/locales/en/errors.json'
-
 interface UseFormAutosaveOptions<T> {
   initialData: T
   onSave: (data: T) => Promise<void | T>
@@ -10,6 +8,9 @@ interface UseFormAutosaveOptions<T> {
   enabled?: boolean
   validate?: (data: T) => { isValid: boolean; errors: string[] }
   compareFunction?: (a: T, b: T) => boolean
+  errorMessages?: {
+    saveFailed?: string
+  }
 }
 
 interface UseFormAutosaveResult<T> {
@@ -31,6 +32,7 @@ export function useFormAutosave<T extends Record<string, unknown>>({
   enabled = true,
   validate,
   compareFunction,
+  errorMessages = {},
 }: UseFormAutosaveOptions<T>): UseFormAutosaveResult<T> {
   const [data, setData] = useState<T>(initialData)
   const [isSaving, setIsSaving] = useState(false)
@@ -87,10 +89,8 @@ export function useFormAutosave<T extends Record<string, unknown>>({
       } catch (error) {
         if (!mountedRef.current) return
 
-        const message = error instanceof Error ? error.message : errorTranslations.server.saveFailed
+        const message = error instanceof Error ? error.message : (errorMessages.saveFailed || 'Save failed')
         setErrors([message])
-        // Error is handled by the component using this hook
-        // Autosave failed silently - user data is preserved in form
       } finally {
         if (mountedRef.current) {
           setIsSaving(false)
@@ -101,7 +101,7 @@ export function useFormAutosave<T extends Record<string, unknown>>({
 
     savePromiseRef.current = savePromise
     await savePromise
-  }, [data, enabled, isDirty, validate, onSave])
+  }, [data, enabled, isDirty, validate, onSave, errorMessages])
 
   // Debounced save - using useMemo to ensure stable reference
   const debouncedSave = useMemo(

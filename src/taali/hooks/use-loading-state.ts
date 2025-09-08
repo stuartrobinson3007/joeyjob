@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react'
 
-import errorTranslations from '@/i18n/locales/en/errors.json'
-
 /**
  * Hook for managing loading states of individual items
  * Useful for tracking which specific items are being processed in a list
@@ -49,6 +47,7 @@ export function useAsyncAction<TArgs extends unknown[], TReturn = void>(
   options?: {
     onSuccess?: (result: TReturn) => void
     onError?: (error: Error) => void
+    errorMessage?: string
   }
 ) {
   const [isLoading, setIsLoading] = useState(false)
@@ -64,7 +63,7 @@ export function useAsyncAction<TArgs extends unknown[], TReturn = void>(
         options?.onSuccess?.(result)
         return result
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(errorTranslations.server.genericError)
+        const error = err instanceof Error ? err : new Error(options?.errorMessage || 'An error occurred')
         setError(error)
         options?.onError?.(error)
         throw error

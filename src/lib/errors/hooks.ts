@@ -1,11 +1,11 @@
 import { useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 
-import { parseError, handleErrorAction } from './client-handler'
-import { isErrorCode } from './codes'
-import type { ParsedError } from './client-handler'
+import { parseError, handleErrorAction } from '@/taali/errors/client-handler'
+import { isErrorCode } from '@/taali/errors/codes'
+import type { ParsedError } from '@/taali/errors/client-handler'
 
-import { safePropertyAccess } from '@/lib/utils/type-safe-access'
+import { safePropertyAccess } from '@/taali/utils/type-safe-access'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 // Hook to translate and handle errors

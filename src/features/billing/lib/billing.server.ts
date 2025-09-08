@@ -19,13 +19,13 @@ interface BetterAuthSubscription {
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { checkPermission } from '@/lib/utils/permissions'
 import { getOrganizationUsage } from '@/lib/utils/plan-limits'
-import { safeEnumAccess } from '@/lib/utils/type-safe-access'
+import { safeEnumAccess } from '@/taali/utils/type-safe-access'
 import { db } from '@/lib/db/db'
 import { organization } from '@/database/schema'
 import * as schema from '@/database/schema'
 import { auth } from '@/lib/auth/auth'
 import { AppError } from '@/lib/utils/errors'
-import { ERROR_CODES } from '@/lib/errors/codes'
+import { ERROR_CODES } from '@/taali/errors/codes'
 import errorTranslations from '@/i18n/locales/en/errors.json'
 
 // Get current subscription using BetterAuth API

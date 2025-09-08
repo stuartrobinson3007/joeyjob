@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { validationMessages as vm } from './validation-messages'
+import { validationMessages as vm } from '@/taali/validation/validation-messages'
 
 // Type for field values that can be validated
 type FieldValue = string | number | boolean | Date | null | undefined

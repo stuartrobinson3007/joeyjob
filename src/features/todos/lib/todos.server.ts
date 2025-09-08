@@ -10,7 +10,7 @@ import { checkPlanLimitUtil } from '@/lib/utils/plan-limits'
 import { db } from '@/lib/db/db'
 import { todos } from '@/database/schema'
 import { ValidationError, AppError } from '@/lib/utils/errors'
-import { ERROR_CODES } from '@/lib/errors/codes'
+import { ERROR_CODES } from '@/taali/errors/codes'
 import { validationRules } from '@/lib/validation/validation-registry'
 
 

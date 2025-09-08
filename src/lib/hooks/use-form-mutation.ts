@@ -3,7 +3,7 @@ import { UseFormSetError, FieldValues, Path } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { ValidationError, isAppError } from '@/lib/utils/errors'
-import { parseError } from '@/lib/errors/client-handler'
+import { parseError } from '@/taali/errors/client-handler'
 import { getErrorDisplayType } from '@/lib/errors/error-categories'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 

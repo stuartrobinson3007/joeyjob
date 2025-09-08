@@ -1,6 +1,6 @@
 import { authClient } from '@/lib/auth/auth-client'
 import { ValidationError, AppError, ERROR_CODES } from '@/lib/utils/errors'
-import { validationMessages as vm } from '@/lib/validation/validation-messages'
+import { validationMessages as vm } from '@/taali/validation/validation-messages'
 import { validateField } from '@/lib/validation/validation.server'
 
 /**

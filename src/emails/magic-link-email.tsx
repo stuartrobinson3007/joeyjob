@@ -12,7 +12,7 @@ import {
   Tailwind,
 } from '@react-email/components'
 
-import { safePropertyAccess } from '@/lib/utils/type-safe-access'
+import { safePropertyAccess } from '@/taali/utils/type-safe-access'
 
 interface MagicLinkEmailProps {
   url: string

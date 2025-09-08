@@ -1,8 +1,8 @@
 import { Component, ReactNode } from 'react'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 
-import { parseError, handleErrorAction } from '@/lib/errors/client-handler'
-import { isErrorCode } from '@/lib/errors/codes'
+import { parseError, handleErrorAction } from '@/taali/errors/client-handler'
+import { isErrorCode } from '@/taali/errors/codes'
 import { Button } from '@/ui/button'
 import i18n from '@/i18n/config'
 

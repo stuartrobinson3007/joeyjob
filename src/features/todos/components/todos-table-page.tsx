@@ -21,7 +21,7 @@ import { useConfirm } from '@/ui/confirm-dialog'
 import { formatDate } from '@/lib/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
-import { useLoadingItems } from '@/lib/hooks/use-loading-state'
+import { useLoadingItems } from '@/taali/hooks/use-loading-state'
 import { DataTable, DataTableHeader } from '@/taali/components/data-table'
 import { useTableQuery } from '@/taali/components/data-table'
 import {
@@ -45,9 +45,9 @@ import { useClientPermissions } from '@/lib/hooks/use-permissions'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/lib/utils/errors'
-import { ERROR_CODES } from '@/lib/errors/codes'
+import { ERROR_CODES } from '@/taali/errors/codes'
 import { ErrorState } from '@/components/error-state'
-import { parseError } from '@/lib/errors/client-handler'
+import { parseError } from '@/taali/errors/client-handler'
 
 interface Todo {
   id: string

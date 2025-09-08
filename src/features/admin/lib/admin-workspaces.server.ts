@@ -7,7 +7,7 @@ import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
 import { organization, member, user } from '@/database/schema'
 import { AppError } from '@/lib/utils/errors'
-import { buildColumnFilter, parseFilterValue, preprocessFilterValue } from '@/lib/utils/table-filters'
+import { buildColumnFilter, parseFilterValue, preprocessFilterValue } from '@/taali/utils/table-filters'
 import { ServerQueryResponse } from '@/taali/components/data-table'
 
 export type AdminWorkspace = {

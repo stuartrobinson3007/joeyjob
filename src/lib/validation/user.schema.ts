@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { validationRules } from './validation-registry'
-import { validationMessages } from './validation-messages'
+import { validationMessages } from '@/taali/validation/validation-messages'
 
 // User profile schema
 export const userProfileSchema = z.object({

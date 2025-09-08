@@ -4,7 +4,7 @@ import { Upload, X, Camera, Loader2 } from 'lucide-react'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/lib/utils/errors'
-import { ERROR_CODES } from '@/lib/errors/codes'
+import { ERROR_CODES } from '@/taali/errors/codes'
 import {
   Dialog,
   DialogContent,

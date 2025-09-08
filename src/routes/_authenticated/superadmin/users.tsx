@@ -19,8 +19,8 @@ interface BetterAuthSession {
   updatedAt?: Date | string
   impersonatedBy?: string | null
 }
-import { parseError } from '@/lib/errors/client-handler'
-import { useSupportingQuery } from '@/lib/hooks/use-supporting-query'
+import { parseError } from '@/taali/errors/client-handler'
+import { useSupportingQuery } from '@/taali/hooks/use-supporting-query'
 import { formatDate, formatDateTime } from '@/lib/utils/date'
 import { Badge } from '@/ui/badge'
 import {

@@ -12,7 +12,7 @@ import {
   Tailwind,
 } from '@react-email/components'
 
-import { safeNestedAccess, safeStringReplace } from '@/lib/utils/type-safe-access'
+import { safeNestedAccess, safeStringReplace } from '@/taali/utils/type-safe-access'
 
 interface InvitationEmailProps {
   inviterName: string

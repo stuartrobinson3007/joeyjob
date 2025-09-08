@@ -17,7 +17,7 @@ import {
 import { useConfirm } from '@/ui/confirm-dialog'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
-import { useLoadingItems } from '@/lib/hooks/use-loading-state'
+import { useLoadingItems } from '@/taali/hooks/use-loading-state'
 import { useClientPermissions } from '@/lib/hooks/use-permissions'
 import {
   DataTable,
@@ -37,9 +37,9 @@ import {
 } from '@/features/team/lib/team.server'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/lib/utils/errors'
-import { ERROR_CODES } from '@/lib/errors/codes'
+import { ERROR_CODES } from '@/taali/errors/codes'
 import { ErrorState } from '@/components/error-state'
-import { parseError } from '@/lib/errors/client-handler'
+import { parseError } from '@/taali/errors/client-handler'
 import { formatDate } from '@/lib/utils/date'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { Button } from '@/ui/button'
