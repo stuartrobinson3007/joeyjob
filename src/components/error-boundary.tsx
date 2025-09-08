@@ -3,7 +3,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react'
 
 import { parseError, handleErrorAction } from '@/lib/errors/client-handler'
 import { isErrorCode } from '@/lib/errors/codes'
-import { Button } from '@/components/taali-ui/ui/button'
+import { Button } from '@/ui/button'
 import i18n from '@/i18n/config'
 
 interface ErrorBoundaryProps {
@@ -26,17 +26,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, errorInfo: { componentStack: string }) {
-    if (process.env.NODE_ENV === 'development') {
-      console.group('🚨 Error Boundary Caught:')
-      console.error('Error:', error)
-      console.error('Component Stack:', errorInfo.componentStack)
-      console.groupEnd()
-    }
-
-    // Parse error using our new system
-    const parsed = parseError(error)
-    console.error('Parsed error:', parsed)
+  componentDidCatch(_error: Error, _errorInfo: { componentStack: string }) {
+    // Error is captured by the component state for display to user
+    // In production, consider sending to an error tracking service
   }
 
   reset = () => {
@@ -53,7 +45,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       // Get translated message
       const message = isErrorCode(parsed.code)
-        ? i18n.t(`errors:codes.${parsed.code}`, parsed.context || {})
+        ? i18n.t(`errors:codes.${parsed.code}`, { ...(parsed.context || {}), defaultValue: parsed.message })
         : parsed.message
 
       const errorTitle = i18n.t('errors:titles.error')
@@ -74,7 +66,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
             <div className="flex gap-3 justify-center">
               <Button onClick={this.reset}>
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw />
                 {tryAgainText}
               </Button>
 

@@ -1,9 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, desc, asc, count, like, ilike, inArray } from 'drizzle-orm'
+import { eq, and, desc, asc, count, like, ilike, inArray, isNull, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
+import type { SQL } from 'drizzle-orm'
+import type { PgColumn } from 'drizzle-orm/pg-core'
 
 import errorTranslations from '@/i18n/locales/en/errors.json'
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
+import { checkPermission } from '@/lib/utils/permissions'
+import { checkPlanLimitUtil } from '@/lib/utils/plan-limits'
 import { db } from '@/lib/db/db'
 import { todos, user } from '@/database/schema'
 import {
@@ -15,11 +19,14 @@ import {
 import { ServerQueryResponse } from '@/components/taali-ui/data-table'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
+import { validateServerQueryParams } from '@/lib/utils/server-query-schemas'
+
 
 // Get todos with filtering, sorting, and pagination
 export const getTodosTable = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
-  .handler(async ({ data, context }: { data: any; context: any }) => {
+  .validator(validateServerQueryParams)
+  .handler(async ({ data, context }) => {
     const orgId = context.organizationId
     if (!orgId) {
       throw new AppError(
@@ -30,18 +37,11 @@ export const getTodosTable = createServerFn({ method: 'POST' })
       )
     }
 
-    // Default values if data is not provided
-    const queryData = data || {}
-
-    const {
-      search = '',
-      filters = {},
-      sorting = [],
-      pagination = { pageIndex: 0, pageSize: 10 },
-    } = queryData
+    // Data is now properly validated and has defaults applied
+    const { search, filters, sorting, pagination } = data
 
     // Build where conditions
-    const conditions: any[] = [eq(todos.organizationId, orgId)]
+    const conditions: SQL[] = [eq(todos.organizationId, orgId), isNull(todos.deletedAt)]
 
     // Add search filter (searches title only since description can be null)
     if (search) {
@@ -64,7 +64,7 @@ export const getTodosTable = createServerFn({ method: 'POST' })
       const { operator, value: filterValue } = parseFilterValue(value)
 
       // Map column IDs to database columns
-      const columnMap: Record<string, any> = {
+      const columnMap: Record<string, PgColumn> = {
         title: todos.title,
         description: todos.description,
         priority: todos.priority,
@@ -94,8 +94,8 @@ export const getTodosTable = createServerFn({ method: 'POST' })
     const orderBy =
       sorting.length > 0
         ? (sorting
-            .map((sort: any) => {
-              const columnMap: Record<string, any> = {
+            .map((sort: { id: string; desc?: boolean }) => {
+              const columnMap: Record<string, PgColumn> = {
                 title: todos.title,
                 priority: todos.priority,
                 completed: todos.completed,
@@ -107,18 +107,18 @@ export const getTodosTable = createServerFn({ method: 'POST' })
               const column = columnMap[sort.id]
               return column ? (sort.desc ? desc(column) : asc(column)) : null
             })
-            .filter(Boolean) as any[])
+            .filter((item): item is NonNullable<typeof item> => item !== null))
         : [desc(todos.createdAt)]
 
     // Check if we need user join for filtering
     const needsUserJoin = Object.keys(filters).includes('createdByName')
 
     // Get total count for pagination
-    let countQuery = db.select({ totalCount: count(todos.id) }).from(todos)
-    if (needsUserJoin) {
-      countQuery = countQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
-    }
-    const [{ totalCount }] = await countQuery.where(and(...conditions))
+    const countQuery = needsUserJoin
+      ? db.select({ totalCount: count(todos.id) }).from(todos).leftJoin(user, eq(todos.createdBy, user.id)).where(and(...conditions))
+      : db.select({ totalCount: count(todos.id) }).from(todos).where(and(...conditions))
+    
+    const [{ totalCount }] = await countQuery
 
     // Get paginated data
     const { pageIndex, pageSize } = pagination
@@ -158,7 +158,8 @@ export const getTodosTable = createServerFn({ method: 'POST' })
 // Get count of todos matching filters
 export const getTodosTableCount = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
-  .handler(async ({ data, context }: { data: any; context: any }) => {
+  .validator(validateServerQueryParams)
+  .handler(async ({ data, context }) => {
     const orgId = context.organizationId
     if (!orgId) {
       throw new AppError(
@@ -169,11 +170,10 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
       )
     }
 
-    const queryData = data || {}
-    const { search = '', filters = {} } = queryData
+    const { search, filters } = data
 
     // Build where conditions (same logic as getTodosTable)
-    const conditions: any[] = [eq(todos.organizationId, orgId)]
+    const conditions: SQL[] = [eq(todos.organizationId, orgId), isNull(todos.deletedAt)]
 
     // Add search filter
     if (search) {
@@ -192,7 +192,7 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
       }
 
       const { operator, value: filterValue } = parseFilterValue(value)
-      const columnMap: Record<string, any> = {
+      const columnMap: Record<string, PgColumn> = {
         title: todos.title,
         description: todos.description,
         priority: todos.priority,
@@ -225,11 +225,11 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
     const needsUserJoin = Object.keys(filters).includes('createdByName')
 
     // Get count
-    let countQuery = db.select({ totalCount: count(todos.id) }).from(todos)
-    if (needsUserJoin) {
-      countQuery = countQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
-    }
-    const [{ totalCount }] = await countQuery.where(and(...conditions))
+    const countQuery = needsUserJoin
+      ? db.select({ totalCount: count(todos.id) }).from(todos).leftJoin(user, eq(todos.createdBy, user.id)).where(and(...conditions))
+      : db.select({ totalCount: count(todos.id) }).from(todos).where(and(...conditions))
+    
+    const [{ totalCount }] = await countQuery
 
     return { totalCount }
   })
@@ -237,7 +237,8 @@ export const getTodosTableCount = createServerFn({ method: 'POST' })
 // Get all todo IDs matching filters (for select all functionality)
 export const getAllTodosIds = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
-  .handler(async ({ data, context }: { data: any; context: any }) => {
+  .validator(validateServerQueryParams)
+  .handler(async ({ data, context }) => {
     const orgId = context.organizationId
     if (!orgId) {
       throw new AppError(
@@ -248,11 +249,10 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
       )
     }
 
-    const queryData = data || {}
-    const { search = '', filters = {} } = queryData
+    const { search, filters } = data
 
     // Build where conditions (same logic as getTodosTable)
-    const conditions: any[] = [eq(todos.organizationId, orgId)]
+    const conditions: SQL[] = [eq(todos.organizationId, orgId), isNull(todos.deletedAt)]
 
     // Add search filter
     if (search) {
@@ -271,7 +271,7 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
       }
 
       const { operator, value: filterValue } = parseFilterValue(value)
-      const columnMap: Record<string, any> = {
+      const columnMap: Record<string, PgColumn> = {
         title: todos.title,
         description: todos.description,
         priority: todos.priority,
@@ -304,11 +304,11 @@ export const getAllTodosIds = createServerFn({ method: 'POST' })
     const needsUserJoin = Object.keys(filters).includes('createdByName')
 
     // Get all IDs (limit to reasonable number for safety)
-    let idsQuery = db.select({ id: todos.id }).from(todos)
-    if (needsUserJoin) {
-      idsQuery = idsQuery.leftJoin(user, eq(todos.createdBy, user.id)) as any
-    }
-    const allIds = await idsQuery.where(and(...conditions)).limit(10000) // Safety limit
+    const idsQuery = needsUserJoin
+      ? db.select({ id: todos.id }).from(todos).leftJoin(user, eq(todos.createdBy, user.id)).where(and(...conditions)).limit(10000)
+      : db.select({ id: todos.id }).from(todos).where(and(...conditions)).limit(10000)
+    
+    const allIds = await idsQuery
 
     return { ids: allIds.map(row => row.id) }
   })
@@ -321,7 +321,8 @@ const bulkDeleteSchema = z.object({
 // Bulk delete todos
 export const bulkDeleteTodos = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
-  .handler(async ({ data, context }: { data: any; context: any }) => {
+  .validator((data: unknown) => bulkDeleteSchema.parse(data))
+  .handler(async ({ data, context }) => {
     const orgId = context.organizationId
     if (!orgId) {
       throw new AppError(
@@ -332,22 +333,31 @@ export const bulkDeleteTodos = createServerFn({ method: 'POST' })
       )
     }
 
-    const { ids } = bulkDeleteSchema.parse(data)
-
-    if (!ids || ids.length === 0) {
+    if (!data.ids || data.ids.length === 0) {
       return { success: true, deletedCount: 0 }
     }
 
-    // Delete specific IDs, but verify they belong to the organization
-    await db.delete(todos).where(and(inArray(todos.id, ids), eq(todos.organizationId, orgId)))
+    // Soft delete specific IDs, but verify they belong to the organization
+    await db
+      .update(todos)
+      .set({ 
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(and(inArray(todos.id, data.ids), eq(todos.organizationId, orgId), isNull(todos.deletedAt)))
 
-    return { success: true, deletedCount: ids.length }
+    return { 
+      success: true, 
+      deletedCount: data.ids.length,
+      canUndo: true,
+      deletedIds: data.ids
+    }
   })
 
 // Get users who have created todos (for dynamic filter options)
 export const getTodoCreators = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }: { context: any }) => {
+  .handler(async ({ context }) => {
     const orgId = context.organizationId
     if (!orgId) {
       throw new AppError(
@@ -366,9 +376,107 @@ export const getTodoCreators = createServerFn({ method: 'POST' })
       })
       .from(todos)
       .innerJoin(user, eq(todos.createdBy, user.id))
-      .where(eq(todos.organizationId, orgId))
+      .where(and(eq(todos.organizationId, orgId), isNull(todos.deletedAt)))
       .groupBy(user.id, user.name)
       .orderBy(asc(user.name))
 
     return { options: creators }
+  })
+
+// Bulk undo operation
+export const undoBulkDeleteTodos = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => z.object({ ids: z.array(z.string()).min(1).max(100) }).parse(data))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    if (!orgId) {
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: errorTranslations.server.organizationIdRequired },
+        errorTranslations.server.noOrganizationContext
+      )
+    }
+
+    // Check permissions - use create since we're restoring data
+    await checkPermission('todos', ['create'], orgId)
+
+    // First, count how many todos can actually be restored (exist and are deleted)
+    const restorableCount = await db
+      .select({ count: count(todos.id) })
+      .from(todos)
+      .where(and(
+        inArray(todos.id, data.ids),
+        eq(todos.organizationId, orgId),
+        isNotNull(todos.deletedAt)
+      ))
+    
+    const todosToRestore = restorableCount[0]?.count || 0
+    
+    if (todosToRestore === 0) {
+      return {
+        success: true,
+        restoredCount: 0,
+        restored: []
+      }
+    }
+
+    // Check if restoring these todos would exceed plan limits
+    // We need to check current active todos + todos to restore vs limit
+    const currentActiveCount = await db
+      .select({ count: count(todos.id) })
+      .from(todos)
+      .where(and(
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt)
+      ))
+    
+    const activeCount = currentActiveCount[0]?.count || 0
+    const totalAfterRestore = activeCount + todosToRestore
+    
+    // Use the plan limit utility to get the current limit
+    const limitCheck = await checkPlanLimitUtil('todos', 'create', orgId, context.headers)
+    
+    // For bulk operations, we need to check against the total count after restore
+    if (limitCheck.allowed && limitCheck.usage) {
+      const { limit } = limitCheck.usage
+      if (limit !== -1 && totalAfterRestore > limit) {
+        throw new AppError(
+          ERROR_CODES.BIZ_LIMIT_EXCEEDED,
+          400,
+          { resource: 'todos' },
+          `Restoring ${todosToRestore} todos would exceed your plan limit of ${limit}. You currently have ${activeCount} active todos.`,
+          [{ action: 'upgrade' }]
+        )
+      }
+    } else if (!limitCheck.allowed) {
+      // If the basic limit check failed, use that error
+      throw new AppError(
+        ERROR_CODES.BIZ_LIMIT_EXCEEDED,
+        400,
+        { resource: 'todos' },
+        limitCheck.reason || errorTranslations.codes.BIZ_LIMIT_EXCEEDED,
+        [{ action: 'upgrade' }]
+      )
+    }
+
+    // Restore multiple records
+    const restored = await db
+      .update(todos)
+      .set({ 
+        deletedAt: null,
+        updatedAt: new Date()
+      })
+      .where(and(
+        inArray(todos.id, data.ids),
+        eq(todos.organizationId, orgId),
+        isNotNull(todos.deletedAt)
+      ))
+      .returning()
+
+    return {
+      success: true,
+      restoredCount: restored.length,
+      restored: restored
+    }
   })

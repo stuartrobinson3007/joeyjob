@@ -12,6 +12,8 @@ import {
   Tailwind,
 } from '@react-email/components'
 
+import { safeNestedAccess, safeStringReplace } from '@/lib/utils/type-safe-access'
+
 interface InvitationEmailProps {
   inviterName: string
   organizationName: string
@@ -44,23 +46,23 @@ const fallbackContent = {
   copyright: '© {{year}} {{appName}}. All rights reserved.',
 }
 
-function getTranslation(key: string, params?: Record<string, any>): string {
+function getTranslation(key: string, params?: Record<string, unknown>): string {
   try {
     // Try to import and use i18n
     const i18n = require('@/i18n/config').default
     return i18n.t(`email:invitation.${key}`, params, { lng: 'en' })
   } catch {
-    // Fallback for preview mode
-    let text = key.split('.').reduce((obj, k) => obj?.[k], fallbackContent as any) || key
+    // Fallback for preview mode using type-safe access
+    let text = safeNestedAccess(fallbackContent, key.split('.')) || key
 
     if (typeof text === 'string' && params) {
       // Simple template replacement for fallback
       Object.entries(params).forEach(([paramKey, value]) => {
-        text = text.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(value))
+        text = safeStringReplace(text, new RegExp(`{{${paramKey}}}`, 'g'), String(value))
       })
     }
 
-    return text
+    return String(text)
   }
 }
 
@@ -128,8 +130,8 @@ export default function InvitationEmail({
               </Section>
 
               {/* Urgency (Gentle) */}
-              <Section className="bg-orange-50 border-l-[4px] border-orange-400 pl-[16px] py-[12px] mb-[24px]">
-                <Text className="text-[14px] text-orange-700 m-0">{getTranslation('expiry')}</Text>
+              <Section className="bg-yellow-50 border-l-[4px] border-yellow-500 pl-[16px] py-[12px] mb-[24px]">
+                <Text className="text-[14px] text-yellow-600 m-0">{getTranslation('expiry')}</Text>
               </Section>
 
               {/* Fallback Link */}

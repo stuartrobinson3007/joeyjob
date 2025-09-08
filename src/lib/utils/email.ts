@@ -31,7 +31,6 @@ export async function sendEmail({
 
     return { success: true, data: result }
   } catch (error) {
-    console.error('Failed to send email:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send email',
@@ -53,26 +52,23 @@ export async function sendInvitationEmail(
   organizationName: string,
   url: string
 ) {
-  console.log('📧 Attempting to send invitation email:', {
-    to: email,
-    inviterName,
-    organizationName,
-    url,
-    hasResendKey: !!process.env.RESEND_API_KEY,
-    emailFrom: process.env.EMAIL_FROM,
-  })
+  // Get subject from translations with fallback
+  const getInvitationSubject = () => {
+    try {
+      return emailTranslations.invitation.subject
+        .replace('{{inviterName}}', inviterName)
+        .replace('{{organizationName}}', organizationName)
+    } catch {
+      // Fallback if translations fail
+      return `${inviterName} invited you to join ${organizationName}`
+    }
+  }
 
   const result = await sendEmail({
     to: email,
-    subject: `${inviterName} invited you to join ${organizationName}`,
+    subject: getInvitationSubject(),
     react: InvitationEmail({ inviterName, organizationName, url }),
   })
-
-  if (result.success) {
-    console.log('✅ Invitation email sent successfully:', result.data)
-  } else {
-    console.error('❌ Failed to send invitation email:', result.error)
-  }
 
   return result
 }

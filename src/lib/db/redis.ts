@@ -15,14 +15,15 @@ async function connectRedis() {
   try {
     await redis.connect()
   } catch (error) {
-    console.error('❌ Redis connection failed:', error)
+    // Redis connection errors should be handled by the application
+    throw new Error(`Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
-// Event handlers
-redis.on('connect', () => console.log('✅ Redis connected'))
-redis.on('error', err => console.error('❌ Redis error:', err))
-redis.on('end', () => console.log('🔴 Redis connection closed'))
+// Event handlers - errors are handled by throwing, success/end states don't need logging
+redis.on('error', err => {
+  throw new Error(`Redis error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+})
 
 // Connect immediately but don't await at top level
 connectRedis()

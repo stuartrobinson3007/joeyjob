@@ -24,7 +24,7 @@ interface UseFormAutosaveResult<T> {
   reset: (newData?: T) => void
 }
 
-export function useFormAutosave<T extends Record<string, any>>({
+export function useFormAutosave<T extends Record<string, unknown>>({
   initialData,
   onSave,
   debounceMs = 3000,
@@ -90,7 +90,7 @@ export function useFormAutosave<T extends Record<string, any>>({
         const message = error instanceof Error ? error.message : errorTranslations.server.saveFailed
         setErrors([message])
         // Error is handled by the component using this hook
-        console.error('Autosave failed:', error)
+        // Autosave failed silently - user data is preserved in form
       } finally {
         if (mountedRef.current) {
           setIsSaving(false)

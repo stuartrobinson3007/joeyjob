@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/taali-ui/ui/button'
+import { Button } from '@/ui/button'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface FormActionsProps {
   isSubmitting?: boolean
@@ -24,22 +25,23 @@ interface FormActionsProps {
 export function FormActions({
   isSubmitting = false,
   isDirty = false,
-  submitLabel = 'Save Changes',
-  cancelLabel = 'Cancel',
+  submitLabel,
+  cancelLabel,
   onCancel,
   showCancel = true,
   className = ''
 }: FormActionsProps) {
+  const { t } = useTranslation('common')
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         disabled={isSubmitting || !isDirty}
       >
-        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {isSubmitting ? 'Saving...' : submitLabel}
+        {isSubmitting && <Loader2 className="animate-spin" />}
+        {isSubmitting ? t('states.saving') : (submitLabel || t('states.saveChanges'))}
       </Button>
-      
+
       {showCancel && onCancel && (
         <Button
           type="button"
@@ -47,7 +49,7 @@ export function FormActions({
           onClick={onCancel}
           disabled={isSubmitting}
         >
-          {cancelLabel}
+          {cancelLabel || t('actions.cancel')}
         </Button>
       )}
     </div>

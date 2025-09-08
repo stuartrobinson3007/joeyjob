@@ -1,4 +1,4 @@
-import { format, formatDistance, formatRelative, parseISO } from 'date-fns'
+import { format, formatDistance, formatRelative, parseISO, type Locale } from 'date-fns'
 import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { enUS, es } from 'date-fns/locale'
 
@@ -101,7 +101,7 @@ export function formatRelativeTime(
   const userDate = toUserTimezone(utcDate)
   if (!userDate) return '-'
 
-  const options: any = { addSuffix: true }
+  const options: { addSuffix?: boolean; locale?: Locale } = { addSuffix: true }
   if (language) {
     options.locale = getDateLocale(language)
   }
@@ -124,7 +124,7 @@ export function formatRelativeDate(
   const userDate = toUserTimezone(utcDate)
   if (!userDate) return '-'
 
-  const options: any = {}
+  const options: { locale?: Locale } = {}
   if (language) {
     options.locale = getDateLocale(language)
   }

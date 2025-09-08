@@ -72,6 +72,11 @@ import { redis } from '@/lib/db/redis'
 import * as schema from '@/database/schema'
 
 // Define permission statements
+// NOTE: defaultStatements from Better Auth includes:
+// - member: ['create', 'update', 'delete'] - NO 'read' permission
+// - organization: ['update', 'delete']
+// - invitation: ['create', 'cancel']
+// - team: ['create', 'update', 'delete']
 const statement = {
   ...defaultStatements,
   todos: ['create', 'read', 'update', 'delete', 'assign'],
@@ -160,7 +165,7 @@ export const auth = betterAuth({
     }),
     admin({
       adminRoles: ['superadmin'],
-      adminUserIds: ['xCkr7sfb6x0GKsY2vCkQThP4IiSHjG7p'],
+      adminUserIds: process.env.ADMIN_USER_IDS?.split(',') || [],
     }),
     stripePlugin({
       stripeClient: stripe,
@@ -312,6 +317,80 @@ export const checkPermission = async (
 }
 ```
 
+#### Client-Side Permission Hooks
+
+**`useClientPermissions()` - Your Primary Permission Hook**
+
+This is the hook you'll use **99% of the time** for all UI permission decisions:
+
+```typescript
+// File: src/components/TodoActions.tsx
+import { useClientPermissions } from '@/lib/hooks/use-permissions'
+
+function TodoActions({ todo }: { todo: Todo }) {
+  const { canUpdateTodo, canDeleteTodo, canCreateTodo, isLoading } = useClientPermissions()
+  
+  if (isLoading) {
+    return <div>Loading permissions...</div>
+  }
+  
+  return (
+    <div className="flex gap-2">
+      {canUpdateTodo() && (
+        <Button onClick={() => editTodo(todo.id)}>
+          Edit
+        </Button>
+      )}
+      {canDeleteTodo() && (
+        <Button variant="destructive" onClick={() => deleteTodo(todo.id)}>
+          Delete
+        </Button>
+      )}
+      {canCreateTodo() && (
+        <Button onClick={() => createTodo()}>
+          New Todo
+        </Button>
+      )}
+    </div>
+  )
+}
+```
+
+**Use `useClientPermissions()` for:**
+- Show/hide buttons and UI elements
+- Enable/disable form fields
+- Conditional rendering of components
+- All UI state management based on permissions
+- Fast, synchronous permission checks
+
+**`useServerPermissions()` - Rarely Used**
+
+This hook exists but is **almost never needed** in practice:
+
+```typescript
+// File: src/components/DebugPanel.tsx (theoretical example)
+import { useServerPermissions } from '@/lib/auth/auth-hooks'
+
+function PermissionDebugPanel() {
+  // This is a contrived example - you probably won't need this
+  const { data: serverPerms, isLoading } = useServerPermissions({
+    permissions: { todos: ['create', 'update', 'delete'] }
+  })
+  
+  return <div>Server says: {JSON.stringify(serverPerms)}</div>
+}
+```
+
+**Why You Rarely Need `useServerPermissions()`:**
+- **Server functions already validate permissions** - When a user clicks "Delete", the `deleteTodo` server function runs `checkPermission()` for security
+- **Client permissions are for UX only** - They control what the user sees, not what they can do
+- **Double-checking is redundant** - Server-side validation happens anyway when actions are performed
+
+**Real-World Security Model:**
+1. **Client-side (`useClientPermissions`)**: Controls UI state for better UX
+2. **Server-side (`checkPermission` in server functions)**: Actual security enforcement
+3. **Result**: Clean separation of concerns, no redundant checks needed
+
 ## 🔧 Step-by-Step Implementation
 
 ### 1. Environment Configuration
@@ -334,6 +413,9 @@ REDIS_URL="redis://localhost:6379"
 # Stripe (for billing)
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# Admin users (comma-separated user IDs)
+ADMIN_USER_IDS="user-id-1,user-id-2"
 ```
 
 ### 2. Protected Server Function Implementation
@@ -488,6 +570,69 @@ describe('createTodo', () => {
 })
 ```
 
+## 🛡️ Better-Auth Error Handling Integration
+
+### Separation of Concerns
+
+Better-auth handles authentication-specific errors through its own error management system, which works alongside (not in conflict with) the application's error handling standards:
+
+#### Authentication Errors (Handled by Better-Auth)
+```typescript
+// These hooks have built-in error handling - DO NOT wrap them
+const { data: session, error: authError } = useSession()
+const { data: organizations, error: orgError } = useListOrganizations() 
+const updateMutation = useUpdateUser() // Built-in mutation error handling
+
+// Better-auth automatically handles:
+// - Session expiration → redirect to login
+// - Invalid tokens → clear session
+// - OAuth failures → user feedback
+```
+
+#### Business Logic Errors (Use Application Standards)
+```typescript
+// For non-auth operations, use standardized patterns
+const { data: todos, isError, error } = useTableQuery({
+  queryKey: ['todos'],
+  queryFn: getTodosTable, // This is business logic, not auth
+})
+
+if (isError && error) {
+  return <ErrorState error={parseError(error)} onRetry={refetch} />
+}
+```
+
+#### DO NOT Wrap Better-Auth Hooks
+```typescript
+// ❌ WRONG - Don't wrap better-auth hooks in custom error handling
+const { data } = useQuery({
+  queryKey: ['session'],
+  queryFn: () => authClient.getSession() // Don't do this
+})
+
+// ✅ CORRECT - Use better-auth hooks directly
+const { data: session } = useSession() // Built-in error handling
+```
+
+#### Profile Updates Pattern
+```typescript
+// Profile updates should use better-auth's mutation hooks
+const updateUserMutation = useUpdateUser()
+
+const handleSave = async () => {
+  try {
+    await updateUserMutation.mutateAsync({
+      name: `${firstName} ${lastName}`,
+    })
+    showSuccess('Profile updated')
+  } catch (error) {
+    showError(error) // Application error handler for UI feedback
+  }
+}
+```
+
+This ensures authentication errors are handled by the specialized better-auth system while business logic errors use the standardized application patterns.
+
 ## 📋 Implementation Checklist
 
 Before considering authentication complete, verify:
@@ -502,6 +647,7 @@ Before considering authentication complete, verify:
 - [ ] **Email Integration**: Magic link and OTP emails working
 - [ ] **Redis Storage**: Secondary storage configured for sessions
 - [ ] **Error Handling**: Permission errors properly handled and translated
+- [ ] **Data Fetching Integration**: Auth hooks work properly with error handling standards
 
 ## 🚀 Role Hierarchy & Permissions
 
@@ -550,6 +696,21 @@ await checkPermission('member', ['create', 'delete'], organizationId)
 
 // Basic todo operations (member+ level)
 await checkPermission('todos', ['create', 'update'], organizationId)
+
+// IMPORTANT: Viewing team members
+// Do NOT use: await checkPermission('member', ['read'], organizationId) 
+// The 'member' resource doesn't have a 'read' permission in Better Auth
+// Instead, use organizationMiddleware to verify membership:
+export const getTeamMembers = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware]) // Gets organizationId from context, verifies membership
+  .handler(async ({ data, context }) => {
+    const organizationId = context.organizationId
+    if (!organizationId) {
+      throw new AppError('No organization context')
+    }
+    // organizationMiddleware already verified user is a member
+    // No additional permission check needed for viewing
+  })
 ```
 
 This authentication system provides enterprise-grade security with fine-grained permissions, multi-provider support, and seamless integration with the organization-based multi-tenancy system.

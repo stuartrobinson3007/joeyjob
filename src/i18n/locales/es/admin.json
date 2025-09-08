@@ -42,11 +42,17 @@
     "owner": "Propietario",
     "members": "Miembros",
     "plan": "Plan",
+    "stripeCustomerId": "ID de Cliente Stripe",
+    "searchCustomerId": "Buscar por ID de Cliente",
     "created": "Creado",
     "actions": "Acciones",
     "organization": "Organización",
     "noSlug": "Sin slug",
-    "deleteOrganization": "Eliminar Organización"
+    "deleteOrganization": "Eliminar Organización",
+    "impersonateOwner": "Suplantar Propietario",
+    "noOwnerTooltip": "Este espacio de trabajo no tiene propietario",
+    "ownerBannedTooltip": "El propietario del espacio de trabajo está bloqueado",
+    "cannotImpersonateTooltip": "No se puede suplantar al propietario"
   },
   "analytics": {
     "title": "Analíticas",

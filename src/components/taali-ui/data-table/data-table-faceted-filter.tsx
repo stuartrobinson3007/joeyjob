@@ -23,6 +23,7 @@ import { cn } from '../lib/utils'
 import { DataTableFilterOption } from './types'
 
 import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { getTableFilterValue } from '@/lib/utils/type-safe-access'
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -38,7 +39,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   multiple = true,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const { t } = useTranslation('common')
-  const selectedValues = column?.getFilterValue() as string[] | string | undefined
+  const selectedValues = getTableFilterValue(column?.getFilterValue())
   const normalizedValues = React.useMemo(() => {
     if (!selectedValues) return []
     if (Array.isArray(selectedValues)) return selectedValues
@@ -97,7 +98,7 @@ export function DataTableFacetedFilter<TData, TValue>({
       <FacetedContent className="w-[200px] p-0">
         <FacetedInput placeholder={title} />
         <FacetedList>
-          <FacetedEmpty>{t('common:filters.noResults')}</FacetedEmpty>
+          <FacetedEmpty>{t('filters.noResults')}</FacetedEmpty>
           <FacetedGroup>
             {options.map(option => {
               const isSelected = normalizedValues.includes(option.value)
@@ -106,7 +107,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                   {option.icon && (
                     <option.icon
                       className={cn(
-                        'mr-2 h-4 w-4 text-muted-foreground',
+                        'text-muted-foreground',
                         isSelected && 'text-foreground'
                       )}
                     />
@@ -129,7 +130,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 className="w-full justify-center"
                 onClick={() => column?.setFilterValue(undefined)}
               >
-                {t('common:filters.clearFilter')}
+                {t('filters.clearFilter')}
               </Button>
             </div>
           )}

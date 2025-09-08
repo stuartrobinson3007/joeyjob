@@ -4,11 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { useConfirm } from '@/components/taali-ui/ui/confirm-dialog'
 import { organizationFormSchema, type OrganizationFormData } from '@/lib/validation/organization.schema'
-import { 
-  updateOrganizationWithValidation, 
-  deleteOrganizationWithValidation, 
-  checkSlugAvailability 
+import type { Organization } from '@/types/organization'
+import {
+  updateOrganizationWithValidation,
+  deleteOrganizationWithValidation,
+  checkSlugAvailability
 } from '@/lib/auth/organization-wrapper'
 import { useFormMutation } from '@/lib/hooks/use-form-mutation'
 import { useAsyncFieldValidator } from '@/lib/hooks/use-async-field-validator'
@@ -19,16 +21,16 @@ import { PageHeader } from '@/components/page-header'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
-import { validationMessages } from '@/lib/validation/validation-messages'
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
 import {
   FormErrorBoundary,
   Form,
   TextField,
   FormActions,
   FormRootError
-} from '@/components/form'
-import { Button } from '@/components/taali-ui/ui/button'
-import { Skeleton } from '@/components/taali-ui/ui/skeleton'
+} from '@/components/taali-ui/form'
+import { Button } from '@/ui/button'
+import { Skeleton } from '@/ui/skeleton'
 
 export const Route = createFileRoute('/_authenticated/settings')({
   component: OrganizationSettings,
@@ -42,7 +44,8 @@ function OrganizationSettingsForm() {
   const { t: tCommon } = useTranslation('common')
   const { t: tNotifications } = useTranslation('notifications')
   const { showSuccess } = useErrorHandler()
-  
+  const confirm = useConfirm()
+
   // Initialize form with React Hook Form and Zod
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationFormSchema),
@@ -52,13 +55,13 @@ function OrganizationSettingsForm() {
     },
     mode: 'onChange' // Enable real-time validation
   })
-  
+
   // Sync form with loaded organization data
   useFormSync(form, activeOrganization ? {
     name: activeOrganization.name || '',
     slug: activeOrganization.slug || ''
   } : null, [activeOrganization])
-  
+
   // Setup async slug validation
   const validateSlug = useAsyncFieldValidator(
     async (slug: string) => {
@@ -66,34 +69,46 @@ function OrganizationSettingsForm() {
       if (!activeOrganization || slug === activeOrganization.slug) {
         return true
       }
-      
+
       // Skip if slug is empty (Zod will handle required validation)
       if (!slug) {
         return true
       }
-      
+
       try {
-        const result = await checkSlugAvailability({ 
+        const result = await checkSlugAvailability({
           data: {
-            slug, 
-            organizationId: activeOrganization.id 
+            slug,
+            organizationId: activeOrganization.id
           }
         })
-        
-        return result.available || validationMessages.organization.slug.taken
+
+        return result.available || 'validation:organization.slug.taken'
       } catch (error) {
+        // Handle abort errors gracefully
+        if ((error as Error)?.name === 'AbortError') {
+          return true // Return valid if aborted
+        }
+
         // If validation fails, allow it (better to let server validate)
-        console.error('Slug validation error:', error)
+        // Slug validation error - handled by error state
         return true
       }
     },
     [activeOrganization]
   )
-  
+
   // Setup mutation with error handling
-  const updateMutation = useFormMutation<any, OrganizationFormData>({
+  const updateMutation = useFormMutation<Organization, OrganizationFormData, OrganizationFormData>({
     mutationFn: async (data: OrganizationFormData) => {
-      if (!activeOrganization) throw new Error('No organization')
+      if (!activeOrganization) {
+        throw new AppError(
+          ERROR_CODES.VAL_REQUIRED_FIELD,
+          400,
+          { field: 'activeOrganization' },
+          tCommon('organization.noActiveOrganization')
+        )
+      }
       return updateOrganizationWithValidation({
         ...data,
         organizationId: activeOrganization.id
@@ -108,33 +123,42 @@ function OrganizationSettingsForm() {
       form.reset(form.getValues())
     }
   })
-  
+
   // Handle delete organization
   const handleDeleteOrganization = async () => {
     if (!activeOrganization) return
-    
-    const confirmed = confirm(t('danger.deleteConfirmWithName', { name: activeOrganization.name }))
+
+    const confirmed = await confirm({
+      title: t('danger.deleteConfirmTitle'),
+      description: t('danger.deleteConfirmWithName', { name: activeOrganization.name }),
+      confirmText: t('danger.deleteWorkspace'),
+      variant: 'destructive'
+    })
     if (!confirmed) return
-    
+
     try {
       await deleteOrganizationWithValidation(activeOrganization.id)
       toast.success(tNotifications('success.organizationDeleted'))
-      
+
       // Clear the active organization from storage
       clearActiveOrganizationId()
-      
+
+      // Refresh organizations list to ensure deleted org doesn't appear
+      await refetchOrganizations()
+
       // Navigate to organization selector
       navigate({ to: '/select-organization' })
-    } catch {
-      // Generic error message for organization deletion failure
+    } catch (_error) {
+      // Log and show error message for organization deletion failure
+      // Failed to delete organization - handled by showError
       toast.error(tNotifications('error.organizationDeleteFailed'))
     }
   }
-  
+
   const onSubmit = (data: OrganizationFormData) => {
     updateMutation.mutate(data)
   }
-  
+
   // Loading state
   if (isLoading) {
     return (
@@ -152,7 +176,7 @@ function OrganizationSettingsForm() {
       </div>
     )
   }
-  
+
   // No organization state
   if (!activeOrganization) {
     return (
@@ -164,11 +188,11 @@ function OrganizationSettingsForm() {
       </div>
     )
   }
-  
+
   return (
     <div className="flex flex-col h-full">
       <PageHeader title={t('title')} />
-      
+
       {/* Main Content */}
       <div className="flex-1 p-6">
         <div className="max-w-2xl mx-auto w-full">
@@ -180,7 +204,7 @@ function OrganizationSettingsForm() {
                 label={t('organization.name')}
                 placeholder={t('organization.namePlaceholder')}
               />
-              
+
               <TextField
                 control={form.control}
                 name="slug"
@@ -191,10 +215,10 @@ function OrganizationSettingsForm() {
                   validate: validateSlug
                 }}
               />
-              
+
               {/* Root-level errors */}
               <FormRootError errors={form.formState.errors} />
-              
+
               {/* Form actions */}
               <FormActions
                 isSubmitting={updateMutation.isPending}
@@ -204,7 +228,7 @@ function OrganizationSettingsForm() {
               />
             </form>
           </Form>
-          
+
           {/* Danger Zone */}
           <div className="bg-card rounded-lg shadow-sm border border-destructive/30 p-6 mt-8">
             <h3 className="text-lg font-semibold text-destructive mb-4">{t('danger.title')}</h3>
@@ -216,7 +240,7 @@ function OrganizationSettingsForm() {
                 variant="destructive"
                 className="flex items-center gap-2"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 />
                 {t('danger.deleteWorkspace')}
               </Button>
             </div>

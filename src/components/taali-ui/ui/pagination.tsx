@@ -12,7 +12,7 @@ function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
   return (
     <nav
       role="navigation"
-      aria-label={t('common:accessibility.pagination')}
+      aria-label={t('accessibility.pagination')}
       data-slot="pagination"
       className={cn('mx-auto flex w-full justify-center', className)}
       {...props}
@@ -62,13 +62,13 @@ function PaginationPrevious({ className, ...props }: React.ComponentProps<typeof
 
   return (
     <PaginationLink
-      aria-label={t('common:accessibility.goToPrevious')}
+      aria-label={t('accessibility.goToPrevious')}
       size="default"
       className={cn('gap-1 px-2.5 sm:pl-2.5', className)}
       {...props}
     >
       <ChevronLeftIcon />
-      <span className="hidden sm:block">{t('common:pagination.previous')}</span>
+      <span className="hidden sm:block">{t('pagination.previous')}</span>
     </PaginationLink>
   )
 }
@@ -78,12 +78,12 @@ function PaginationNext({ className, ...props }: React.ComponentProps<typeof Pag
 
   return (
     <PaginationLink
-      aria-label={t('common:accessibility.goToNext')}
+      aria-label={t('accessibility.goToNext')}
       size="default"
       className={cn('gap-1 px-2.5 sm:pr-2.5', className)}
       {...props}
     >
-      <span className="hidden sm:block">{t('common:pagination.next')}</span>
+      <span className="hidden sm:block">{t('pagination.next')}</span>
       <ChevronRightIcon />
     </PaginationLink>
   )
@@ -100,7 +100,7 @@ function PaginationEllipsis({ className, ...props }: React.ComponentProps<'span'
       {...props}
     >
       <MoreHorizontalIcon className="size-4" />
-      <span className="sr-only">{t('common:accessibility.morePages')}</span>
+      <span className="sr-only">{t('accessibility.morePages')}</span>
     </span>
   )
 }

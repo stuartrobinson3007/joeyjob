@@ -5,7 +5,7 @@ export interface ParsedError {
   code: string
   message: string
   statusCode: number
-  context?: any
+  context?: unknown
   actions?: ErrorAction[]
 }
 
@@ -24,7 +24,7 @@ export function parseError(error: unknown): ParsedError {
 
   // Handle API responses
   if (typeof error === 'object' && error !== null && 'code' in error) {
-    const e = error as { code: string; message: string; statusCode?: number; context?: any; actions?: any }
+    const e = error as { code: string; message: string; statusCode?: number; context?: unknown; actions?: ErrorAction[] }
     return {
       code: e.code,
       message: e.message || e.code,

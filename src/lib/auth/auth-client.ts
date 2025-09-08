@@ -6,6 +6,7 @@ import {
   inferAdditionalFields,
   emailOTPClient,
 } from 'better-auth/client/plugins'
+import { stripeClient } from '@better-auth/stripe/client'
 
 import type { auth } from './auth'
 
@@ -16,6 +17,7 @@ export const authClient = createAuthClient({
     emailOTPClient(),
     adminClient(),
     organizationClient(),
+    stripeClient({ subscription: true }),
     inferAdditionalFields<typeof auth>(),
   ],
 })

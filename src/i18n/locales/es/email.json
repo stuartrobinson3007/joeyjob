@@ -9,6 +9,7 @@
     "footer": "Si no solicitaste este correo, puedes ignorarlo de forma segura."
   },
   "invitation": {
+    "subject": "{{inviterName}} te invitó a unirte a {{organizationName}}",
     "preview": "Invitación para unirse a {{organizationName}}",
     "title": "¡Estás invitado!",
     "message": "<strong>{{inviterName}}</strong> te ha invitado a unirte a <strong>{{organizationName}}</strong> en Todo App.",

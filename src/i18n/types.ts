@@ -7,4 +7,4 @@ declare module 'i18next' {
   }
 }
 
-export type TranslationFunction = (key: string, options?: any) => string
+export type TranslationFunction = (key: string, options?: Record<string, unknown>) => string

@@ -1,4 +1,4 @@
-import { Button } from '@/components/taali-ui/ui/button'
+import { Button } from '@/ui/button'
 import { authClient } from '@/lib/auth/auth-client'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
@@ -14,7 +14,6 @@ export function GoogleSignIn() {
         callbackURL: '/',
       })
     } catch (error) {
-      console.error('Sign-in failed:', error)
       showError(error)
     }
   }

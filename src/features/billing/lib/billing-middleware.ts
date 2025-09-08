@@ -1,9 +1,10 @@
 import { auth } from '@/lib/auth/auth'
 import { checkPermission } from '@/lib/utils/permissions'
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
 
 interface BillingContext {
   request?: Request
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -11,23 +12,18 @@ interface BillingContext {
  * Validates session and checks organization-level billing management rights
  */
 export const billingAdminMiddleware = async (context: BillingContext) => {
-  console.log('[BILLING] Middleware: Received context:', {
-    hasRequest: !!context.request,
-    requestMethod: context.request?.method,
-    contextKeys: Object.keys(context),
-  })
 
   const request = context.request || new Request('http://localhost')
   const session = await auth.api.getSession({ headers: request.headers })
 
-  console.log('[BILLING] Middleware: Session info:', {
-    hasSession: !!session,
-    hasActiveOrgId: !!session?.session?.activeOrganizationId,
-    activeOrgId: session?.session?.activeOrganizationId,
-  })
 
   if (!session?.session?.activeOrganizationId) {
-    throw new Error('No active organization selected')
+    throw new AppError(
+      ERROR_CODES.VAL_REQUIRED_FIELD,
+      400,
+      { field: 'activeOrganizationId' },
+      'No active organization selected'
+    )
   }
 
   const { activeOrganizationId: organizationId } = session.session

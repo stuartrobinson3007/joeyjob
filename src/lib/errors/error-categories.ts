@@ -1,23 +1,24 @@
-import { ERROR_CODES } from './codes'
+import { ERROR_CODES, type ErrorCode } from './codes'
 
 // Define where each error type should be displayed
 const ERROR_CATEGORIES = {
-  field: new Set([
+  field: new Set<ErrorCode>([
     ERROR_CODES.VAL_REQUIRED_FIELD,
     ERROR_CODES.VAL_INVALID_FORMAT,
     ERROR_CODES.VAL_INVALID_EMAIL,
     ERROR_CODES.VAL_PASSWORD_TOO_WEAK,
     ERROR_CODES.BIZ_DUPLICATE_ENTRY
   ]),
-  form: new Set([
+  form: new Set<ErrorCode>([
     ERROR_CODES.BIZ_LIMIT_EXCEEDED,
     ERROR_CODES.BIZ_INVALID_STATE,
     ERROR_CODES.BIZ_NOT_FOUND,
     ERROR_CODES.BIZ_PAYMENT_FAILED,
     ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
-    ERROR_CODES.AUTH_ACCOUNT_LOCKED
+    ERROR_CODES.AUTH_ACCOUNT_LOCKED,
+    ERROR_CODES.AUTH_INVALID_CREDENTIALS
   ]),
-  toast: new Set([
+  toast: new Set<ErrorCode>([
     ERROR_CODES.SYS_SERVER_ERROR,
     ERROR_CODES.SYS_CONFIG_ERROR,
     ERROR_CODES.SYS_RATE_LIMIT,
@@ -34,10 +35,11 @@ const ERROR_CATEGORIES = {
  * @returns 'field' | 'form' | 'toast' - The display location
  */
 export function getErrorDisplayType(code: string): 'field' | 'form' | 'toast' {
-  // Check each category
-  if (ERROR_CATEGORIES.field.has(code as any)) return 'field'
-  if (ERROR_CATEGORIES.form.has(code as any)) return 'form'
-  if (ERROR_CATEGORIES.toast.has(code as any)) return 'toast'
+  // Check each category using type guard
+  const errorCode = code as ErrorCode
+  if (ERROR_CATEGORIES.field.has(errorCode)) return 'field'
+  if (ERROR_CATEGORIES.form.has(errorCode)) return 'form'
+  if (ERROR_CATEGORIES.toast.has(errorCode)) return 'toast'
   
   // Default to toast for unknown errors
   return 'toast'
@@ -47,13 +49,13 @@ export function getErrorDisplayType(code: string): 'field' | 'form' | 'toast' {
  * Check if an error should be retryable
  */
 export function isRetryableError(code: string): boolean {
-  const retryableCodes = new Set([
+  const retryableCodes = new Set<ErrorCode>([
     ERROR_CODES.NET_CONNECTION_ERROR,
     ERROR_CODES.NET_TIMEOUT,
     ERROR_CODES.SYS_RATE_LIMIT
   ])
   
-  return retryableCodes.has(code as any)
+  return retryableCodes.has(code as ErrorCode)
 }
 
 /**

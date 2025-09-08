@@ -26,6 +26,7 @@ import { UserTile } from '@/components/user-tile'
 import { authClient } from '@/lib/auth/auth-client'
 import { cn } from '@/components/taali-ui/lib/utils'
 import { useSession } from '@/lib/auth/auth-hooks'
+import { isUserImpersonating } from '@/lib/auth/auth-types'
 
 interface SuperAdminSidebarProps {
   className?: string
@@ -83,16 +84,16 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
               itemsToClear.forEach(item => {
                 try {
                   localStorage.removeItem(item)
-                } catch (error) {
-                  console.error('Error clearing localStorage item:', item, error)
+                } catch (_error) {
+                  // Silently ignore localStorage clear errors
                 }
               })
 
               // Clear session storage
               try {
                 sessionStorage.clear()
-              } catch (error) {
-                console.error('Error clearing sessionStorage:', error)
+              } catch (_error) {
+                // Silently ignore sessionStorage clear errors
               }
             }
 
@@ -105,20 +106,20 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
               },
             })
           },
-          onError: error => {
-            console.error('Logout error:', error)
+          onError: _error => {
+            // Logout error is handled - just reset loading state
             setIsLoggingOut(false)
           },
         },
       })
-    } catch (error) {
-      console.error('Logout error:', error)
+    } catch (_error) {
+      // Logout error is handled - just reset loading state
       setIsLoggingOut(false)
     }
   }
 
   const user = session?.user
-  const isImpersonating = !!(session as any)?.session?.impersonatedBy
+  const isImpersonating = isUserImpersonating(session)
 
   return (
     <Sidebar className={cn('border-r', className)}>
@@ -128,7 +129,7 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
             <ShieldUser className="h-6 w-6" />
             <div>
               <h2 className="text-lg font-bold text-sidebar-foreground">{t('title')}</h2>
-              <p className="text-sm text-muted-foreground">{t('common:sidebar.subtitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('sidebar.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -142,7 +143,7 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={currentPath === item.url}>
                     <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
+                      <item.icon />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -159,8 +160,8 @@ export function SuperAdminSidebar({ className }: SuperAdminSidebarProps) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleReturnToApp}>
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>{t('common:actions.leave')}</span>
+                  <ArrowLeft />
+                  <span>{t('actions.leave')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

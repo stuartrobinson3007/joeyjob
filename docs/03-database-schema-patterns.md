@@ -201,7 +201,7 @@ export const invitation = pgTable('invitation', {
 
 ### 4. **Feature Data Schema (Todos Example)**
 ```typescript
-// Todos table - Organization-scoped user data
+// Todos table - Organization-scoped user data with soft delete support
 export const todos = pgTable('todos', {
   id: text('id')
     .primaryKey()
@@ -225,6 +225,9 @@ export const todos = pgTable('todos', {
   completed: boolean('completed').default(false).notNull(),
   priority: integer('priority').default(3).notNull(),
   dueDate: timestamp('due_date'),
+  
+  // Soft delete support - RECOMMENDED for user data recovery
+  deletedAt: timestamp('deleted_at'), // NULL = active, timestamp = soft deleted
   
   // Consistent timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -331,12 +334,15 @@ import { eq, and, desc } from 'drizzle-orm'
 import { db } from '@/lib/db/db'
 import { todos } from '@/database/schema'
 
-// ALWAYS include organization scoping in queries
+// ALWAYS include organization scoping AND soft delete filtering in queries
 export const getTodos = async (organizationId: string) => {
   return await db
     .select()
     .from(todos)
-    .where(eq(todos.organizationId, organizationId))
+    .where(and(
+      eq(todos.organizationId, organizationId),
+      isNull(todos.deletedAt) // CRITICAL: Filter out soft-deleted records
+    ))
     .orderBy(desc(todos.createdAt))
 }
 
@@ -355,13 +361,37 @@ export const createTodo = async (data: CreateTodoInput, organizationId: string, 
 }
 
 // ALWAYS scope updates and deletes by organization
+// RECOMMENDED: Use soft delete for user data recovery
 export const deleteTodo = async (todoId: string, organizationId: string) => {
+  // Soft delete: set deletedAt timestamp instead of removing record
   return await db
-    .delete(todos)
+    .update(todos)
+    .set({ 
+      deletedAt: new Date(),
+      updatedAt: new Date()
+    })
     .where(and(
       eq(todos.id, todoId),
-      eq(todos.organizationId, organizationId) // REQUIRED for security
+      eq(todos.organizationId, organizationId), // REQUIRED for security
+      isNull(todos.deletedAt) // Only delete active records
     ))
+    .returning()
+}
+
+// Restore functionality for undo operations
+export const restoreTodo = async (todoId: string, organizationId: string) => {
+  return await db
+    .update(todos)
+    .set({ 
+      deletedAt: null,
+      updatedAt: new Date()
+    })
+    .where(and(
+      eq(todos.id, todoId),
+      eq(todos.organizationId, organizationId), // REQUIRED for security
+      isNotNull(todos.deletedAt) // Only restore deleted records
+    ))
+    .returning()
 }
 ```
 
@@ -464,23 +494,28 @@ Before considering database implementation complete, verify:
 ### Complex Queries with Joins
 ```typescript
 // Multi-table queries with proper typing
+import { alias } from 'drizzle-orm/pg-core'
+
 export const getTodosWithAssignees = async (organizationId: string) => {
+  const assigneeUser = alias(user, 'assignee_user')
+  const creatorUser = alias(user, 'creator_user')
+  
   return await db
     .select({
       todo: todos,
       assignee: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: assigneeUser.id,
+        name: assigneeUser.name,
+        email: assigneeUser.email,
       },
       creator: {
-        id: user.id,
-        name: user.name,
+        id: creatorUser.id,
+        name: creatorUser.name,
       }
     })
     .from(todos)
-    .leftJoin(user, eq(todos.assignedTo, user.id))
-    .leftJoin(user, eq(todos.createdBy, user.id))
+    .leftJoin(assigneeUser, eq(todos.assignedTo, assigneeUser.id))
+    .leftJoin(creatorUser, eq(todos.createdBy, creatorUser.id))
     .where(eq(todos.organizationId, organizationId))
 }
 ```
@@ -544,4 +579,280 @@ const settingsWithDarkTheme = await db
   )
 ```
 
-This database architecture provides a robust foundation for multi-tenant SaaS applications with proper data isolation, type safety, and scalability considerations.
+## 🗑️ Soft Delete Implementation Pattern
+
+### When to Use Soft Delete vs Hard Delete
+
+**Use Soft Delete For:**
+- ✅ User-generated content (todos, posts, comments)
+- ✅ Important business records that may need recovery
+- ✅ Data that users might accidentally delete
+- ✅ Records that need audit trails
+- ✅ Data with complex relationships that are expensive to rebuild
+
+**Use Hard Delete For:**
+- ❌ Sensitive data that must be permanently removed (GDPR compliance)
+- ❌ Large datasets where storage cost is a concern
+- ❌ Session data, temporary files, logs
+- ❌ Data that becomes invalid over time
+- ❌ System-generated data with no recovery value
+
+### Complete Soft Delete Implementation
+
+```typescript
+// File: src/features/todos/lib/todos.server.ts - Complete soft delete pattern
+import { createServerFn } from '@tanstack/react-start'
+import { eq, and, desc, isNull, isNotNull } from 'drizzle-orm'
+import { z } from 'zod'
+
+import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
+import { checkPermission } from '@/lib/utils/permissions'
+import { db } from '@/lib/db/db'
+import { todos } from '@/database/schema'
+import { AppError } from '@/lib/utils/errors'
+
+const todoIdSchema = z.object({
+  id: z.string(),
+})
+
+// GET - Always filter out soft-deleted records
+export const getTodos = createServerFn({ method: 'GET' })
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }) => {
+    const orgId = context.organizationId
+
+    const todoList = await db
+      .select()
+      .from(todos)
+      .where(and(
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt) // CRITICAL: Exclude soft-deleted
+      ))
+      .orderBy(desc(todos.createdAt))
+
+    return todoList
+  })
+
+// DELETE - Soft delete with undo capability
+export const deleteTodo = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    // Check permissions
+    await checkPermission('todos', ['delete'], orgId)
+
+    // Verify todo exists and is not already deleted
+    const existingTodo = await db
+      .select()
+      .from(todos)
+      .where(and(
+        eq(todos.id, data.id), 
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt) // Only active todos can be deleted
+      ))
+      .limit(1)
+
+    if (!existingTodo[0]) {
+      throw AppError.notFound('Todo')
+    }
+
+    // Soft delete: set deletedAt timestamp
+    await db
+      .update(todos)
+      .set({ 
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+
+    return { success: true, canUndo: true }
+  })
+
+// RESTORE - Undo delete operation
+export const undoDeleteTodo = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    // Check permissions - use 'create' since we're restoring data
+    await checkPermission('todos', ['create'], orgId)
+
+    // Verify todo exists and is soft-deleted
+    const deletedTodo = await db
+      .select()
+      .from(todos)
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId),
+        isNotNull(todos.deletedAt) // Only deleted todos can be restored
+      ))
+      .limit(1)
+
+    if (!deletedTodo[0]) {
+      throw AppError.notFound('Deleted Todo')
+    }
+
+    // Restore: clear deletedAt timestamp
+    const restored = await db
+      .update(todos)
+      .set({ 
+        deletedAt: null,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+      .returning()
+
+    return restored[0]
+  })
+
+// CLEANUP - Permanent delete for old soft-deleted records
+export const permanentlyDeleteOldTodos = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }) => {
+    const orgId = context.organizationId
+    
+    await checkPermission('todos', ['delete'], orgId)
+
+    // Delete records soft-deleted more than 30 days ago
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const deleted = await db
+      .delete(todos)
+      .where(and(
+        eq(todos.organizationId, orgId),
+        isNotNull(todos.deletedAt),
+        // Add condition for deletedAt < thirtyDaysAgo
+      ))
+      .returning()
+
+    return { deletedCount: deleted.length }
+  })
+```
+
+### Database Indexes for Soft Delete
+
+```sql
+-- Essential indexes for soft delete pattern
+-- Composite index for active records (most common query)
+CREATE INDEX CONCURRENTLY idx_todos_active_org 
+ON todos (organization_id, created_at DESC) 
+WHERE deleted_at IS NULL;
+
+-- Index for finding deleted records (for admin/cleanup)
+CREATE INDEX CONCURRENTLY idx_todos_deleted_org 
+ON todos (organization_id, deleted_at) 
+WHERE deleted_at IS NOT NULL;
+
+-- Unique constraint that considers soft delete
+CREATE UNIQUE INDEX CONCURRENTLY idx_todos_unique_title_active
+ON todos (organization_id, title)
+WHERE deleted_at IS NULL;
+```
+
+### Migration Script for Adding Soft Delete
+
+```sql
+-- Migration: Add soft delete to existing table
+BEGIN;
+
+-- Add deletedAt column
+ALTER TABLE todos ADD COLUMN deleted_at TIMESTAMP NULL;
+
+-- Add comment for documentation
+COMMENT ON COLUMN todos.deleted_at IS 'Timestamp when record was soft deleted. NULL = active, timestamp = deleted';
+
+-- Create indexes
+CREATE INDEX CONCURRENTLY idx_todos_active_org 
+ON todos (organization_id, created_at DESC) 
+WHERE deleted_at IS NULL;
+
+CREATE INDEX CONCURRENTLY idx_todos_deleted_org 
+ON todos (organization_id, deleted_at) 
+WHERE deleted_at IS NOT NULL;
+
+COMMIT;
+```
+
+### Performance Considerations
+
+```typescript
+// Efficient bulk operations with soft delete
+export const bulkDeleteTodos = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator(z.object({ ids: z.array(z.string()) }))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    await checkPermission('todos', ['delete'], orgId)
+
+    // Bulk soft delete - much faster than individual operations
+    const deleted = await db
+      .update(todos)
+      .set({ 
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(and(
+        inArray(todos.id, data.ids),
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt) // Only delete active records
+      ))
+      .returning({ id: todos.id })
+
+    return { 
+      success: true, 
+      deletedCount: deleted.length,
+      canUndo: true 
+    }
+  })
+```
+
+### Testing Soft Delete Implementation
+
+```typescript
+// Test soft delete behavior
+describe('Soft Delete Implementation', () => {
+  it('should soft delete records without removing from database', async () => {
+    const todo = await createTodo(mockData)
+    
+    await deleteTodo(todo.id, orgId)
+    
+    // Record should still exist in database
+    const directQuery = await db
+      .select()
+      .from(todos)
+      .where(eq(todos.id, todo.id))
+    
+    expect(directQuery[0]).toBeDefined()
+    expect(directQuery[0].deletedAt).not.toBeNull()
+    
+    // But should not appear in normal queries
+    const activeQuery = await getTodos(orgId)
+    expect(activeQuery.find(t => t.id === todo.id)).toBeUndefined()
+  })
+
+  it('should restore soft deleted records', async () => {
+    const todo = await createTodo(mockData)
+    await deleteTodo(todo.id, orgId)
+    
+    const restored = await undoDeleteTodo(todo.id, orgId)
+    
+    expect(restored.deletedAt).toBeNull()
+    
+    // Should appear in normal queries again
+    const activeQuery = await getTodos(orgId)
+    expect(activeQuery.find(t => t.id === todo.id)).toBeDefined()
+  })
+})
+```
+
+This database architecture provides a robust foundation for multi-tenant SaaS applications with proper data isolation, type safety, scalability considerations, and comprehensive soft delete support for improved user experience and data recovery.

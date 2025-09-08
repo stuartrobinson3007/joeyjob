@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'
 import { nanoid } from 'nanoid'
 
 export const user = pgTable('user', {
@@ -69,13 +69,8 @@ export const organization = pgTable('organization', {
   logo: text('logo'),
 
   // Billing fields
-  currentPlan: text('current_plan').default('free').notNull(),
+  currentPlan: text('current_plan').default('free').notNull(), // Cached from Stripe for quick access
   stripeCustomerId: text('stripe_customer_id'),
-  planLimits: jsonb('plan_limits').$type<{
-    todos?: number
-    members?: number
-    storage?: number
-  }>(),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -112,7 +107,7 @@ export const invitation = pgTable('invitation', {
 export const subscription = pgTable('subscription', {
   id: text('id').primaryKey(),
   plan: text('plan').notNull(),
-  referenceId: text('reference_id').notNull(),
+  referenceId: text('reference_id').notNull(), // Can be userId or organizationId
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
   status: text('status').default('incomplete'),
@@ -122,17 +117,6 @@ export const subscription = pgTable('subscription', {
   trialEnd: timestamp('trial_end'),
   cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
   seats: integer('seats'),
-  // Keep some additional fields for compatibility
-  userId: text('user_id').references(() => user.id),
-  stripePriceId: text('stripe_price_id'),
-  stripeCurrentPeriodEnd: timestamp('stripe_current_period_end'),
-  stripeCurrentPeriodStart: timestamp('stripe_current_period_start'),
-  stripeCancelAt: timestamp('stripe_cancel_at'),
-  stripeCancelAtPeriodEnd: boolean('stripe_cancel_at_period_end'),
-  stripeTrialStart: timestamp('stripe_trial_start'),
-  stripeTrialEnd: timestamp('stripe_trial_end'),
-  limits: jsonb('limits'), // Plan limits (todos, members, storage)
-  metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
@@ -154,6 +138,7 @@ export const todos = pgTable('todos', {
   completed: boolean('completed').default(false).notNull(),
   priority: integer('priority').default(3).notNull(),
   dueDate: timestamp('due_date'),
+  deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

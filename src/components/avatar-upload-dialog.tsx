@@ -12,9 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/taali-ui/ui/dialog'
-import { Button } from '@/components/taali-ui/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/taali-ui/ui/avatar'
+} from '@/ui/dialog'
+import { Button } from '@/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/avatar'
 import { useSession } from '@/lib/auth/auth-hooks'
 
 interface AvatarUploadDialogProps {
@@ -71,7 +71,7 @@ export function AvatarUploadDialog({
             ERROR_CODES.VAL_INVALID_FORMAT,
             400,
             { allowedTypes: allowedTypes.join(', ') },
-            t('profile:avatar.errors.invalidFileType')
+            t('avatar.errors.invalidFileType')
           )
         )
         return
@@ -85,7 +85,7 @@ export function AvatarUploadDialog({
             ERROR_CODES.VAL_INVALID_FORMAT,
             400,
             { maxSizeMB: 10, actualSizeMB: (file.size / 1024 / 1024).toFixed(1) },
-            t('profile:avatar.errors.fileSizeExceeds', { size: '10MB' })
+            t('avatar.errors.fileSizeExceeds', { size: '10MB' })
           )
         )
         return
@@ -108,7 +108,7 @@ export function AvatarUploadDialog({
           if (img.width > maxWidth || img.height > maxHeight) {
             reject(
               new Error(
-                t('profile:avatar.errors.dimensionsTooLarge', {
+                t('avatar.errors.dimensionsTooLarge', {
                   width: img.width,
                   height: img.height,
                   maxWidth,
@@ -122,7 +122,7 @@ export function AvatarUploadDialog({
           if (img.width < minWidth || img.height < minHeight) {
             reject(
               new Error(
-                t('profile:avatar.errors.dimensionsTooSmall', {
+                t('avatar.errors.dimensionsTooSmall', {
                   width: img.width,
                   height: img.height,
                   minWidth,
@@ -138,7 +138,7 @@ export function AvatarUploadDialog({
 
         img.onerror = () => {
           URL.revokeObjectURL(imageUrl)
-          reject(new Error(t('profile:avatar.errors.invalidImage')))
+          reject(new Error(t('avatar.errors.invalidImage')))
         }
 
         img.src = imageUrl
@@ -177,11 +177,11 @@ export function AvatarUploadDialog({
         defaultPrevented: false,
         eventPhase: 0,
         isTrusted: false,
-        preventDefault: () => {},
+        preventDefault: () => { },
         isDefaultPrevented: () => false,
-        stopPropagation: () => {},
+        stopPropagation: () => { },
         isPropagationStopped: () => false,
-        persist: () => {},
+        persist: () => { },
         timeStamp: Date.now(),
         type: 'change',
       } as unknown as React.ChangeEvent<HTMLInputElement>
@@ -217,10 +217,15 @@ export function AvatarUploadDialog({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || t('profile:avatar.errors.uploadFailed'))
+        throw new AppError(
+          ERROR_CODES.SYS_SERVER_ERROR,
+          500,
+          { uploadError: data.error },
+          data.error || t('avatar.errors.uploadFailed')
+        )
       }
 
-      showSuccess(t('profile:avatar.success.uploaded'))
+      showSuccess(t('avatar.success.uploaded'))
 
       // Call callback if provided
       onUploadComplete?.(data.avatarUrl)
@@ -242,7 +247,6 @@ export function AvatarUploadDialog({
         fileInputRef.current.value = ''
       }
     } catch (error) {
-      console.error('Upload error:', error)
       showError(error)
     } finally {
       setIsUploading(false)
@@ -263,10 +267,15 @@ export function AvatarUploadDialog({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || t('profile:avatar.errors.removeFailed'))
+        throw new AppError(
+          ERROR_CODES.SYS_SERVER_ERROR,
+          500,
+          { removeError: data.error },
+          data.error || t('avatar.errors.removeFailed')
+        )
       }
 
-      showSuccess(t('profile:avatar.success.removed'))
+      showSuccess(t('avatar.success.removed'))
 
       // Call callback with empty string to indicate removal
       onUploadComplete?.('')
@@ -277,7 +286,6 @@ export function AvatarUploadDialog({
       // Close dialog
       setOpen(false)
     } catch (error) {
-      console.error('Remove error:', error)
       showError(error)
     } finally {
       setIsUploading(false)
@@ -311,8 +319,8 @@ export function AvatarUploadDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('profile:avatar.title')}</DialogTitle>
-          <DialogDescription>{t('profile:avatar.description')}</DialogDescription>
+          <DialogTitle>{t('avatar.title')}</DialogTitle>
+          <DialogDescription>{t('avatar.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -333,7 +341,7 @@ export function AvatarUploadDialog({
                   <X className="h-3 w-3" />
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground text-center">{t('profile:avatar.preview')}</p>
+              <p className="text-sm text-muted-foreground text-center">{t('avatar.preview')}</p>
             </div>
           ) : (
             <div
@@ -345,15 +353,15 @@ export function AvatarUploadDialog({
               {isValidating ? (
                 <>
                   <Loader2 className="mx-auto h-12 w-12 text-muted-foreground animate-spin" />
-                  <p className="mt-2 text-sm text-muted-foreground">{t('profile:avatar.validating')}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{t('avatar.validating')}</p>
                 </>
               ) : (
                 <>
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {t('profile:avatar.uploadInstructions')}
+                    {t('avatar.uploadInstructions')}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{t('profile:avatar.fileTypes')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('avatar.fileTypes')}</p>
                 </>
               )}
             </div>
@@ -378,21 +386,15 @@ export function AvatarUploadDialog({
                   disabled={isUploading || isValidating}
                   className="flex-1"
                 >
-                  {t('profile:avatar.cancel')}
+                  {t('avatar.cancel')}
                 </Button>
                 <Button
                   onClick={handleUpload}
-                  disabled={isUploading || isValidating}
+                  disabled={isValidating}
+                  loading={isUploading}
                   className="flex-1"
                 >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('profile:avatar.uploading')}
-                    </>
-                  ) : (
-                    t('profile:avatar.upload')
-                  )}
+                  {isUploading ? t('avatar.uploading') : t('avatar.upload')}
                 </Button>
               </>
             ) : (
@@ -403,15 +405,11 @@ export function AvatarUploadDialog({
                   disabled={isUploading || isValidating}
                   className="flex-1"
                 >
-                  {isValidating ? t('profile:avatar.validatingButton') : t('profile:avatar.chooseFile')}
+                  {isValidating ? t('avatar.validatingButton') : t('avatar.chooseFile')}
                 </Button>
                 {currentAvatarUrl && (
-                  <Button variant="destructive" onClick={handleRemoveAvatar} disabled={isUploading}>
-                    {isUploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      t('profile:avatar.remove')
-                    )}
+                  <Button variant="destructive" onClick={handleRemoveAvatar} loading={isUploading}>
+                    {t('avatar.remove')}
                   </Button>
                 )}
               </>

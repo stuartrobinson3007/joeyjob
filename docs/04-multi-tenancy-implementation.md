@@ -210,6 +210,11 @@ export function useActiveOrganization() {
 /**
  * Sets the active organization ID in both sessionStorage (per-tab) and localStorage (cross-tab fallback)
  * Also dispatches a custom event to notify components in the same tab
+ * 
+ * NOTE: This implementation supports per-tab organization independence:
+ * - sessionStorage: Tab-specific active organization (allows different orgs per tab)
+ * - localStorage: Fallback for new tabs (inheritance from most recent selection)
+ * - NO cross-tab syncing: Each tab can have different organization independently
  */
 export function setActiveOrganizationId(organizationId: string): void {
   if (typeof window === 'undefined') return
@@ -218,7 +223,7 @@ export function setActiveOrganizationId(organizationId: string): void {
   sessionStorage.setItem('activeOrganizationId', organizationId)
   localStorage.setItem('activeOrganizationId', organizationId)
 
-  // Notify other components in same tab
+  // Notify other components in same tab (does NOT affect other tabs)
   window.dispatchEvent(new CustomEvent('org-changed', { detail: organizationId }))
 }
 
@@ -249,6 +254,57 @@ export function clearActiveOrganizationId(): void {
   window.dispatchEvent(new CustomEvent('org-changed', { detail: null }))
 }
 ```
+
+## Organization Middleware vs Explicit Parameters
+
+### Two Patterns for Organization Handling
+
+#### Active Organization Pattern (organizationMiddleware)
+Use for operations on the user's current active organization:
+- **Middleware**: `organizationMiddleware`
+- **Organization source**: Context from storage (sessionStorage → localStorage)
+- **Examples**: todos, billing, team viewing
+- **Validation**: Automatic membership verification by middleware
+
+```typescript
+export const getTodos = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }) => {
+    const organizationId = context.organizationId
+    if (!organizationId) {
+      throw new AppError('No organization context')
+    }
+    // organizationMiddleware already verified membership
+    // Continue with operation...
+  })
+```
+
+#### Explicit Organization Pattern (authMiddleware + parameter)
+Use for operations specifying which organization to act on:
+- **Middleware**: `authMiddleware`
+- **Organization source**: `data.organizationId` parameter
+- **Examples**: invitations, member management, admin functions
+- **Validation**: Manual `checkPermission()` calls
+
+```typescript
+export const inviteMember = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({
+    organizationId: z.string(),
+    email: z.string().email(),
+    role: z.enum(['viewer', 'member', 'admin'])
+  }).parse(data))
+  .handler(async ({ data }) => {
+    // checkPermission verifies both permissions AND membership
+    await checkPermission('invitation', ['create'], data.organizationId)
+    // Continue with operation...
+  })
+```
+
+### Per-Tab Organization Support
+- **sessionStorage**: Each tab has independent active organization
+- **localStorage**: New tabs inherit from most recently selected
+- **No cross-tab syncing**: Changing org in one tab doesn't affect others
 
 ### 4. **Organization-Scoped Server Functions**
 ```typescript
@@ -420,7 +476,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
                 >
                   <span className="truncate">{organization.name}</span>
                   {activeOrganization?.id === organization.id && (
-                    <Check className="h-4 w-4" />
+                    <Check />
                   )}
                 </CommandItem>
               ))}
@@ -681,6 +737,8 @@ export const organizationSettings = pgTable('organization_settings', {
 ### Bulk Organization Operations
 ```typescript
 // Batch operations across organization data
+import { inArray } from 'drizzle-orm'
+
 export const bulkDeleteTodos = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .validator(z.object({ todoIds: z.array(z.string()) }))

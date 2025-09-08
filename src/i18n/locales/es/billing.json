@@ -23,7 +23,7 @@
     }
   },
   "usage": {
-    "title": "Uso",
+    "title": "Estadísticas de Uso",
     "current": "Uso actual",
     "limit": "Límite mensual",
     "reset": "Se reinicia {{date}}",
@@ -73,5 +73,15 @@
   "unlimited": "Ilimitado",
   "labels": {
     "mostPopular": "Más Popular"
+  },
+  "messages": {
+    "contactAdmin": "Contacta a tu administrador de organización para gestionar la facturación."
+  },
+  "errors": {
+    "billingPortalFailed": "Error al crear la sesión del portal de facturación",
+    "accessRestricted": "Acceso Restringido"
+  },
+  "loading": {
+    "permissions": "Cargando permisos..."
   }
 }

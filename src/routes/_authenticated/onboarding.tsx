@@ -23,8 +23,8 @@ export const Route = createFileRoute('/_authenticated/onboarding')({
           data: { invitationId: searchParams.invite },
         })
         return { invitation }
-      } catch (error) {
-        console.error('Failed to load invitation:', error)
+      } catch (_error) {
+        // Failed to load invitation - handled by showError
         return { invitation: null }
       }
     }

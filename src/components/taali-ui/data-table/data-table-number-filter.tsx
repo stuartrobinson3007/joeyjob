@@ -52,7 +52,7 @@ export function DataTableNumberFilter<TData, TValue>({
   }
 
   const displayValue = React.useMemo(() => {
-    if (!value) return title || t('common:filters.setValue')
+    if (!value) return title || t('filters.setValue')
 
     if (isRange && Array.isArray(value)) {
       return `${value[0]} - ${value[1]}`
@@ -60,8 +60,8 @@ export function DataTableNumberFilter<TData, TValue>({
       return value.toString()
     }
 
-    return title || t('common:filters.setValue')
-  }, [value, title, isRange])
+    return title || t('filters.setValue')
+  }, [value, title, isRange, t])
 
   const hasValue = Boolean(value)
 
@@ -81,7 +81,7 @@ export function DataTableNumberFilter<TData, TValue>({
                 <div className="flex items-center space-x-2">
                   <Input
                     type="number"
-                    placeholder={t('common:filters.min')}
+                    placeholder={t('filters.min')}
                     value={Array.isArray(localValue) ? localValue[0] : min}
                     onChange={e => {
                       const newMin = Number(e.target.value)
@@ -92,10 +92,10 @@ export function DataTableNumberFilter<TData, TValue>({
                     step={step}
                     className="h-8"
                   />
-                  <span className="text-muted-foreground">{t('common:filters.to')}</span>
+                  <span className="text-muted-foreground">{t('filters.to')}</span>
                   <Input
                     type="number"
-                    placeholder={t('common:filters.max')}
+                    placeholder={t('filters.max')}
                     value={Array.isArray(localValue) ? localValue[1] : max}
                     onChange={e => {
                       const newMax = Number(e.target.value)
@@ -120,7 +120,7 @@ export function DataTableNumberFilter<TData, TValue>({
               <>
                 <Input
                   type="number"
-                  placeholder={t('common:filters.value')}
+                  placeholder={t('filters.value')}
                   value={typeof localValue === 'number' ? localValue : min}
                   onChange={e => setLocalValue(Number(e.target.value))}
                   min={min}
@@ -142,7 +142,7 @@ export function DataTableNumberFilter<TData, TValue>({
           <div className="flex justify-end space-x-2">
             {hasValue && (
               <Button variant="ghost" size="sm" onClick={handleClear} className="justify-center">
-                {t('common:filters.clearFilter')}
+                {t('filters.clearFilter')}
               </Button>
             )}
             <Button size="sm" onClick={handleApply}>

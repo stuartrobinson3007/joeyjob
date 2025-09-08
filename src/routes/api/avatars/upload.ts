@@ -97,8 +97,8 @@ export const ServerRoute = createServerFileRoute('/api/avatars/upload').methods(
           if (oldKey) {
             await storage.deleteFile(oldKey)
           }
-        } catch (error) {
-          console.warn('Failed to delete old avatar:', error)
+        } catch (_error) {
+          // Failed to delete old avatar - not critical for upload success
         }
       }
 
@@ -106,11 +106,11 @@ export const ServerRoute = createServerFileRoute('/api/avatars/upload').methods(
         success: true,
         avatarUrl: uploadResult.url,
       })
-    } catch (error) {
-      console.error('Avatar upload error:', error)
+    } catch (_error) {
+      // Avatar upload error - returning error response
       return Response.json(
         {
-          error: error instanceof Error ? error.message : 'Failed to upload avatar',
+          error: _error instanceof Error ? _error.message : 'Failed to upload avatar',
         },
         { status: 500 }
       )

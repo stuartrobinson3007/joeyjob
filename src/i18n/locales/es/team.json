@@ -12,7 +12,8 @@
     "resend": "Reenviar",
     "revoke": "Revocar",
     "success": "Invitación enviada exitosamente",
-    "error": "Error al enviar invitación"
+    "error": "Error al enviar invitación",
+    "cancelConfirm": "¿Estás seguro de que quieres cancelar esta invitación?"
   },
   "roles": {
     "owner": "Propietario",

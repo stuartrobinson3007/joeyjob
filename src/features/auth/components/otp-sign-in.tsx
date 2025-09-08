@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Mail, ArrowRight } from 'lucide-react'
 
 import { authClient } from '@/lib/auth/auth-client'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/taali-ui/ui/input-otp'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/ui/input-otp'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 
@@ -48,7 +48,7 @@ export function OTPSignIn({ email, onSuccess, onBack }: OTPSignInProps) {
       })
 
       if (result.error) {
-        showError(result.error.message || t('errors:errors.invalidCode'))
+        showError(result.error.message || t('errors.invalidCode'))
       } else {
         showSuccess(t('otp.signedIn'))
         onSuccess?.()
@@ -60,12 +60,8 @@ export function OTPSignIn({ email, onSuccess, onBack }: OTPSignInProps) {
     }
   }
 
-  // Auto-submit when OTP is complete
   const handleOTPChange = (value: string) => {
     setOtp(value)
-    if (value.length === 6) {
-      handleSubmitOTP()
-    }
   }
 
   return (
@@ -102,7 +98,7 @@ export function OTPSignIn({ email, onSuccess, onBack }: OTPSignInProps) {
           disabled={otp.length !== 6 || isSubmitting}
           className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? t('states.signingIn') : t('common:actions.signOut')}
+          {isSubmitting ? t('states.signingIn') : t('otp.signIn')}
           <ArrowRight className="w-4 h-4 ml-2 inline" />
         </button>
       </div>
@@ -113,7 +109,7 @@ export function OTPSignIn({ email, onSuccess, onBack }: OTPSignInProps) {
           disabled={isSending}
           className="text-sm text-primary hover:text-primary/80 underline disabled:opacity-50"
         >
-          {isSending ? t('states.sending') : 'Resend Code'}
+          {isSending ? t('states.sending') : t('otp.resendCode')}
         </button>
 
         {onBack && (
@@ -121,7 +117,7 @@ export function OTPSignIn({ email, onSuccess, onBack }: OTPSignInProps) {
             onClick={onBack}
             className="block w-full text-sm text-muted-foreground hover:text-foreground"
           >
-            ← {t('common:actions.cancelInvitation')}
+            ← {t('otp.back')}
           </button>
         )}
       </div>

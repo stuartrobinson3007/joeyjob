@@ -2,29 +2,41 @@ import { createFileRoute } from '@tanstack/react-router'
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Ban, UserCheck, Eye, MoreHorizontal, Monitor, User, Shield, Loader2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { authClient } from '@/lib/auth/auth-client'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { ErrorState } from '@/components/error-state'
+// Better-auth session type (different from our Session interface)
+interface BetterAuthSession {
+  id: string
+  userId: string
+  token: string
+  expiresAt: Date | string
+  ipAddress?: string | null
+  userAgent?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  impersonatedBy?: string | null
+}
 import { parseError } from '@/lib/errors/client-handler'
+import { useSupportingQuery } from '@/lib/hooks/use-supporting-query'
 import { formatDate, formatDateTime } from '@/lib/utils/date'
-import { Badge } from '@/components/taali-ui/ui/badge'
+import { Badge } from '@/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/taali-ui/ui/dropdown-menu'
-import { Button } from '@/components/taali-ui/ui/button'
+} from '@/ui/dropdown-menu'
+import { Button } from '@/ui/button'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/taali-ui/ui/sheet'
+} from '@/ui/sheet'
 import {
   DataTable,
   DataTableHeader,
@@ -49,13 +61,13 @@ function SuperAdminUsers() {
   const { t: tCommon } = useTranslation('common')
   const { showError } = useErrorHandler()
   const [selectedUser, setSelectedUser] = React.useState<AdminUser | null>(null)
-  const [userSessions, setUserSessions] = React.useState<any[]>([])
+  const [userSessions, setUserSessions] = React.useState<BetterAuthSession[]>([])
   const [sessionsLoading, setSessionsLoading] = React.useState(false)
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [currentFilters, setCurrentFilters] = React.useState({})
 
   // Query for total stats (independent of filters)
-  const { data: stats } = useQuery({
+  const { data: stats, showError: showStatsError } = useSupportingQuery({
     queryKey: ['admin', 'users', 'stats'],
     queryFn: () => getAdminUserStats(),
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -79,9 +91,8 @@ function SuperAdminUsers() {
         const result = await authClient.admin.listUserSessions({
           userId,
         })
-        setUserSessions(result.data?.sessions || [])
+        setUserSessions((result.data?.sessions as BetterAuthSession[]) || [])
       } catch (error) {
-        console.error('Failed to load user sessions:', error)
         showError(error)
         setUserSessions([])
       } finally {
@@ -94,10 +105,16 @@ function SuperAdminUsers() {
   const handleBanUser = React.useCallback(
     async (userId: string, banned: boolean) => {
       try {
-        await authClient.admin.banUser({
-          userId,
-          banReason: banned ? t('users.adminAction') : undefined,
-        })
+        if (banned) {
+          await authClient.admin.banUser({
+            userId,
+            banReason: t('users.adminAction'),
+          })
+        } else {
+          await authClient.admin.unbanUser({
+            userId,
+          })
+        }
         toast.success(
           banned ? tNotifications('success.userBanned') : tNotifications('success.userUnbanned')
         )
@@ -115,13 +132,12 @@ function SuperAdminUsers() {
         await authClient.admin.revokeUserSessions({
           userId,
         })
-        toast.success(t('common:messages.allSessionsRevoked'))
+        toast.success(t('messages.allSessionsRevoked'))
         // Reload sessions if we're viewing them
         if (selectedUser && selectedUser.id === userId) {
           loadUserSessions(userId)
         }
       } catch (error) {
-        console.error('Failed to revoke user sessions:', error)
         showError(error)
       }
     },
@@ -134,13 +150,12 @@ function SuperAdminUsers() {
         await authClient.admin.revokeUserSession({
           sessionToken,
         })
-        toast.success(t('common:messages.sessionRevoked'))
+        toast.success(t('messages.sessionRevoked'))
         // Reload sessions for the current user
         if (selectedUser) {
           loadUserSessions(selectedUser.id)
         }
       } catch (error) {
-        console.error('Failed to revoke session:', error)
         showError(error)
       }
     },
@@ -160,7 +175,7 @@ function SuperAdminUsers() {
     async (userId: string) => {
       try {
         await authClient.admin.impersonateUser({ userId })
-        toast.success(t('common:messages.impersonationStarted'))
+        toast.success(t('messages.impersonationStarted'))
         window.location.href = '/'
       } catch (error) {
         showError(error)
@@ -203,7 +218,7 @@ function SuperAdminUsers() {
           return (
             <div>
               <div className="text-sm font-medium text-foreground">
-                {user.name || t('common:table.unknown')}
+                {user.name || tCommon('table.unknown')}
               </div>
               <div className="text-sm text-muted-foreground">{user.email}</div>
             </div>
@@ -335,11 +350,14 @@ function SuperAdminUsers() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleImpersonate(user.id)}>
+                  <DropdownMenuItem 
+                    onClick={() => handleImpersonate(user.id)}
+                    disabled={user.banned}
+                  >
                     <Eye />
                     {t('users.impersonate')}
                   </DropdownMenuItem>
@@ -371,7 +389,7 @@ function SuperAdminUsers() {
         } as DataTableColumnMeta,
       },
     ],
-    [handleBanUser, handleImpersonate, handleViewSessions, t]
+    [handleBanUser, handleImpersonate, handleViewSessions, t, tCommon]
   )
 
   // DataTable configuration
@@ -408,20 +426,31 @@ function SuperAdminUsers() {
       <div className="p-6 pb-0">
         {/* User Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-card rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-1">{t('analytics.totalUsers')}</h3>
-            <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
-          </div>
+          {showStatsError ? (
+            <div className="col-span-full">
+              <ErrorState 
+                error={parseError({ message: 'Unable to load user statistics' })} 
+                variant="inline"
+              />
+            </div>
+          ) : (
+            <>
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="text-sm font-medium mb-1">{t('analytics.totalUsers')}</h3>
+                <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
+              </div>
 
-          <div className="bg-card rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-1">{t('analytics.activeUsers')}</h3>
-            <p className="text-2xl font-bold">{stats?.activeUsers || 0}</p>
-          </div>
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="text-sm font-medium mb-1">{t('analytics.activeUsers')}</h3>
+                <p className="text-2xl font-bold">{stats?.activeUsers || 0}</p>
+              </div>
 
-          <div className="bg-card rounded-lg border p-4">
-            <h3 className="text-sm font-medium mb-1">{t('analytics.bannedUsers')}</h3>
-            <p className="text-2xl font-bold">{stats?.bannedUsers || 0}</p>
-          </div>
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="text-sm font-medium mb-1">{t('analytics.bannedUsers')}</h3>
+                <p className="text-2xl font-bold">{stats?.bannedUsers || 0}</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -448,7 +477,7 @@ function SuperAdminUsers() {
                 : t('users.userSessions')}
               {!sessionsLoading && userSessions.length > 0 && ` (${userSessions.length})`}
             </SheetTitle>
-            <SheetDescription>{t('auth:sessions.description')}</SheetDescription>
+            <SheetDescription>{t('sessions.description')}</SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto">
@@ -459,12 +488,12 @@ function SuperAdminUsers() {
                 </div>
               ) : userSessions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {t('auth:sessions.noSessions')}
+                  {t('sessions.noSessions')}
                 </div>
               ) : (
                 <div className="space-y-4">
                   {userSessions.map(session => (
-                    <div key={session.token} className="border rounded-lg p-4 space-y-3">
+                    <div key={session.id} className="border rounded-lg p-4 space-y-3">
                       <div className="grid gap-2 flex-1">
                         <div className="grid gap-1">
                           <div className="text-sm font-medium">{t('tables.sessionToken')}</div>
@@ -511,10 +540,10 @@ function SuperAdminUsers() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRevokeSession(session.token)}
+                        onClick={() => handleRevokeSession(session.token || session.id)}
                         className="w-full"
                       >
-                        {t('auth:sessions.revoke')}
+                        {t('sessions.revoke')}
                       </Button>
                     </div>
                   ))}
@@ -530,7 +559,7 @@ function SuperAdminUsers() {
               disabled={sessionsLoading || userSessions.length === 0}
               className="w-full"
             >
-              {t('auth:sessions.revokeAll')}
+              {t('sessions.revokeAll')}
             </Button>
           </div>
         </SheetContent>

@@ -17,6 +17,7 @@
     "deleteWorkspace": "Eliminar Espacio de Trabajo",
     "deleteDescription": "Eliminar permanentemente esta organización y todos sus datos. Esta acción no se puede deshacer.",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar esta organización?",
+    "deleteConfirmTitle": "Eliminar Organización",
     "deleteSuccess": "Organización eliminada exitosamente",
     "deleteFailed": "Error al eliminar la organización",
     "deleteWarning": "Una vez que elimines una organización, no hay vuelta atrás. Esto eliminará permanentemente todas las tareas, miembros y datos asociados con esta organización.",

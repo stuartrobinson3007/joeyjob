@@ -10,6 +10,8 @@ import {
   Tailwind,
 } from '@react-email/components'
 
+import { safeNestedAccess, safeStringReplace } from '@/lib/utils/type-safe-access'
+
 interface OTPEmailProps {
   otp: string
   type: 'sign-in' | 'email-verification' | 'forget-password'
@@ -53,23 +55,23 @@ const fallbackContent = {
   },
 }
 
-function getTranslation(key: string, params?: Record<string, any>): string {
+function getTranslation(key: string, params?: Record<string, unknown>): string {
   try {
     // Try to import and use i18n
     const i18n = require('@/i18n/config').default
     return i18n.t(`email:otp.${key}`, params, { lng: 'en' })
   } catch {
-    // Fallback for preview mode
-    let text = key.split('.').reduce((obj, k) => obj?.[k], fallbackContent as any) || key
+    // Fallback for preview mode using type-safe access
+    let text = safeNestedAccess(fallbackContent, key.split('.')) || key
 
     if (typeof text === 'string' && params) {
       // Simple template replacement for fallback
       Object.entries(params).forEach(([paramKey, value]) => {
-        text = text.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(value))
+        text = safeStringReplace(text, new RegExp(`{{${paramKey}}}`, 'g'), String(value))
       })
     }
 
-    return text
+    return String(text)
   }
 }
 
@@ -81,7 +83,7 @@ function getEmailContent(type: string) {
         title: getTranslation('signIn.title'),
         message: getTranslation('signIn.message'),
         icon: '🔐',
-        color: 'blue',
+        color: 'info',
       }
     case 'email-verification':
       return {
@@ -89,7 +91,7 @@ function getEmailContent(type: string) {
         title: getTranslation('emailVerification.title'),
         message: getTranslation('emailVerification.message'),
         icon: '✉️',
-        color: 'green',
+        color: 'success',
       }
     case 'forget-password':
       return {
@@ -97,7 +99,7 @@ function getEmailContent(type: string) {
         title: getTranslation('forgetPassword.title'),
         message: getTranslation('forgetPassword.message'),
         icon: '🔑',
-        color: 'orange',
+        color: 'warning',
       }
     default:
       return {
@@ -105,7 +107,7 @@ function getEmailContent(type: string) {
         title: getTranslation('default.title'),
         message: getTranslation('default.message'),
         icon: '🔐',
-        color: 'blue',
+        color: 'info',
       }
   }
 }
@@ -114,29 +116,29 @@ export default function OTPEmail({ otp, type, appName = 'Todo App' }: OTPEmailPr
   const { title, message, icon, color } = getEmailContent(type)
 
   const colorClasses = {
-    blue: {
+    info: {
       header: 'text-blue-600',
       bg: 'bg-blue-50',
       border: 'border-blue-200',
-      code: 'text-blue-700 bg-blue-50 border-blue-200',
+      code: 'text-blue-600 bg-blue-50 border-blue-200',
     },
-    green: {
+    success: {
       header: 'text-green-600',
       bg: 'bg-green-50',
       border: 'border-green-200',
-      code: 'text-green-700 bg-green-50 border-green-200',
+      code: 'text-green-600 bg-green-50 border-green-200',
     },
-    orange: {
-      header: 'text-orange-600',
-      bg: 'bg-orange-50',
-      border: 'border-orange-200',
-      code: 'text-orange-700 bg-orange-50 border-orange-200',
+    warning: {
+      header: 'text-yellow-600',
+      bg: 'bg-yellow-50',
+      border: 'border-yellow-200',
+      code: 'text-yellow-600 bg-yellow-50 border-yellow-200',
     },
   }[color] || {
     header: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-blue-200',
-    code: 'text-blue-700 bg-blue-50 border-blue-200',
+    code: 'text-blue-600 bg-blue-50 border-blue-200',
   }
 
   return (
@@ -197,8 +199,8 @@ export default function OTPEmail({ otp, type, appName = 'Todo App' }: OTPEmailPr
               </Section>
 
               {/* Expiry Warning */}
-              <Section className="bg-orange-50 border-l-[4px] border-orange-400 pl-[16px] py-[12px] mb-[24px]">
-                <Text className="text-[14px] text-orange-700 m-0">{getTranslation('expiry')}</Text>
+              <Section className="bg-yellow-50 border-l-[4px] border-yellow-500 pl-[16px] py-[12px] mb-[24px]">
+                <Text className="text-[14px] text-yellow-600 m-0">{getTranslation('expiry')}</Text>
               </Section>
 
               {/* Security Note */}

@@ -581,7 +581,7 @@ export function useFormAutosave<T extends Record<string, any>>({
 
   const saveNow = useCallback(async () => {
     debouncedSave.cancel()
-    await performSave()
+    await debouncedSave.flush() // Execute immediately
   }, [debouncedSave])
 
   const reset = useCallback((newData?: T) => {
@@ -764,7 +764,7 @@ const columns: ColumnDef<TodoData>[] = [
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
-            <MoreHorizontal className="h-4 w-4" />
+            <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -861,6 +861,89 @@ const deleteMutation = useMutation({
     queryClient.invalidateQueries({ queryKey: ['todos'] })
   },
 })
+```
+
+### With Error Handling Components
+
+The Taali UI library includes comprehensive error handling components that integrate with the application's error management system:
+
+#### ErrorState Component Variants
+```typescript
+import { ErrorState } from '@/components/error-state'
+import { parseError } from '@/lib/errors/client-handler'
+
+// Full-page error (default variant)
+<ErrorState 
+  error={parseError(error)} 
+  onRetry={refetch}
+/>
+
+// Inline error for supporting data
+<ErrorState 
+  error={parseError(error)}
+  variant="inline"
+  onRetry={refetch}
+/>
+
+// Card error for contained sections  
+<ErrorState
+  error={parseError(error)}
+  variant="card"
+  onRetry={refetch}
+/>
+```
+
+#### Error Integration with Data Tables
+```typescript
+import { DataTable, useTableQuery } from '@/components/taali-ui/data-table'
+import { ErrorState } from '@/components/error-state'
+
+function TodosTable() {
+  const { data, isError, error, isLoading, refetch } = useTableQuery({
+    queryKey: ['todos'],
+    queryFn: getTodosTable,
+  })
+
+  // Built-in error handling pattern
+  if (isError && error && !isLoading) {
+    return <ErrorState error={parseError(error)} onRetry={refetch} />
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      config={config}
+    />
+  )
+}
+```
+
+#### Error States for Supporting Data
+```typescript
+import { useSupportingQuery } from '@/lib/hooks/use-supporting-query'
+
+function StatsSection() {
+  const { data: stats, showError } = useSupportingQuery({
+    queryKey: ['stats'],
+    queryFn: getStats,
+  })
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {showError ? (
+        <div className="col-span-full">
+          <ErrorState 
+            variant="inline"
+            error={parseError({ message: 'Unable to load statistics' })}
+          />
+        </div>
+      ) : (
+        stats && <StatsCards stats={stats} />
+      )}
+    </div>
+  )
+}
 ```
 
 ### With Form Systems

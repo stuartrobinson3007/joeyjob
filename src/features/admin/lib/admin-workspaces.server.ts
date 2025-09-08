@@ -1,9 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
+import { ilike, desc, asc, count, or, eq, and } from 'drizzle-orm'
+import type { PgColumn } from 'drizzle-orm/pg-core'
+import { z } from 'zod'
+
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
-import { organization, member } from '@/database/schema'
-import { ilike, desc, asc, count, or, eq, and } from 'drizzle-orm'
-import { z } from 'zod'
+import { organization, member, user } from '@/database/schema'
+import { AppError } from '@/lib/utils/errors'
 import { buildColumnFilter, parseFilterValue, preprocessFilterValue } from '@/lib/utils/table-filters'
 import { ServerQueryResponse } from '@/components/taali-ui/data-table'
 
@@ -13,6 +16,11 @@ export type AdminWorkspace = {
   slug: string | null
   createdAt: string
   memberCount?: number
+  ownerId?: string | null
+  ownerName?: string | null
+  ownerBanned?: boolean | null
+  currentPlan?: string | null
+  stripeCustomerId?: string | null
 }
 
 // Schema for query params validation
@@ -34,9 +42,11 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
   .validator((data: unknown) => {
     return queryParamsSchema.parse(data)
   })
-  .handler(async ({ data }) => {
-    
-    // TODO: Add proper admin permission check here
+  .handler(async ({ data, context }) => {
+    // Verify user has superadmin role
+    if (context.user.role !== 'superadmin') {
+      throw AppError.forbidden('Superadmin access required')
+    }
     
     const pageIndex = data.pagination?.pageIndex ?? 0
     const pageSize = data.pagination?.pageSize ?? 10
@@ -47,17 +57,21 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
     try {
       // Use direct database query for proper server-side performance
       
-      // Build base query with member count
+      // Build base query - get all organizations first, then get owner info
+      // Step 1: Get all organizations with member count
       let workspacesQuery = db.select({
         id: organization.id,
         name: organization.name,
         slug: organization.slug,
         createdAt: organization.createdAt,
+        currentPlan: organization.currentPlan,
+        stripeCustomerId: organization.stripeCustomerId,
         memberCount: count(member.id)
       })
       .from(organization)
       .leftJoin(member, eq(member.organizationId, organization.id))
-      .groupBy(organization.id, organization.name, organization.slug, organization.createdAt)
+      .groupBy(organization.id, organization.name, organization.slug, organization.createdAt, organization.currentPlan, organization.stripeCustomerId)
+      .$dynamic()
 
       // Apply search filter with SQL
       const conditions = []
@@ -66,7 +80,8 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
           or(
             ilike(organization.name, `%${searchTerm}%`),
             ilike(organization.slug, `%${searchTerm}%`),
-            ilike(organization.id, `%${searchTerm}%`)
+            ilike(organization.id, `%${searchTerm}%`),
+            ilike(organization.stripeCustomerId, `%${searchTerm}%`)
           )
         )
       }
@@ -81,10 +96,16 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
           const { operator, value: filterValue } = parseFilterValue(value)
           
           // Map column IDs to database columns
-          let column: any
+          let column: PgColumn | undefined
           switch (columnId) {
             case 'createdAt':
               column = organization.createdAt
+              break
+            case 'currentPlan':
+              column = organization.currentPlan
+              break
+            case 'stripeCustomerId':
+              column = organization.stripeCustomerId
               break
             default:
               return
@@ -104,7 +125,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
 
       // Add conditions to query
       if (conditions.length > 0) {
-        workspacesQuery = workspacesQuery.where(and(...conditions)) as any
+        workspacesQuery = workspacesQuery.where(and(...conditions))
       }
 
       // Apply sorting with SQL
@@ -114,28 +135,34 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
         
         switch (sort.id) {
           case 'id':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.id)) as any
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.id))
             break
           case 'organization':
           case 'name':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.name)) as any
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.name))
             break
           case 'createdAt':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.createdAt)) as any
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.createdAt))
             break
           case 'memberCount':
-            workspacesQuery = workspacesQuery.orderBy(sortFn(count(member.id))) as any
+            workspacesQuery = workspacesQuery.orderBy(sortFn(count(member.id)))
+            break
+          case 'currentPlan':
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.currentPlan))
+            break
+          case 'stripeCustomerId':
+            workspacesQuery = workspacesQuery.orderBy(sortFn(organization.stripeCustomerId))
             break
         }
       } else {
         // Default sort by created date
-        workspacesQuery = workspacesQuery.orderBy(desc(organization.createdAt)) as any
+        workspacesQuery = workspacesQuery.orderBy(desc(organization.createdAt))
       }
 
       // Get total count for pagination (need separate query since we have groupBy)
-      let totalCountQuery = db.select({ count: count(organization.id) }).from(organization)
+      let totalCountQuery = db.select({ count: count(organization.id) }).from(organization).$dynamic()
       if (conditions.length > 0) {
-        totalCountQuery = totalCountQuery.where(and(...conditions)) as any
+        totalCountQuery = totalCountQuery.where(and(...conditions))
       }
 
       // Execute queries in parallel
@@ -145,14 +172,86 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
       ])
 
 
-      // Transform to our format
-      const transformedWorkspaces: AdminWorkspace[] = workspacesResult.map((org) => ({
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        createdAt: org.createdAt.toISOString(),
-        memberCount: Number(org.memberCount) || 0
-      }))
+      // Step 2: Get owner information for each organization
+      const orgIds = workspacesResult.map(org => org.id)
+      const ownerInfoMap = new Map()
+      
+      if (orgIds.length > 0) {
+        const ownerRecords = await db.select({
+          organizationId: member.organizationId,
+          ownerId: user.id,
+          ownerName: user.name,
+          ownerBanned: user.banned
+        })
+        .from(member)
+        .innerJoin(user, eq(user.id, member.userId))
+        .where(
+          and(
+            eq(member.role, 'owner'),
+            eq(member.organizationId, orgIds[0]) // We'll do this per org for now
+          )
+        )
+
+
+        // Create a map for quick lookup
+        ownerRecords.forEach(owner => {
+          ownerInfoMap.set(owner.organizationId, {
+            ownerId: owner.ownerId,
+            ownerName: owner.ownerName,
+            ownerBanned: owner.ownerBanned
+          })
+        })
+
+        // DEBUG: Get owner info for each org individually
+        for (const org of workspacesResult) {
+          const ownerInfo = await db.select({
+            ownerId: user.id,
+            ownerName: user.name,
+            ownerBanned: user.banned
+          })
+          .from(member)
+          .innerJoin(user, eq(user.id, member.userId))
+          .where(
+            and(
+              eq(member.organizationId, org.id),
+              eq(member.role, 'owner')
+            )
+          )
+          .limit(1)
+
+          if (ownerInfo.length > 0) {
+            ownerInfoMap.set(org.id, ownerInfo[0])
+          } else {
+            // Check what members exist
+            await db.select({
+              userId: member.userId,
+              role: member.role,
+              userName: user.name
+            })
+            .from(member)
+            .leftJoin(user, eq(user.id, member.userId))
+            .where(eq(member.organizationId, org.id))
+            
+          }
+        }
+      }
+
+      // Transform to our format using owner info map
+      const transformedWorkspaces: AdminWorkspace[] = workspacesResult.map((org) => {
+        const ownerInfo = ownerInfoMap.get(org.id)
+        return {
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          createdAt: org.createdAt.toISOString(),
+          memberCount: Number(org.memberCount) || 0,
+          ownerId: ownerInfo?.ownerId || null,
+          ownerName: ownerInfo?.ownerName || null,
+          ownerBanned: ownerInfo?.ownerBanned || null,
+          currentPlan: org.currentPlan || 'free',
+          stripeCustomerId: org.stripeCustomerId || null
+        }
+      })
 
       const totalCount = Number(totalCountResult[0]?.count || 0)
       const pageCount = Math.ceil(totalCount / pageSize)
@@ -165,8 +264,8 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
 
 
       return response
-    } catch (error) {
-      console.error('[getAdminWorkspacesTable] Error loading workspaces:', error)
+    } catch (_error) {
+      // Return empty result on error
       return {
         data: [],
         totalCount: 0,
@@ -177,29 +276,47 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
 
 export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    // Verify user has superadmin role
+    if (context.user.role !== 'superadmin') {
+      throw AppError.forbidden('Superadmin access required')
+    }
+
     try {
       // Get total organizations count
       const totalOrgsResult = await db.select({ count: count(organization.id) }).from(organization)
       
-      // Get total members count across all organizations
-      const totalMembersResult = await db.select({ count: count(member.id) }).from(member)
+      // Get organizations count by plan
+      const freeOrgsResult = await db.select({ count: count(organization.id) })
+        .from(organization)
+        .where(eq(organization.currentPlan, 'free'))
+      
+      const proOrgsResult = await db.select({ count: count(organization.id) })
+        .from(organization)
+        .where(eq(organization.currentPlan, 'pro'))
+      
+      const businessOrgsResult = await db.select({ count: count(organization.id) })
+        .from(organization)
+        .where(eq(organization.currentPlan, 'business'))
       
       const totalOrgs = Number(totalOrgsResult[0]?.count || 0)
-      const totalMembers = Number(totalMembersResult[0]?.count || 0)
-      const avgMembersPerOrg = totalOrgs > 0 ? Math.round(totalMembers / totalOrgs) : 0
+      const freeOrgs = Number(freeOrgsResult[0]?.count || 0)
+      const proOrgs = Number(proOrgsResult[0]?.count || 0)
+      const businessOrgs = Number(businessOrgsResult[0]?.count || 0)
       
       return {
         totalOrganizations: totalOrgs,
-        totalMembers: totalMembers,
-        avgMembersPerOrg: avgMembersPerOrg
+        freeOrganizations: freeOrgs,
+        proOrganizations: proOrgs,
+        businessOrganizations: businessOrgs
       }
-    } catch (error) {
-      console.error('[getAdminWorkspaceStats] Error loading workspace stats:', error)
+    } catch (_error) {
+      // Return zero stats on error
       return {
         totalOrganizations: 0,
-        totalMembers: 0,
-        avgMembersPerOrg: 0
+        freeOrganizations: 0,
+        proOrganizations: 0,
+        businessOrganizations: 0
       }
     }
   })

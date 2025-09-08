@@ -1015,4 +1015,402 @@ export const ServerRoute = createServerFileRoute('/api/ws/todos').methods({
 })
 ```
 
-This server function architecture provides a robust foundation for building type-safe, secure, and scalable API endpoints with comprehensive error handling and proper integration with the authentication and multi-tenancy systems.
+### Undo Operations Pattern
+
+```typescript
+// Undo/restore pattern for user-friendly delete operations
+import { createServerFn } from '@tanstack/react-start'
+import { eq, and, isNull, isNotNull } from 'drizzle-orm'
+import { z } from 'zod'
+
+import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
+import { checkPermission } from '@/lib/utils/permissions'
+import { db } from '@/lib/db/db'
+import { todos } from '@/database/schema'
+import { AppError } from '@/lib/utils/errors'
+
+const todoIdSchema = z.object({
+  id: z.string(),
+})
+
+// Delete operation with undo capability
+export const deleteTodo = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    await checkPermission('todos', ['delete'], orgId)
+
+    // CRITICAL: Verify ownership before deletion
+    const existingTodo = await db
+      .select()
+      .from(todos)
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt) // Only active todos can be deleted
+      ))
+      .limit(1)
+
+    if (!existingTodo[0]) {
+      throw AppError.notFound('Todo')
+    }
+
+    // Soft delete: set deletedAt timestamp
+    await db
+      .update(todos)
+      .set({ 
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+
+    return { success: true, canUndo: true }
+  })
+
+// Undo delete operation - restore deleted record
+export const undoDeleteTodo = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    // Use 'create' permission since we're restoring data
+    await checkPermission('todos', ['create'], orgId)
+
+    // CRITICAL: Verify record is soft-deleted and owned by organization
+    const deletedTodo = await db
+      .select()
+      .from(todos)
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId),
+        isNotNull(todos.deletedAt) // Only deleted todos can be restored
+      ))
+      .limit(1)
+
+    if (!deletedTodo[0]) {
+      throw AppError.notFound('Deleted Todo')
+    }
+
+    // Restore: clear deletedAt timestamp
+    const restored = await db
+      .update(todos)
+      .set({ 
+        deletedAt: null,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+      .returning()
+
+    return {
+      ...restored[0],
+      // Transform data for client if needed
+      priority: numberToPriority(restored[0].priority),
+    }
+  })
+```
+
+### Client-Side Integration with Undo
+
+```typescript
+// Client integration with enhanced user experience
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteTodo, undoDeleteTodo } from '@/features/todos/lib/todos.server'
+import { useErrorHandler } from '@/lib/errors/hooks'
+
+function useDeleteTodoWithUndo() {
+  const queryClient = useQueryClient()
+  const { showError, showSuccess } = useErrorHandler()
+  
+  const deleteMutation = useMutation({
+    mutationFn: deleteTodo,
+    onSuccess: (result, variables) => {
+      // Optimistically remove from cache
+      queryClient.setQueryData(['todos'], (old: any[]) => 
+        old?.filter(todo => todo.id !== variables.data.id) || []
+      )
+
+      // Show success toast with undo action
+      showSuccess('Todo deleted', {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              const restored = await undoDeleteTodo({ data: { id: variables.data.id } })
+              
+              // Restore to cache
+              queryClient.setQueryData(['todos'], (old: any[]) => {
+                const updated = old ? [...old] : []
+                updated.push(restored)
+                return updated.sort((a, b) => 
+                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                )
+              })
+              
+              showSuccess('Todo restored')
+            } catch (error) {
+              // Handle undo failure
+              showError(error)
+              // Refresh data to ensure consistency
+              queryClient.invalidateQueries({ queryKey: ['todos'] })
+            }
+          }
+        }
+      })
+    },
+    onError: (error) => {
+      showError(error)
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['todos'] })
+    }
+  })
+
+  return {
+    deleteTodo: deleteMutation.mutate,
+    isDeleting: deleteMutation.isPending,
+  }
+}
+```
+
+### Advanced Undo Patterns
+
+```typescript
+// Bulk operations with undo support
+export const bulkDeleteTodos = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator(z.object({ ids: z.array(z.string()).min(1).max(100) }))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    await checkPermission('todos', ['delete'], orgId)
+
+    // Get todos that will be deleted for undo information
+    const todosToDelete = await db
+      .select()
+      .from(todos)
+      .where(and(
+        inArray(todos.id, data.ids),
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt)
+      ))
+
+    if (todosToDelete.length === 0) {
+      throw new AppError('BIZ_NO_RECORDS_FOUND', 404, undefined, 'No todos found to delete')
+    }
+
+    // Bulk soft delete
+    await db
+      .update(todos)
+      .set({ 
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(and(
+        inArray(todos.id, data.ids),
+        eq(todos.organizationId, orgId),
+        isNull(todos.deletedAt)
+      ))
+
+    return { 
+      success: true, 
+      deletedCount: todosToDelete.length,
+      canUndo: true,
+      deletedIds: todosToDelete.map(t => t.id)
+    }
+  })
+
+// Bulk undo operation
+export const undoBulkDeleteTodos = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator(z.object({ ids: z.array(z.string()).min(1).max(100) }))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    await checkPermission('todos', ['create'], orgId)
+
+    // Restore multiple records
+    const restored = await db
+      .update(todos)
+      .set({ 
+        deletedAt: null,
+        updatedAt: new Date()
+      })
+      .where(and(
+        inArray(todos.id, data.ids),
+        eq(todos.organizationId, orgId),
+        isNotNull(todos.deletedAt)
+      ))
+      .returning()
+
+    return {
+      success: true,
+      restoredCount: restored.length,
+      restored: restored.map(todo => ({
+        ...todo,
+        priority: numberToPriority(todo.priority),
+      }))
+    }
+  })
+```
+
+### Error Handling for Undo Operations
+
+```typescript
+// Comprehensive error handling for undo scenarios
+export const undoDeleteTodo = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const orgId = context.organizationId
+    
+    try {
+      await checkPermission('todos', ['create'], orgId)
+
+      const deletedTodo = await db
+        .select()
+        .from(todos)
+        .where(and(
+          eq(todos.id, data.id),
+          eq(todos.organizationId, orgId),
+          isNotNull(todos.deletedAt)
+        ))
+        .limit(1)
+
+      if (!deletedTodo[0]) {
+        throw new AppError(
+          'BIZ_UNDO_NOT_AVAILABLE',
+          400,
+          { todoId: data.id },
+          'This item is no longer available for undo',
+          [{ action: 'refresh', label: 'Refresh List' }]
+        )
+      }
+
+      // Check if item was deleted too long ago (e.g., 24 hours)
+      const deletedAt = new Date(deletedTodo[0].deletedAt!)
+      const now = new Date()
+      const hoursSinceDeleted = (now.getTime() - deletedAt.getTime()) / (1000 * 60 * 60)
+      
+      if (hoursSinceDeleted > 24) {
+        throw new AppError(
+          'BIZ_UNDO_EXPIRED',
+          400,
+          { hoursSinceDeleted: Math.round(hoursSinceDeleted) },
+          'Undo is only available for 24 hours after deletion',
+          [{ action: 'create', label: 'Create New' }]
+        )
+      }
+
+      const restored = await db
+        .update(todos)
+        .set({ 
+          deletedAt: null,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(todos.id, data.id),
+          eq(todos.organizationId, orgId)
+        ))
+        .returning()
+
+      return {
+        ...restored[0],
+        priority: numberToPriority(restored[0].priority),
+      }
+    } catch (error) {
+      // Handle specific error types
+      if (error instanceof AppError) {
+        throw error
+      }
+      
+      // Handle database constraint errors
+      if ((error as any).code === '23505') { // Unique constraint
+        throw new AppError(
+          'BIZ_DUPLICATE_ENTRY',
+          409,
+          { field: 'title' },
+          'A todo with this title already exists'
+        )
+      }
+
+      // Wrap unknown errors
+      throw new AppError(
+        'SYS_UNDO_FAILED',
+        500,
+        undefined,
+        'Failed to restore item. Please try refreshing the page.'
+      )
+    }
+  })
+```
+
+### Integration with Optimistic Updates
+
+```typescript
+// Advanced client-side patterns with optimistic updates
+function useOptimisticDelete() {
+  const queryClient = useQueryClient()
+  const { showError, showSuccess } = useErrorHandler()
+  
+  return useMutation({
+    mutationFn: deleteTodo,
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['todos'] })
+      
+      // Snapshot previous value
+      const previousTodos = queryClient.getQueryData(['todos'])
+      
+      // Optimistically remove todo
+      queryClient.setQueryData(['todos'], (old: any[]) => 
+        old?.filter(todo => todo.id !== variables.data.id) || []
+      )
+      
+      return { previousTodos }
+    },
+    onSuccess: (result, variables, context) => {
+      // Show success with undo - don't refetch yet
+      showSuccess('Todo deleted', {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              const restored = await undoDeleteTodo({ data: { id: variables.data.id } })
+              
+              queryClient.setQueryData(['todos'], (old: any[]) => {
+                const todos = old || []
+                todos.push(restored)
+                return todos.sort((a, b) => 
+                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                )
+              })
+              
+              showSuccess('Todo restored')
+            } catch (error) {
+              showError(error)
+              queryClient.invalidateQueries({ queryKey: ['todos'] })
+            }
+          }
+        }
+      })
+    },
+    onError: (error, variables, context) => {
+      // Revert optimistic update
+      if (context?.previousTodos) {
+        queryClient.setQueryData(['todos'], context.previousTodos)
+      }
+      showError(error)
+    }
+  })
+}
+```
+
+This server function architecture provides a robust foundation for building type-safe, secure, and scalable API endpoints with comprehensive error handling, undo functionality, and proper integration with the authentication and multi-tenancy systems.

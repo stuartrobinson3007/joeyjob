@@ -8,6 +8,7 @@ import appCss from '../styles.css?url'
 
 import { Providers } from '@/lib/hooks/providers'
 import { NotFoundComponent } from '@/components/not-found'
+import { ConfirmDialogProvider } from '@/components/taali-ui/ui/confirm-dialog'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -41,8 +42,10 @@ function RootComponent() {
   const { theme } = useTheme()
   return (
     <Providers>
-      <Outlet />
-      <Toaster position="bottom-right" theme={theme as 'light' | 'dark' | 'system'} />
+      <ConfirmDialogProvider>
+        <Outlet />
+        <Toaster position="bottom-right" theme={theme as 'light' | 'dark' | 'system'} />
+      </ConfirmDialogProvider>
     </Providers>
   )
 }

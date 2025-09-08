@@ -7,7 +7,7 @@ import { cn } from '@/components/taali-ui/lib/utils'
 
 function Breadcrumb({ ...props }: React.ComponentProps<'nav'>) {
   const { t } = useTranslation('common')
-  return <nav aria-label={t('common:accessibility.breadcrumb')} data-slot="breadcrumb" {...props} />
+  return <nav aria-label={t('accessibility.breadcrumb')} data-slot="breadcrumb" {...props} />
 }
 
 function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
@@ -88,7 +88,7 @@ function BreadcrumbEllipsis({ className, ...props }: React.ComponentProps<'span'
       {...props}
     >
       <MoreHorizontal className="size-4" />
-      <span className="sr-only">{t('common:navigation.more')}</span>
+      <span className="sr-only">{t('navigation.more')}</span>
     </span>
   )
 }

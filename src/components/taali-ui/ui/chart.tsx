@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
+import type { Payload } from 'recharts/types/component/DefaultTooltipContent'
 
 import { cn } from '../lib/utils'
 
@@ -115,7 +116,7 @@ function ChartTooltipContent({
     indicator?: 'line' | 'dot' | 'dashed'
     nameKey?: string
     labelKey?: string
-    payload?: any[]
+    payload?: Payload<number | string | number[], string | number>[]
     label?: string
   }) {
   const { config } = useChart()
@@ -161,14 +162,14 @@ function ChartTooltipContent({
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload?.map((item: any, index: number) => {
+        {payload?.map((item, index: number) => {
           const key = `${nameKey || item.name || item.dataKey || 'value'}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
           const indicatorColor = color || item.payload.fill || item.color
 
           return (
             <div
-              key={item.dataKey}
+              key={item.dataKey as React.Key}
               className={cn(
                 '[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5',
                 indicator === 'dot' && 'items-center'
@@ -241,7 +242,7 @@ function ChartLegendContent({
 }: React.ComponentProps<'div'> & {
   hideIcon?: boolean
   nameKey?: string
-  payload?: any[]
+  payload?: Payload<number | string | number[], string | number>[]
   verticalAlign?: 'top' | 'bottom'
 }) {
   const { config } = useChart()
@@ -258,13 +259,13 @@ function ChartLegendContent({
         className
       )}
     >
-      {payload.map((item: any) => {
+      {payload.map((item) => {
         const key = `${nameKey || item.dataKey || 'value'}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
         return (
           <div
-            key={item.value}
+            key={item.value as React.Key}
             className={cn(
               '[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3'
             )}

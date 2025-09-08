@@ -1,5 +1,9 @@
 import { z } from 'zod'
+
 import { validationMessages as vm } from './validation-messages'
+
+// Type for field values that can be validated
+type FieldValue = string | number | boolean | Date | null | undefined
 
 // Single source of truth for all validations (CLIENT-SIDE ONLY)
 export const validationRules = {
@@ -24,7 +28,9 @@ export const validationRules = {
       .min(8, vm.user.password.min(8))
       .regex(/[A-Z]/, vm.user.password.uppercase)
       .regex(/[a-z]/, vm.user.password.lowercase)
-      .regex(/[0-9]/, vm.user.password.number)
+      .regex(/[0-9]/, vm.user.password.number),
+    currentPassword: z.string()
+      .min(1, vm.user.currentPassword.required)
   },
   todo: {
     title: z.string()
@@ -43,12 +49,12 @@ export const validationRules = {
 export function validateFieldClient(
   entity: string,
   field: string,
-  value: any
+  value: FieldValue
 ): { valid: boolean; error?: string } {
   try {
     const entityRules = validationRules[entity as keyof typeof validationRules]
     if (entityRules) {
-      const schema = (entityRules as any)[field]
+      const schema = (entityRules as Record<string, z.ZodSchema>)[field]
       if (schema) {
         schema.parse(value)
       }

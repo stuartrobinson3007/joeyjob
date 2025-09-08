@@ -10,6 +10,7 @@
     "footer": "If you didn't request this email, you can safely ignore it."
   },
   "invitation": {
+    "subject": "{{inviterName}} invited you to join {{organizationName}}",
     "preview": "Invitation to join {{organizationName}}",
     "title": "You're invited!",
     "message": "<strong>{{inviterName}}</strong> has invited you to join <strong>{{organizationName}}</strong> on Todo App.",

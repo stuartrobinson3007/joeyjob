@@ -44,7 +44,7 @@ export function useLoadingItems<T = string>() {
 /**
  * Hook for wrapping async actions with automatic loading state management
  */
-export function useAsyncAction<TArgs extends any[], TReturn = void>(
+export function useAsyncAction<TArgs extends unknown[], TReturn = void>(
   action: (...args: TArgs) => Promise<TReturn>,
   options?: {
     onSuccess?: (result: TReturn) => void

@@ -5,6 +5,7 @@ import { parseError, handleErrorAction } from './client-handler'
 import { isErrorCode } from './codes'
 import type { ParsedError } from './client-handler'
 
+import { safePropertyAccess } from '@/lib/utils/type-safe-access'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 // Hook to translate and handle errors
@@ -15,7 +16,7 @@ export function useErrorHandler() {
     (error: ParsedError): string => {
       // If we have a valid error code, translate it
       if (isErrorCode(error.code)) {
-        return t(`codes.${error.code}`, error.context || {})
+        return t(`codes.${error.code}`, (error.context || {}) as Record<string, unknown>)
       }
 
       // Otherwise use the message as-is
@@ -57,10 +58,21 @@ export function useErrorHandler() {
   )
 
   const showSuccess = useCallback(
-    (message: string) => {
+    (message: string, options?: { action?: { label: string; onClick: () => void } }) => {
       // Check if it's a translation key
       const translatedMessage = message.includes('.') ? t(message) : message
-      toast.success(translatedMessage)
+      
+      if (options?.action) {
+        toast.success(translatedMessage, {
+          action: {
+            label: options.action.label,
+            onClick: options.action.onClick,
+          },
+          duration: 10000, // Longer duration for undo actions
+        })
+      } else {
+        toast.success(translatedMessage)
+      }
     },
     [t]
   )
@@ -80,8 +92,8 @@ export function useFieldError(error: unknown, fieldName: string) {
   return useMemo(() => {
     const parsed = parseError(error)
 
-    if (parsed.code === 'VAL_INVALID_FORMAT' && parsed.context?.fields) {
-      const fieldError = parsed.context.fields[fieldName]
+    if (parsed.code === 'VAL_INVALID_FORMAT' && parsed.context && typeof parsed.context === 'object' && parsed.context !== null && 'fields' in parsed.context && parsed.context.fields) {
+      const fieldError = safePropertyAccess(parsed.context.fields as Record<string, unknown>, fieldName)
       if (fieldError) {
         // Translate if it looks like a key
         if (typeof fieldError === 'string' && fieldError.includes('.')) {

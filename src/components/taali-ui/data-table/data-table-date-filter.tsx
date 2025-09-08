@@ -45,7 +45,7 @@ export function DataTableDateFilter<TData, TValue>({
   }
 
   const displayValue = React.useMemo(() => {
-    if (!value) return title || t('common:filters.pickADate')
+    if (!value) return title || t('filters.pickADate')
 
     if (isRange && Array.isArray(value)) {
       const [from, to] = value
@@ -58,7 +58,7 @@ export function DataTableDateFilter<TData, TValue>({
       return format(value, 'MMM d, yyyy')
     }
 
-    return title || t('common:filters.pickADate')
+    return title || t('filters.pickADate')
   }, [value, title, isRange, t])
 
   const hasValue = Boolean(value)
@@ -67,7 +67,7 @@ export function DataTableDateFilter<TData, TValue>({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className={cn('h-8 border-dashed')}>
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon />
           {displayValue}
         </Button>
       </PopoverTrigger>
@@ -98,7 +98,7 @@ export function DataTableDateFilter<TData, TValue>({
                   setOpen(false)
                 }}
               >
-                {t('common:filters.clearFilter')}
+                {t('filters.clearFilter')}
               </Button>
             </div>
           )}

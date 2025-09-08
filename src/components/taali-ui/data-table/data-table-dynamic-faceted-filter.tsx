@@ -24,6 +24,7 @@ import { cn } from '../lib/utils'
 import { DataTableFilterOption } from './types'
 
 import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { getTableFilterValue } from '@/lib/utils/type-safe-access'
 
 interface DataTableDynamicFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
@@ -41,7 +42,7 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
   const { t } = useTranslation('common')
   const [shouldFetch, setShouldFetch] = React.useState(false)
 
-  const selectedValues = column?.getFilterValue() as string[] | string | undefined
+  const selectedValues = getTableFilterValue(column?.getFilterValue())
   const normalizedValues = React.useMemo(() => {
     if (!selectedValues) return []
     if (Array.isArray(selectedValues)) return selectedValues
@@ -129,15 +130,15 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
         <FacetedList>
           {isLoading && (
             <div className="flex items-center justify-center p-4">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              <span className="text-sm text-muted-foreground">{t('common:filters.loadingOptions')}</span>
+              <Loader2 className="animate-spin" />
+              <span className="text-sm text-muted-foreground">{t('filters.loadingOptions')}</span>
             </div>
           )}
           {error && (
-            <div className="p-4 text-sm text-muted-foreground">{t('common:filters.loadingError')}</div>
+            <div className="p-4 text-sm text-muted-foreground">{t('filters.loadingError')}</div>
           )}
           {!isLoading && !error && options.length === 0 && (
-            <FacetedEmpty>{t('common:filters.noOptions')}</FacetedEmpty>
+            <FacetedEmpty>{t('filters.noOptions')}</FacetedEmpty>
           )}
           {!isLoading && !error && options.length > 0 && (
             <FacetedGroup>
@@ -148,7 +149,7 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
                     {option.icon && (
                       <option.icon
                         className={cn(
-                          'mr-2 h-4 w-4 text-muted-foreground',
+                          'text-muted-foreground',
                           isSelected && 'text-foreground'
                         )}
                       />
@@ -172,7 +173,7 @@ export function DataTableDynamicFacetedFilter<TData, TValue>({
                 className="w-full justify-center"
                 onClick={() => column?.setFilterValue(undefined)}
               >
-                {t('common:filters.clearFilter')}
+                {t('filters.clearFilter')}
               </Button>
             </div>
           )}

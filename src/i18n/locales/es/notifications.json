@@ -33,8 +33,11 @@
   },
   "confirmations": {
     "deleteOrganization": "¿Estás seguro de que quieres eliminar \"{{orgName}}\"? Esto eliminará permanentemente todos los datos asociados con esta organización.",
-    "removeMember": "¿Estás seguro de que quieres eliminar a {{memberName}} de este espacio de trabajo?",
+    "deleteOrganizationTitle": "Eliminar Organización",
+    "removeMember": "¿Estás seguro de que quieres eliminar a {{memberName}} de este espacio de trabajo?", 
+    "removeMemberTitle": "Quitar Miembro",
     "resendInvitation": "¿Reenviar invitación a {{email}}?",
+    "resendInvitationTitle": "Reenviar Invitación",
     "deleteTodos": "¿Estás seguro de que quieres eliminar {{count}} tarea{{plural}}?"
   },
   "warning": {

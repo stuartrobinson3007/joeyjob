@@ -4,9 +4,16 @@ import { getActiveOrganizationId, setActiveOrganizationId as setOrgId } from './
 
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 
+interface Organization {
+  id: string
+  name: string
+  slug?: string
+  [key: string]: unknown
+}
+
 interface OrganizationContextValue {
   activeOrganizationId: string | null
-  activeOrganization: any | null
+  activeOrganization: Organization | null
   setActiveOrganization: (orgId: string) => void
   isLoading: boolean
 }
@@ -17,10 +24,12 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { data: organizations, isPending } = useListOrganizations()
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null)
 
+
   // Initialize active organization from storage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const orgId = getActiveOrganizationId()
+
 
       if (orgId) {
         setActiveOrganizationId(orgId)
@@ -30,32 +39,23 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   }, [organizations])
 
-  // Listen for storage changes (cross-tab sync - optional)
+  // Listen for same-tab organization changes
   useEffect(() => {
     if (typeof window === 'undefined') return
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'activeOrganizationId' && e.newValue) {
-        // Update sessionStorage to sync tabs
-        sessionStorage.setItem('activeOrganizationId', e.newValue)
-        setActiveOrganizationId(e.newValue)
-      }
-    }
 
     const handleOrgChange = (e: CustomEvent) => {
       setActiveOrganizationId(e.detail)
     }
 
-    window.addEventListener('storage', handleStorageChange)
     window.addEventListener('org-changed' as keyof WindowEventMap, handleOrgChange as EventListener)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('org-changed' as keyof WindowEventMap, handleOrgChange as EventListener)
     }
   }, [])
 
   const setActiveOrganization = (orgId: string) => {
+    
     // Use the utility function to handle storage and event dispatch
     setOrgId(orgId)
     setActiveOrganizationId(orgId)

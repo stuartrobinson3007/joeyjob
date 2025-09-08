@@ -8,11 +8,19 @@ import { db } from '@/lib/db/db'
 import { member } from '@/database/schema'
 
 export const organizationMiddleware = createMiddleware({ type: 'function' })
-  .middleware([authMiddleware]) // Chain with auth middleware to get user context
+  .middleware([authMiddleware]) // Chain with auth middleware (which includes error handling)
   .client(async ({ next }) => {
-    // Read organizationId from sessionStorage (tab-specific)
-    const organizationId =
-      typeof window !== 'undefined' ? sessionStorage.getItem('activeOrganizationId') : null
+    // Check sessionStorage first (tab-specific)
+    let organizationId = typeof window !== 'undefined' ? sessionStorage.getItem('activeOrganizationId') : null
+    
+    // If no sessionStorage, check localStorage and set sessionStorage
+    if (!organizationId && typeof window !== 'undefined') {
+      const localOrgId = localStorage.getItem('activeOrganizationId')
+      if (localOrgId) {
+        sessionStorage.setItem('activeOrganizationId', localOrgId)
+        organizationId = localOrgId
+      }
+    }
 
     return next({
       sendContext: {
@@ -42,8 +50,9 @@ export const organizationMiddleware = createMiddleware({ type: 'function' })
         } else {
           // User is not a member of this organization - validatedOrgId stays null
         }
-      } catch {
-        // Error validating organization silently ignored - user will see no active org
+      } catch (_error) {
+        // Log validation error but continue - user will see no active org
+        // Organization validation failed, throw error for handling upstream
       }
     } else {
       // No organizationId or user - validatedOrgId stays null

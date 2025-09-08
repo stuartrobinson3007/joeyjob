@@ -8,10 +8,12 @@ import errorTranslations from '@/i18n/locales/en/errors.json'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { invitation, organization, user } from '@/database/schema'
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { validationRules } from '@/lib/validation/validation-registry'
 
 const completeOnboardingSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  firstName: validationRules.user.firstName,
+  lastName: validationRules.user.lastName,
   invitationId: z.string().optional(),
 })
 
@@ -22,7 +24,12 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
     const session = await auth.api.getSession({ headers: request.headers })
 
     if (!session) {
-      throw new Error('Unauthorized')
+      throw new AppError(
+        ERROR_CODES.AUTH_NOT_AUTHENTICATED,
+        401,
+        undefined,
+        'Authentication required'
+      )
     }
 
     // Update user profile
@@ -48,7 +55,12 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       })
 
       if (!result || !result.invitation.organizationId) {
-        throw new Error(errorTranslations.server.failedToAcceptInvitation)
+        throw new AppError(
+          ERROR_CODES.BIZ_INVALID_STATE,
+          400,
+          { invitationId: data.invitationId },
+          errorTranslations.server.failedToAcceptInvitation
+        )
       }
 
       organizationId = result.invitation.organizationId
@@ -64,7 +76,12 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       })
 
       if (!org || !org.id) {
-        throw new Error(errorTranslations.server.failedToCreateOrganization)
+        throw new AppError(
+          ERROR_CODES.BIZ_INVALID_STATE,
+          500,
+          { organizationName: `${data.firstName}'s Workspace` },
+          errorTranslations.server.failedToCreateOrganization
+        )
       }
 
       organizationId = org.id
@@ -104,7 +121,12 @@ export const getInvitationDetails = createServerFn({ method: 'GET' })
       .limit(1)
 
     if (!invitationData[0]) {
-      throw new Error(errorTranslations.server.invitationNotFoundOrExpired)
+      throw new AppError(
+        ERROR_CODES.BIZ_NOT_FOUND,
+        404,
+        { invitationId: data.invitationId },
+        errorTranslations.server.invitationNotFoundOrExpired
+      )
     }
 
     return {

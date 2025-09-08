@@ -16,7 +16,6 @@ export function GitHubSignIn() {
       })
     } catch (error) {
       showError(error)
-      console.error('GitHub sign in error:', error)
     }
   }
 

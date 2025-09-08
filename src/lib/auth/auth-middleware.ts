@@ -3,6 +3,8 @@ import { getWebRequest } from '@tanstack/react-start/server'
 
 import { auth } from './auth'
 
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+
 export const authMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
   const request = getWebRequest()
   const session = await auth.api.getSession({
@@ -10,19 +12,14 @@ export const authMiddleware = createMiddleware({ type: 'function' }).server(asyn
     query: { disableCookieCache: true }, // Always fetch fresh session data
   })
 
-  console.log(
-    '🛡️ Auth Middleware - Retrieved session:',
-    session
-      ? {
-          userId: session.user.id,
-          email: session.user.email,
-          onboardingCompleted: session.user.onboardingCompleted,
-        }
-      : null
-  )
 
   if (!session) {
-    throw new Error('Unauthorized')
+    throw new AppError(
+      ERROR_CODES.AUTH_NOT_AUTHENTICATED,
+      401,
+      undefined,
+      'Authentication required'
+    )
   }
 
   return next({

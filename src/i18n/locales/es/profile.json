@@ -34,7 +34,6 @@
   "security": {
     "title": "Seguridad",
     "description": "Gestiona la configuración de seguridad de tu cuenta",
-    "twoFactor": "Autenticación de Dos Factores",
     "changePassword": "Cambiar Contraseña",
     "passwordDescription": "Actualiza tu contraseña regularmente para mejor seguridad",
     "notice": "Aviso de Seguridad",
@@ -44,9 +43,7 @@
     "warning": "Advertencia",
     "securityNoticeDescription": "Si notas dispositivos o ubicaciones desconocidas, revoca esas sesiones inmediatamente y cambia tu contraseña.",
     "revokeAllSessionsDescription": "Esto cerrará sesión en todos los otros dispositivos de tu cuenta excepto el actual. Todos los usuarios necesitarán iniciar sesión nuevamente para acceder a tu cuenta.",
-    "revokeWarning": "Esta acción no se puede deshacer. Asegúrate de reconocer el dispositivo actual antes de continuar.",
-    "twoFactorEnabled": "La autenticación de dos factores está habilitada para tu cuenta",
-    "twoFactorDisabled": "Agrega una capa extra de seguridad a tu cuenta"
+    "revokeWarning": "Esta acción no se puede deshacer. Asegúrate de reconocer el dispositivo actual antes de continuar."
   },
   "sessions": {
     "title": "Sesiones Activas",

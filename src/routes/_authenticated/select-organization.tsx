@@ -7,6 +7,7 @@ import { setActiveOrganizationId } from '@/features/organization/lib/organizatio
 import { authClient } from '@/lib/auth/auth-client'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/taali-ui/ui/dialog'
-import { Input } from '@/components/taali-ui/ui/input'
-import { Label } from '@/components/taali-ui/ui/label'
-import { Textarea } from '@/components/taali-ui/ui/textarea'
-import { Button } from '@/components/taali-ui/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/taali-ui/ui/card'
+} from '@/ui/dialog'
+import { Input } from '@/ui/input'
+import { Label } from '@/ui/label'
+import { Textarea } from '@/ui/textarea'
+import { Button } from '@/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/card'
 
 export const Route = createFileRoute('/_authenticated/select-organization')({
   staticData: {
@@ -33,7 +34,7 @@ function SelectOrganizationPage() {
   const { t } = useTranslation('common')
   const { t: tNotifications } = useTranslation('notifications')
   const { showError, showSuccess } = useErrorHandler()
-  
+
   const { data: organizations, isPending: isLoading, refetch: refetchOrganizations } = useListOrganizations()
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
@@ -49,11 +50,11 @@ function SelectOrganizationPage() {
     try {
       setIsSelecting(true)
       setSelectedOrg(organizationId)
-      
+
       setActiveOrganizationId(organizationId)
-      
+
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       navigate({ to: '/' })
     } catch (error) {
       showError(error)
@@ -64,7 +65,7 @@ function SelectOrganizationPage() {
 
   const handleCreateOrganization = async () => {
     if (!formData.name.trim()) {
-      setValidationErrors({ name: t('notifications:error.organizationNameRequired') })
+      setValidationErrors({ name: tNotifications('error.organizationNameRequired') })
       return
     }
 
@@ -78,24 +79,29 @@ function SelectOrganizationPage() {
       })
 
       if (error) {
-        throw new Error(error.message || tNotifications('error.organizationCreateFailed'))
+        throw new AppError(
+          ERROR_CODES.BIZ_INVALID_STATE,
+          400,
+          { organizationName: formData.name },
+          error.message || tNotifications('error.organizationCreateFailed')
+        )
       }
 
       if (result) {
         setActiveOrganizationId(result.id)
-        
+
         await refetchOrganizations()
-        
+
         setFormData({ name: '', description: '' })
         setShowCreateDialog(false)
-        
-        showSuccess(t('notifications:success.organizationCreated'))
-        
+
+        showSuccess(tNotifications('success.organizationCreated'))
+
         navigate({ to: '/' })
       }
-    } catch (error: any) {
-      console.error('Failed to create organization:', error)
-      const errorMessage = error?.message || tNotifications('error.failedToCreateWorkspace')
+    } catch (error: unknown) {
+      // Failed to create organization - handled by showError
+      const errorMessage = (error as Error)?.message || tNotifications('error.failedToCreateWorkspace')
       setValidationErrors({
         name: errorMessage,
       })
@@ -131,7 +137,7 @@ function SelectOrganizationPage() {
             {t('organization.selectWorkspace')}
           </h1>
           <p className="text-muted-foreground">
-            {organizations && organizations.length > 0 
+            {organizations && organizations.length > 0
               ? t('organization.chooseWorkspaceDescription')
               : t('organization.noWorkspacesDescription')}
           </p>
@@ -140,11 +146,10 @@ function SelectOrganizationPage() {
         {organizations && organizations.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {organizations.map((org) => (
-              <Card 
+              <Card
                 key={org.id}
-                className={`cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 ${
-                  selectedOrg === org.id ? 'border-primary shadow-lg' : ''
-                }`}
+                className={`cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 ${selectedOrg === org.id ? 'border-primary shadow-lg' : ''
+                  }`}
                 onClick={() => handleSelectOrganization(org.id)}
               >
                 <CardHeader className="pb-4">
@@ -170,7 +175,7 @@ function SelectOrganizationPage() {
               </Card>
             ))}
 
-            <Card 
+            <Card
               className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 border-dashed"
               onClick={() => setShowCreateDialog(true)}
             >
@@ -203,7 +208,7 @@ function SelectOrganizationPage() {
               </CardHeader>
               <CardContent className="flex justify-center">
                 <Button onClick={() => setShowCreateDialog(true)} size="lg">
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus />
                   {t('organization.createFirstWorkspace')}
                 </Button>
               </CardContent>
@@ -262,17 +267,17 @@ function SelectOrganizationPage() {
               }}
               disabled={isCreating}
             >
-              {t('common:actions.cancel')}
+              {t('actions.cancel')}
             </Button>
             <Button onClick={handleCreateOrganization} disabled={!formData.name.trim() || isCreating}>
               {isCreating ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="animate-spin" />
                   {t('states.creating')}
                 </>
               ) : (
                 <>
-                  <Building2 className="mr-2 h-4 w-4" />
+                  <Building2 />
                   {t('organization.createWorkspace')}
                 </>
               )}

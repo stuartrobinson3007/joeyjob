@@ -3,13 +3,13 @@ import { ERROR_CODES, type ErrorCode } from '@/lib/errors/codes'
 export { ERROR_CODES } from '@/lib/errors/codes'
 
 export interface ErrorContext {
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface ErrorAction {
   action: 'retry' | 'login' | 'upgrade' | 'support' | 'goBack'
   label?: string
-  data?: any
+  data?: unknown
 }
 
 export class AppError extends Error {
@@ -107,7 +107,7 @@ export function handleError(error: unknown): {
   userMessage: string
   technicalMessage: string
   statusCode: number
-  context?: any
+  context?: ErrorContext
 } {
   if (isAppError(error)) {
     return {
@@ -119,7 +119,7 @@ export function handleError(error: unknown): {
   }
 
   if (error instanceof Error) {
-    console.error('Unhandled error:', error)
+    // Error is being thrown for handling
     return {
       userMessage: 'An unexpected error occurred. Please try again.',
       technicalMessage: error.message,
@@ -127,7 +127,7 @@ export function handleError(error: unknown): {
     }
   }
 
-  console.error('Unknown error:', error)
+  // Unknown error type, throwing generic error
   return {
     userMessage: 'An unexpected error occurred. Please try again.',
     technicalMessage: 'Unknown error',

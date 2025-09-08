@@ -1,10 +1,16 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { and, eq, not } from 'drizzle-orm'
+
 import { validationRules } from './validation-registry'
 import { validationMessages as vm } from './validation-messages'
+
+import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
 import { organization, user } from '@/database/schema'
+
+// Type for field values that can be validated
+type FieldValue = string | number | boolean | Date | null | undefined
 
 /**
  * Server-side database constraint validator
@@ -13,12 +19,12 @@ import { organization, user } from '@/database/schema'
 async function validateDatabaseConstraints(
   entity: 'organization' | 'user' | 'todo',
   field: string,
-  value: any,
+  value: FieldValue,
   context?: { excludeId?: string; organizationId?: string }
 ): Promise<true | string> {
   switch (entity) {
     case 'organization':
-      if (field === 'slug') {
+      if (field === 'slug' && typeof value === 'string') {
         const existing = await db.select()
           .from(organization)
           .where(and(
@@ -28,13 +34,13 @@ async function validateDatabaseConstraints(
           .limit(1)
         
         if (existing.length > 0) {
-          return vm.organization.slug.taken
+          return 'validation:organization.slug.taken'
         }
       }
       break
       
     case 'user':
-      if (field === 'email') {
+      if (field === 'email' && typeof value === 'string') {
         const existing = await db.select()
           .from(user)
           .where(and(
@@ -44,7 +50,7 @@ async function validateDatabaseConstraints(
           .limit(1)
         
         if (existing.length > 0) {
-          return vm.user.email.taken
+          return 'validation:user.email.taken'
         }
       }
       break
@@ -57,6 +63,7 @@ async function validateDatabaseConstraints(
  * Server function for field validation (includes database checks)
  */
 export const validateField = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
   .validator((data: unknown) => z.object({
     entity: z.string(),
     field: z.string(),
@@ -76,7 +83,7 @@ export const validateField = createServerFn({ method: 'POST' })
       // 1. Zod validation first
       const entityRules = validationRules[entity as keyof typeof validationRules]
       if (entityRules) {
-        const schema = (entityRules as any)[field]
+        const schema = (entityRules as Record<string, z.ZodSchema>)[field]
         if (schema) {
           schema.parse(value)
         }
@@ -112,6 +119,7 @@ export const validateField = createServerFn({ method: 'POST' })
  * Server function specifically for checking slug availability
  */
 export const checkSlugAvailability = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
   .validator((data: unknown) => z.object({
     slug: z.string(),
     organizationId: z.string().optional()

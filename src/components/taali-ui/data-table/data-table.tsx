@@ -30,7 +30,12 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   config?: DataTableConfig<TData>
   totalCount?: number
-  onStateChange?: (state: any) => void
+  onStateChange?: (state: {
+    search?: string
+    columnFilters?: ColumnFiltersState
+    sorting?: SortingState
+    pagination?: { pageIndex: number; pageSize: number }
+  }) => void
   onSelectionChange?: (selection: SelectionState, clearSelection: () => void) => void
   onSelectAll?: (filters: ServerQueryParams) => Promise<string[]>
   currentFilters?: ServerQueryParams
@@ -93,9 +98,13 @@ export function DataTable<TData, TValue>({
   const { skeletonRowCount = 5, showSkeletonOnRefetch = false } = loadingConfig
 
   // Get ID from row data - assumes 'id' property exists
-  const getRowId = React.useCallback((row: any) => {
-    return row?.id || String(row.index)
-  }, [])
+  const getRowId = React.useCallback((row: TData) => {
+    if (getRowIdProp) {
+      return getRowIdProp(row)
+    }
+    // Fallback to using the row as is if no ID extractor is provided
+    return String((row as Record<string, unknown>)?.id || Math.random())
+  }, [getRowIdProp])
 
   // Convert selectedIds to TanStack Table's index-based selection for current page
   const currentPageRowSelection = React.useMemo(() => {
@@ -117,7 +126,7 @@ export function DataTable<TData, TValue>({
 
   // Handle row selection changes from TanStack Table
   const handleRowSelectionChange = React.useCallback(
-    (updater: any) => {
+    (updater: React.SetStateAction<Record<string, boolean>>) => {
       const newIndexSelection =
         typeof updater === 'function' ? updater(currentPageRowSelection) : updater
 
@@ -216,6 +225,7 @@ export function DataTable<TData, TValue>({
       : {}),
   })
 
+  const paginationState = table.getState().pagination
   React.useEffect(() => {
     if (onStateChange) {
       onStateChange({
@@ -223,8 +233,8 @@ export function DataTable<TData, TValue>({
         columnFilters,
         sorting,
         pagination: {
-          pageIndex: table.getState().pagination.pageIndex,
-          pageSize: table.getState().pagination.pageSize,
+          pageIndex: paginationState.pageIndex,
+          pageSize: paginationState.pageSize,
         },
       })
     }
@@ -232,8 +242,8 @@ export function DataTable<TData, TValue>({
     globalFilter,
     columnFilters,
     sorting,
-    table.getState().pagination.pageIndex,
-    table.getState().pagination.pageSize,
+    paginationState.pageIndex,
+    paginationState.pageSize,
     onStateChange,
   ])
 
@@ -291,7 +301,7 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map(header => {
-                  const meta = header.column.columnDef.meta as any
+                  const meta = header.column.columnDef.meta
                   return (
                     <TableHead
                       key={header.id}
@@ -380,7 +390,7 @@ export function DataTable<TData, TValue>({
                     }}
                   >
                     {row.getVisibleCells().map(cell => {
-                      const meta = cell.column.columnDef.meta as any
+                      const meta = cell.column.columnDef.meta
                       const enableTruncation = meta?.enableTextTruncation ?? false
 
                       return (

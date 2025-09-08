@@ -10,7 +10,14 @@ import { useSession } from '@/lib/auth/auth-hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { getRoleByName } from '@/lib/auth/roles-client'
 
-export function usePermissions() {
+interface OrganizationMember {
+  id: string
+  userId: string
+  role: string
+  organizationId: string
+}
+
+export function useClientPermissions() {
   const { data: session } = useSession()
   const { activeOrganizationId } = useActiveOrganization()
   const [memberRole, setMemberRole] = useState<string | null>(null)
@@ -34,7 +41,7 @@ export function usePermissions() {
         })
 
         // Handle different response structures from Better Auth
-        let membersArray: any[] = []
+        let membersArray: OrganizationMember[] = []
 
         if (response && 'members' in response) {
           membersArray = Array.isArray(response.members) ? response.members : []
@@ -50,10 +57,10 @@ export function usePermissions() {
         }
 
         // Find the current user's membership
-        const currentUserMember = membersArray.find((m: any) => m.userId === user.id)
+        const currentUserMember = membersArray.find((m: OrganizationMember) => m.userId === user.id)
         setMemberRole(currentUserMember?.role || null)
-      } catch (error) {
-        console.error('Failed to fetch member role:', error)
+      } catch (_error) {
+        // Failed to fetch member role, defaulting to null
         setMemberRole(null)
       } finally {
         setIsLoading(false)
@@ -86,7 +93,7 @@ export function usePermissions() {
       // Check if all required actions are allowed
       const hasAllPermissions = actions.every(
         requiredAction =>
-          Array.isArray(resourcePermissions) && resourcePermissions.includes(requiredAction as any)
+          Array.isArray(resourcePermissions) && resourcePermissions.includes(requiredAction as 'view' | 'manage')
       )
 
       return hasAllPermissions
@@ -148,7 +155,7 @@ export function usePermissions() {
       role: memberRole,
       isLoading,
     }
-  }, [memberRole])
+  }, [memberRole, isLoading])
 
   return permissions
 }

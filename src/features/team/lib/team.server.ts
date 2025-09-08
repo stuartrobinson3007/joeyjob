@@ -5,10 +5,13 @@ import { z } from 'zod'
 
 import errorTranslations from '@/i18n/locales/en/errors.json'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
+import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { auth } from '@/lib/auth/auth'
+import { validateOrganizationRole, getRoleOrder } from '@/lib/auth/auth-types'
 import { db } from '@/lib/db/db'
 import { member, invitation, user } from '@/database/schema'
 import { checkPermission } from '@/lib/utils/permissions'
+import { checkPlanLimitUtil } from '@/lib/utils/plan-limits'
 import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
@@ -63,10 +66,22 @@ export type TeamMember = {
 }
 
 export const getTeamMembers = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
-  .validator((data: unknown) => getTeamMembersSchema.parse(data))
-  .handler(async ({ data }) => {
-    await checkPermission('member', ['read'], data.organizationId)
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => {
+    // Parse all params except organizationId (comes from context)
+    const parsed = getTeamMembersSchema.omit({ organizationId: true }).parse(data)
+    return parsed
+  })
+  .handler(async ({ data, context }) => {
+    const organizationId = context.organizationId
+    if (!organizationId) {
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: 'organizationId' },
+        errorTranslations.server.noOrganizationContext
+      )
+    }
 
     const offset = (data.page - 1) * data.pageSize
 
@@ -83,7 +98,7 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
       })
       .from(member)
       .leftJoin(user, eq(member.userId, user.id))
-      .where(eq(member.organizationId, data.organizationId))
+      .where(eq(member.organizationId, organizationId))
 
     // Fetch invitations
     const invitationsQuery = db
@@ -98,7 +113,7 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
       .from(invitation)
       .leftJoin(user, eq(invitation.inviterId, user.id))
       .where(
-        and(eq(invitation.organizationId, data.organizationId), eq(invitation.status, 'pending'))
+        and(eq(invitation.organizationId, organizationId), eq(invitation.status, 'pending'))
       )
 
     // Apply search if provided - need to fetch all then filter
@@ -163,10 +178,7 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
           compareValue = a.email.localeCompare(b.email)
           break
         case 'role': {
-          const roleOrder = { owner: 0, admin: 1, member: 2, viewer: 3 }
-          compareValue =
-            (roleOrder[a.role as keyof typeof roleOrder] || 99) -
-            (roleOrder[b.role as keyof typeof roleOrder] || 99)
+          compareValue = getRoleOrder(a.role) - getRoleOrder(b.role)
           break
         }
         case 'status':
@@ -207,7 +219,19 @@ export const inviteTeamMember = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     await checkPermission('invitation', ['create'], data.organizationId)
 
+    // Check plan limits before creating invitation
     const request = getWebRequest()
+    const limitCheck = await checkPlanLimitUtil('members', 'create', data.organizationId, request.headers)
+
+    if (!limitCheck.allowed) {
+      throw new AppError(
+        ERROR_CODES.BIZ_LIMIT_EXCEEDED,
+        400,
+        { resource: 'members' },
+        limitCheck.reason || errorTranslations.codes.BIZ_LIMIT_EXCEEDED,
+        [{ action: 'upgrade' }]
+      )
+    }
 
     // Check if user is already a member
     const existingMember = await db
@@ -425,7 +449,7 @@ export const resendTeamInvitation = createServerFn({ method: 'POST' })
       body: {
         organizationId: data.organizationId,
         email: invite[0].email,
-        role: (invite[0].role as 'member' | 'admin' | 'owner' | 'viewer') || 'member',
+        role: validateOrganizationRole(invite[0].role),
       },
     })
 
@@ -443,16 +467,22 @@ export const resendTeamInvitation = createServerFn({ method: 'POST' })
 
 // DataTable-compatible server function
 export const getTeamMembersTable = createServerFn({ method: 'POST' })
-  .middleware([authMiddleware])
+  .middleware([organizationMiddleware])
   .validator((data: unknown) => {
-    const params = data as { organizationId: string } & ServerQueryParams
-    return {
-      ...params,
-      organizationId: z.string().parse(params.organizationId),
-    }
+    // Only validate query params, organizationId comes from context
+    const params = data as ServerQueryParams
+    return params
   })
-  .handler(async ({ data }) => {
-    await checkPermission('member', ['read'], data.organizationId)
+  .handler(async ({ data, context }) => {
+    const organizationId = context.organizationId
+    if (!organizationId) {
+      throw new AppError(
+        ERROR_CODES.VAL_REQUIRED_FIELD,
+        400,
+        { field: 'organizationId' },
+        errorTranslations.server.noOrganizationContext
+      )
+    }
 
     const pageIndex = data.pagination?.pageIndex ?? 0
     const pageSize = data.pagination?.pageSize ?? 10
@@ -474,7 +504,7 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
       })
       .from(member)
       .leftJoin(user, eq(member.userId, user.id))
-      .where(eq(member.organizationId, data.organizationId))
+      .where(eq(member.organizationId, organizationId))
 
     // Fetch invitations
     const invitationsQuery = db
@@ -489,7 +519,7 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
       .from(invitation)
       .leftJoin(user, eq(invitation.inviterId, user.id))
       .where(
-        and(eq(invitation.organizationId, data.organizationId), eq(invitation.status, 'pending'))
+        and(eq(invitation.organizationId, organizationId), eq(invitation.status, 'pending'))
       )
 
     const [membersResult, invitationsResult] = await Promise.all([membersQuery, invitationsQuery])
@@ -559,10 +589,7 @@ export const getTeamMembersTable = createServerFn({ method: 'POST' })
             compareValue = a.email.localeCompare(b.email)
             break
           case 'role': {
-            const roleOrder = { owner: 0, admin: 1, member: 2, viewer: 3 }
-            compareValue =
-              (roleOrder[a.role as keyof typeof roleOrder] || 99) -
-              (roleOrder[b.role as keyof typeof roleOrder] || 99)
+            compareValue = getRoleOrder(a.role) - getRoleOrder(b.role)
             break
           }
           case 'status':

@@ -1,27 +1,33 @@
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Trash2, Loader2 } from 'lucide-react'
 
 import { useErrorHandler } from '@/lib/errors/hooks'
-import { getTodoById, updateTodo, deleteTodo } from '@/features/todos/lib/todos.server'
+import { getTodoById, updateTodo, deleteTodo, undoDeleteTodo } from '@/features/todos/lib/todos.server'
+import { AppError } from '@/lib/utils/errors'
+import { ERROR_CODES } from '@/lib/errors/codes'
+import type { Todo } from '@/types/todos'
 import { todoKeys } from '@/features/todos/lib/query-keys'
+import { useResourceQuery } from '@/lib/hooks/use-resource-query'
+import { ErrorState } from '@/components/error-state'
+import { parseError } from '@/lib/errors/client-handler'
 import { formatDateTime } from '@/lib/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useFormAutosave } from '@/lib/hooks/use-form-autosave'
 import { SaveStatusIndicator } from '@/components/save-status-indicator'
-import { Input } from '@/components/taali-ui/ui/input'
-import { Textarea } from '@/components/taali-ui/ui/textarea'
-import { Button } from '@/components/taali-ui/ui/button'
+import { Input } from '@/ui/input'
+import { Textarea } from '@/ui/textarea'
+import { Button } from '@/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/taali-ui/ui/select'
-import { Label } from '@/components/taali-ui/ui/label'
+} from '@/ui/select'
+import { Label } from '@/ui/label'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,8 +38,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/taali-ui/ui/alert-dialog'
-import { usePermissions } from '@/lib/hooks/use-permissions'
+} from '@/ui/alert-dialog'
+import { useClientPermissions } from '@/lib/hooks/use-permissions'
 import type { EditTodoFormData } from '@/types/todos'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import {
@@ -43,7 +49,7 @@ import {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/taali-ui/ui/breadcrumb'
+} from '@/ui/breadcrumb'
 
 export const Route = createFileRoute('/_authenticated/todos/$id/edit')({
   component: EditTodoPage,
@@ -53,38 +59,21 @@ function EditTodoPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
   const { activeOrganizationId } = useActiveOrganization()
-  const { canUpdateTodo, canDeleteTodo, isLoading: permissionsLoading } = usePermissions()
+  const { canUpdateTodo, canDeleteTodo, isLoading: permissionsLoading } = useClientPermissions()
   const queryClient = useQueryClient()
-  const [todo, setTodo] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const { t } = useTranslation('todos')
   const { showError, showSuccess } = useErrorHandler()
   const { t: tCommon } = useTranslation('common')
 
-  // Load todo on mount
-  useEffect(() => {
-    const loadTodo = async () => {
-      if (!activeOrganizationId || !id) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const loadedTodo = await getTodoById({ data: { id } })
-        setTodo(loadedTodo)
-      } catch (error) {
-        // Failed to load todo - error handled by showError
-        showError(error)
-        navigate({ to: '/' })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadTodo()
-  }, [id, activeOrganizationId, navigate, showError])
+  // Load todo using resource query
+  const { data: todo, isLoading, isError, error, refetch } = useResourceQuery<Todo>({
+    queryKey: [...todoKeys.detail(activeOrganizationId!, id)],
+    queryFn: () => getTodoById({ data: { id } }),
+    enabled: !!id && !!activeOrganizationId,
+    redirectOnError: '/'
+  })
 
   // Initialize form data
   const initialData = useMemo<EditTodoFormData>(
@@ -105,13 +94,13 @@ function EditTodoPage() {
       const trimmedTitle = data.title.trim()
 
       if (!trimmedTitle) {
-        errors.push(t('validation:validation.titleRequired'))
+        errors.push(t('validation.titleRequired'))
       } else if (trimmedTitle.length > 500) {
-        errors.push(t('validation:validation.titleTooLong'))
+        errors.push(t('validation.titleTooLong'))
       }
 
       if (data.description && data.description.length > 2000) {
-        errors.push(t('validation:validation.descriptionTooLong'))
+        errors.push(t('validation.descriptionTooLong'))
       }
 
       return {
@@ -149,19 +138,24 @@ function EditTodoPage() {
     onSave: async data => {
       const validation = validateTodoData(data)
       if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '))
+        throw new AppError(
+          ERROR_CODES.VAL_INVALID_FORMAT,
+          400,
+          { validationErrors: validation.errors },
+          validation.errors.join(', ')
+        )
       }
 
       const trimmedTitle = data.title.trim()
       const trimmedDescription = data.description?.trim()
 
-      const updated = await updateTodo({
+      await updateTodo({
         data: {
           id: id!,
           title: trimmedTitle,
           description: trimmedDescription || null,
           priority: data.priority,
-          dueDate: data.dueDate || null,
+          dueDate: data.dueDate ? new Date(data.dueDate + 'T00:00:00').toISOString() : null,
           assignedTo: data.assignedTo || null,
         },
       })
@@ -173,8 +167,7 @@ function EditTodoPage() {
         })
       }
 
-      // Update local todo state with the updated data
-      setTodo(updated)
+      // Data will be automatically refetched by React Query
 
       // Return normalized data
       return {
@@ -194,26 +187,7 @@ function EditTodoPage() {
     setDeleteDialogOpen(false) // Close dialog first to avoid DOM issues
     setIsDeleting(true)
     try {
-      console.log('[TodoEdit] Deleting todo', { id, timestamp: new Date().toISOString() })
       await deleteTodo({ data: { id: id! } })
-
-      console.log('[TodoEdit] Todo deleted, invalidating cache', {
-        timestamp: new Date().toISOString(),
-      })
-
-      // Debug: Log all current cache entries before delete invalidation
-      const queryCache = queryClient.getQueryCache()
-      const allQueries = queryCache.getAll()
-      console.log(
-        '[TodoEdit] All cached queries before delete invalidation:',
-        allQueries.map(q => ({
-          queryKey: q.queryKey,
-          state: q.state.status,
-        }))
-      )
-
-      const deleteInvalidationKey = activeOrganizationId ? todoKeys.all(activeOrganizationId) : []
-      console.log('[TodoEdit] Delete invalidating with hierarchical key:', deleteInvalidationKey)
 
       // Invalidate ALL todo queries for this organization using hierarchical structure
       if (activeOrganizationId) {
@@ -222,7 +196,28 @@ function EditTodoPage() {
         })
       }
 
-      showSuccess(t('common:messages.deleted'))
+      // Show success toast with undo action
+      showSuccess(tCommon('messages.deleted'), {
+        action: {
+          label: tCommon('actions.undo'),
+          onClick: async () => {
+            try {
+              await undoDeleteTodo({ data: { id: id! } })
+              // Invalidate queries to refresh data
+              if (activeOrganizationId) {
+                await queryClient.invalidateQueries({
+                  queryKey: todoKeys.all(activeOrganizationId),
+                })
+              }
+              showSuccess(tCommon('messages.restored'))
+              // Navigate back to the restored todo
+              navigate({ to: `/todos/${id}/edit` })
+            } catch (error) {
+              showError(error)
+            }
+          }
+        }
+      })
       navigate({ to: '/' })
     } catch (error) {
       showError(error)
@@ -249,6 +244,10 @@ function EditTodoPage() {
         <Loader2 className="size-6 animate-spin" />
       </div>
     )
+  }
+
+  if (isError && error) {
+    return <ErrorState error={parseError(error)} onRetry={refetch} />
   }
 
   if (!todo) {
@@ -297,7 +296,7 @@ function EditTodoPage() {
               <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="sm" disabled={isDeleting}>
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -339,8 +338,8 @@ function EditTodoPage() {
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto">
           {!canEdit && (
-            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">{t('edit.readOnly')}</p>
+            <div className="mb-4 p-4 bg-warning/10 dark:bg-warning/20 border border-warning/20 dark:border-warning/30 rounded-lg">
+              <p className="text-sm text-warning">{t('edit.readOnly')}</p>
             </div>
           )}
           <div className="bg-card p-6 rounded-lg shadow-md">
@@ -357,14 +356,14 @@ function EditTodoPage() {
                   placeholder={t('edit.titlePlaceholder')}
                   disabled={!canEdit}
                   className={
-                    errors.some(e => e.includes(t('validation:validation.titleRequired')))
+                    errors.some(e => e.includes(t('validation.titleRequired')))
                       ? 'border-destructive'
                       : ''
                   }
                 />
-                {errors.some(e => e.includes(t('validation:validation.titleRequired'))) && (
+                {errors.some(e => e.includes(t('validation.titleRequired'))) && (
                   <p className="text-sm text-destructive">
-                    {errors.find(e => e.includes(t('validation:validation.titleRequired')))}
+                    {errors.find(e => e.includes(t('validation.titleRequired')))}
                   </p>
                 )}
               </div>
@@ -381,14 +380,14 @@ function EditTodoPage() {
                   rows={4}
                   disabled={!canEdit}
                   className={
-                    errors.some(e => e.includes(t('validation:validation.descriptionTooLong')))
+                    errors.some(e => e.includes(t('validation.descriptionTooLong')))
                       ? 'border-destructive'
                       : ''
                   }
                 />
-                {errors.some(e => e.includes(t('validation:validation.descriptionTooLong'))) && (
+                {errors.some(e => e.includes(t('validation.descriptionTooLong'))) && (
                   <p className="text-sm text-destructive">
-                    {errors.find(e => e.includes(t('validation:validation.descriptionTooLong')))}
+                    {errors.find(e => e.includes(t('validation.descriptionTooLong')))}
                   </p>
                 )}
               </div>
@@ -435,7 +434,7 @@ function EditTodoPage() {
                   <p>{t('edit.created', { date: formatDateTime(todo.createdAt) })}</p>
                   <p>{t('edit.lastUpdated', { date: formatDateTime(todo.updatedAt) })}</p>
                   {todo.completed && (
-                    <p className="text-green-600 font-medium">{t('edit.completedStatus')}</p>
+                    <p className="text-success font-medium">{t('edit.completedStatus')}</p>
                   )}
                 </div>
               </div>

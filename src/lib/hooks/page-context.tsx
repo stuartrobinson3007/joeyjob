@@ -89,7 +89,7 @@ export function useSetPageMeta(
     actions?: ReactNode
     customBreadcrumb?: ReactNode
   },
-  deps: any[] = []
+  deps: React.DependencyList = []
 ) {
   const context = usePageContext()
 
@@ -111,5 +111,6 @@ export function useSetPageMeta(
     return () => {
       context.reset()
     }
-  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps are passed as spread parameter
+  }, [meta, context, ...deps])
 }

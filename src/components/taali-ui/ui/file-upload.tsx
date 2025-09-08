@@ -76,21 +76,38 @@ export default function FileUpload({
   const { t } = useTranslation('common')
 
   // Set default handlers if not provided
-  const handleUploadComplete =
-    onUploadComplete ||
-    (() => {
-      toast.success(t('fileUpload.success'))
-    })
-  const handleUploadError =
-    onUploadError ||
-    ((text: string) => {
-      toast.error(text)
-    })
-  const handleDelete =
-    onDelete ||
-    (() => {
-      toast.success(t('fileUpload.deleted'))
-    })
+  const handleUploadComplete = useCallback(
+    (file: File) => {
+      if (onUploadComplete) {
+        onUploadComplete(file)
+      } else {
+        toast.success(t('fileUpload.success'))
+      }
+    },
+    [onUploadComplete, t]
+  )
+
+  const handleUploadError = useCallback(
+    (text: string) => {
+      if (onUploadError) {
+        onUploadError(text)
+      } else {
+        toast.error(text)
+      }
+    },
+    [onUploadError]
+  )
+
+  const handleDelete = useCallback(
+    (file: File) => {
+      if (onDelete) {
+        onDelete(file)
+      } else {
+        toast.success(t('fileUpload.deleted'))
+      }
+    },
+    [onDelete, t]
+  )
 
   const [currentUpload, setCurrentUpload] = useState<{
     id: number
@@ -203,7 +220,7 @@ export default function FileUpload({
         simulateUpload(file)
       })
     },
-    [acceptedFileTypes, maxSizeInMB, isFileDuplicate, simulateUpload, handleUploadError, multiple]
+    [acceptedFileTypes, maxSizeInMB, isFileDuplicate, simulateUpload, handleUploadError, multiple, t]
   )
 
   const handleDeleteFile = useCallback(

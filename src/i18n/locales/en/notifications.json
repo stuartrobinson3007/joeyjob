@@ -33,8 +33,11 @@
   },
   "confirmations": {
     "deleteOrganization": "Are you sure you want to delete \"{{orgName}}\"? This will permanently delete all data associated with this organization.",
+    "deleteOrganizationTitle": "Delete Organization",
     "removeMember": "Are you sure you want to remove {{memberName}} from this workspace?",
+    "removeMemberTitle": "Remove Member",
     "resendInvitation": "Resend invitation to {{email}}?",
+    "resendInvitationTitle": "Resend Invitation", 
     "deleteTodos": "Are you sure you want to delete {{count}} todo{{plural}}?"
   },
   "warning": {

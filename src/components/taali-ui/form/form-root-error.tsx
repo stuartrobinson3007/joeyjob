@@ -1,7 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import { FieldErrors } from 'react-hook-form'
 
-import { Alert, AlertDescription } from '@/components/taali-ui/ui/alert'
+import { Alert, AlertDescription } from '@/ui/alert'
 
 interface FormRootErrorProps {
   errors?: FieldErrors
@@ -20,10 +20,10 @@ export function FormRootError({ errors, className = '' }: FormRootErrorProps) {
   if (!errors?.root?.message) {
     return null
   }
-  
+
   return (
     <Alert variant="destructive" className={className}>
-      <AlertCircle className="h-4 w-4" />
+      <AlertCircle />
       <AlertDescription>
         {errors.root.message}
       </AlertDescription>

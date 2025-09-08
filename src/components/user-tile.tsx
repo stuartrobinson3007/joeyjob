@@ -22,7 +22,7 @@ import { useTheme } from 'next-themes'
 import { useMemo } from 'react'
 
 import { useTranslation } from '@/i18n/hooks/useTranslation'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/taali-ui/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +32,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuSeparator,
-} from '@/components/taali-ui/ui/dropdown-menu'
+} from '@/ui/dropdown-menu'
 import { SidebarMenuButton } from '@/components/ui/sidebar'
 
 interface UserTileUser {
@@ -82,6 +82,7 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
   const { theme, setTheme } = useTheme()
   const { t } = useTranslation('admin')
   const { t: tCommon } = useTranslation('common')
+  const { t: tAuth } = useTranslation('auth')
 
   const isSuperAdmin = useMemo(() => user?.role === 'superadmin', [user])
   const isInSuperAdminPanel = useMemo(
@@ -130,7 +131,7 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
           {isLoggingOut ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <MoreVertical className="h-4 w-4" />
+            <MoreVertical />
           )}
         </SidebarMenuButton>
       </DropdownMenuTrigger>
@@ -141,23 +142,23 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <ThemeIcon className="h-4 w-4 mr-2" />
+            <ThemeIcon />
             {tCommon('theme.title')}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem onClick={() => setTheme('light')}>
               <Check
-                className={`h-4 w-4 mr-2 ${theme === 'light' ? 'opacity-100' : 'opacity-0'}`}
+                className={`${theme === 'light' ? 'opacity-100' : 'opacity-0'}`}
               />
               {tCommon('theme.light')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme('dark')}>
-              <Check className={`h-4 w-4 mr-2 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`} />
+              <Check className={`${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`} />
               {tCommon('theme.dark')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme('system')}>
               <Check
-                className={`h-4 w-4 mr-2 ${theme === 'system' ? 'opacity-100' : 'opacity-0'}`}
+                className={`${theme === 'system' ? 'opacity-100' : 'opacity-0'}`}
               />
               {tCommon('theme.system')}
             </DropdownMenuItem>
@@ -179,12 +180,12 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
             >
               {isInSuperAdminPanel ? (
                 <>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  {t('common:actions.leave')}
+                  <ArrowLeft />
+                  {t('actions.leave')}
                 </>
               ) : (
                 <>
-                  <ShieldUser className="h-4 w-4 mr-2" />
+                  <ShieldUser />
                   {t('title')}
                 </>
               )}
@@ -194,11 +195,11 @@ export function UserTile({ user, onLogout, isLoggingOut = false }: UserTileProps
 
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout} disabled={isLoggingOut || user?.isImpersonating}>
-          <LogOut className="h-4 w-4 mr-2" />
+          <LogOut />
           {user?.isImpersonating
             ? t('impersonation.logoutDisabled')
             : isLoggingOut
-              ? tCommon('states.signingIn')
+              ? tAuth('states.signingIn')
               : tCommon('actions.signOut')}
         </DropdownMenuItem>
       </DropdownMenuContent>

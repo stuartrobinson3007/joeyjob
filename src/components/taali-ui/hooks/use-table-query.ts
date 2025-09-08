@@ -45,7 +45,7 @@ export function useTableQuery<TData>({
 
   // Convert table state to server query params
   const serverParams = useMemo<ServerQueryParams>(() => {
-    const filters: Record<string, any> = {}
+    const filters: Record<string, unknown> = {}
 
     // Add column filters (including search which is set as a column filter)
     debouncedState.columnFilters.forEach(filter => {
@@ -101,7 +101,7 @@ export function useTableQuery<TData>({
   }, [])
 
   // Set specific filter
-  const setFilter = useCallback((columnId: string, value: any) => {
+  const setFilter = useCallback((columnId: string, value: unknown) => {
     setTableState(prev => {
       const existingFilterIndex = prev.columnFilters.findIndex(filter => filter.id === columnId)
 

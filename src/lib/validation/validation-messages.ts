@@ -42,6 +42,9 @@ export const validationMessages = {
       uppercase: 'Password must contain at least one uppercase letter',
       lowercase: 'Password must contain at least one lowercase letter',
       number: 'Password must contain at least one number'
+    },
+    currentPassword: {
+      required: 'Current password is required'
     }
   },
   todo: {
@@ -56,7 +59,8 @@ export const validationMessages = {
   common: {
     validationFailed: 'Validation failed',
     required: 'This field is required',
-    invalid: 'Invalid value'
+    invalid: 'Invalid value',
+    passwordMatch: "Passwords don't match"
   }
 }
 
@@ -67,9 +71,9 @@ export function getValidationMessage(
   category: keyof typeof validationMessages,
   field: string,
   type: string,
-  params?: Record<string, any>
+  params?: Record<string, unknown>
 ): string {
-  const categoryMessages = validationMessages[category] as any
+  const categoryMessages = validationMessages[category] as Record<string, Record<string, string | ((arg: unknown) => string)>>
   const fieldMessages = categoryMessages?.[field]
   const message = fieldMessages?.[type]
   

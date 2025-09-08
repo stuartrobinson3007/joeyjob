@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/taali-ui/ui/select'
+} from '@/ui/select'
 
 export function LanguageSwitcher() {
   const { language, languages, changeLanguage, isReady } = useLanguage()

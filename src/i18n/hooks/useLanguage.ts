@@ -15,18 +15,10 @@ export function useLanguage() {
     if (session?.user?.language && i18n.isInitialized) {
       const userLanguage = session.user.language as Language
       const currentLanguage = i18n.language as Language
-      const storedLanguage = localStorage.getItem('i18nextLng')
-
-      console.log('Language sync check:', {
-        userLanguage,
-        currentLanguage,
-        storedLanguage,
-        isInitialized: i18n.isInitialized,
-      })
+      // const _storedLanguage = localStorage.getItem('i18nextLng') // Unused for now
 
       // If user's preferred language differs from current i18n language, sync it
       if (userLanguage !== currentLanguage) {
-        console.log(`Syncing language from ${currentLanguage} to ${userLanguage}`)
         i18n.changeLanguage(userLanguage)
         localStorage.setItem('i18nextLng', userLanguage)
       }
@@ -46,13 +38,13 @@ export function useLanguage() {
             await authClient.updateUser({
               language: language,
             })
-          } catch (error) {
-            console.error('Failed to update user language preference:', error)
+          } catch (_error) {
+            // Failed to update user language preference on server
             // Continue even if user profile update fails - localStorage will work
           }
         }
-      } catch (error) {
-        console.error('Failed to change language:', error)
+      } catch (_error) {
+        // Failed to change language - reverting to previous
       }
     },
     [i18n, session?.user]

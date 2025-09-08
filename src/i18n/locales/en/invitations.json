@@ -17,7 +17,7 @@
     "acceptFailed": "Failed to accept invitation",
     "authFailed": "Authentication failed",
     "signedInAccepting": "You're signed in and accepting the invitation",
-    "signedInProfile": "You're already signed in with a different profile",
+    "signedInProfile": "Signed in successfully! Completing your setup...",
     "verificationFailed": "Verification failed",
     "verificationSent": "Verification email sent",
     "wrongEmail": "Wrong email address",

@@ -9,6 +9,7 @@ This document provides comprehensive guidance for implementing error handling sy
 - **NEVER expose internal errors** - Wrap implementation details in user-friendly messages
 - **ALWAYS use error boundaries** - Protect UI from uncaught errors
 - **MUST follow file validation patterns** - Validate file types, sizes, and content
+- **ALWAYS use standardized data fetching patterns** - Follow error handling standards for consistent UX
 
 ## ❌ Common AI Agent Mistakes
 
@@ -84,7 +85,73 @@ if (!isValid) {
 
 ## ✅ Established Patterns
 
-### 1. **Error System Architecture**
+### 1. **Standardized Data Fetching Error Patterns**
+
+The application follows consistent error handling patterns based on data criticality:
+
+#### Table/List Queries
+```typescript
+// Pattern: useTableQuery with full page ErrorState
+import { useTableQuery } from '@/components/taali-ui/data-table'
+import { ErrorState } from '@/components/error-state'
+
+const { data, isError, error, isLoading, refetch } = useTableQuery({
+  queryKey: ['items'],
+  queryFn: getItemsTable,
+})
+
+if (isError && error && !isLoading) {
+  return <ErrorState error={parseError(error)} onRetry={refetch} />
+}
+```
+
+#### Critical Single Resources  
+```typescript
+// Pattern: useResourceQuery with redirect option
+import { useResourceQuery } from '@/lib/hooks/use-resource-query'
+
+const { data, isError, error } = useResourceQuery({
+  queryKey: ['item', id],
+  queryFn: () => getItemById(id),
+  redirectOnError: '/' // Optional redirect on failure
+})
+
+if (isError && error) {
+  return <ErrorState error={parseError(error)} onRetry={refetch} />
+}
+```
+
+#### Supporting/Secondary Data
+```typescript
+// Pattern: useSupportingQuery with inline error display
+import { useSupportingQuery } from '@/lib/hooks/use-supporting-query'
+
+const { data: stats, showError } = useSupportingQuery({
+  queryKey: ['stats'],
+  queryFn: getStats,
+})
+
+// Graceful degradation in render
+{showError ? (
+  <ErrorState variant="inline" error={parseError({ message: 'Stats unavailable' })} />
+) : (
+  <StatsDisplay stats={stats} />
+)}
+```
+
+#### Form Mutations
+```typescript
+// Pattern: useFormMutation with field-level error mapping
+import { useFormMutation } from '@/lib/hooks/use-form-mutation'
+
+const mutation = useFormMutation({
+  mutationFn: createItem,
+  setError, // from react-hook-form
+  onSuccess: () => showSuccess('Item created')
+})
+```
+
+### 2. **Error System Architecture**
 ```typescript
 // File: src/lib/utils/errors.ts
 export class AppError extends Error {
@@ -239,11 +306,11 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
           
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={resetErrorBoundary} className="flex-1">
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw />
               {t('common:actions.tryAgain')}
             </Button>
             <Button variant="outline" onClick={() => window.location.href = '/'} className="flex-1">
-              <Home className="w-4 h-4 mr-2" />
+              <Home />
               {t('common:actions.goHome')}
             </Button>
           </div>
@@ -284,9 +351,25 @@ export function useErrorHandler() {
     console.error('Error handled:', parsedError)
   }, [])
 
-  const showSuccess = useCallback((message: string) => {
-    toast.success(message)
-  }, [])
+  const showSuccess = useCallback(
+    (message: string, options?: { action?: { label: string; onClick: () => void } }) => {
+      // Check if it's a translation key
+      const translatedMessage = message.includes('.') ? t('common:' + message) : message
+      
+      if (options?.action) {
+        toast.success(translatedMessage, {
+          action: {
+            label: options.action.label,
+            onClick: options.action.onClick,
+          },
+          duration: 10000, // Longer duration for undo actions
+        })
+      } else {
+        toast.success(translatedMessage)
+      }
+    },
+    [t]
+  )
 
   const showInfo = useCallback((message: string) => {
     toast.info(message)
@@ -903,4 +986,324 @@ const todosQuery = useQuery({
 })
 ```
 
-This comprehensive error handling and file management system provides robust error recovery, user-friendly error messages, secure file handling, and efficient development workflows for building production-ready applications.
+## 🎯 Toast Action Button Patterns
+
+### Enhanced Success Toast with Action Buttons
+
+The `showSuccess` function supports action buttons for implementing undo functionality and other user actions directly from toast notifications.
+
+```typescript
+// File: src/lib/errors/hooks.ts - Enhanced success toast implementation
+import { useCallback } from 'react'
+import { toast } from 'sonner'
+
+import { parseError, handleErrorAction } from './client-handler'
+import { isErrorCode } from './codes'
+import type { ParsedError } from './client-handler'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+
+export function useErrorHandler() {
+  const { t } = useTranslation('errors')
+
+  const showSuccess = useCallback(
+    (message: string, options?: { action?: { label: string; onClick: () => void } }) => {
+      // Check if it's a translation key
+      const translatedMessage = message.includes('.') ? t(message) : message
+      
+      if (options?.action) {
+        toast.success(translatedMessage, {
+          action: {
+            label: options.action.label,
+            onClick: options.action.onClick,
+          },
+          duration: 10000, // Extended duration for action buttons (10 seconds)
+          position: 'bottom-right', // Better position for actions
+        })
+      } else {
+        toast.success(translatedMessage, {
+          duration: 4000, // Standard duration for regular success messages
+        })
+      }
+    },
+    [t]
+  )
+
+  return {
+    showError,
+    showSuccess,
+    showInfo,
+  }
+}
+```
+
+### Usage Patterns for Action Toasts
+
+```typescript
+// Delete with undo functionality
+function useDeleteWithUndo() {
+  const { showSuccess, showError } = useErrorHandler()
+  const queryClient = useQueryClient()
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      // Perform delete operation
+      await deleteTodo({ data: { id } })
+      
+      // Show success toast with undo action
+      showSuccess('Todo deleted successfully', {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              const restored = await undoDeleteTodo({ data: { id } })
+              queryClient.invalidateQueries(['todos'])
+              showSuccess('Todo restored successfully')
+            } catch (error) {
+              showError(error)
+            }
+          }
+        }
+      })
+      
+      // Refresh data
+      queryClient.invalidateQueries(['todos'])
+    } catch (error) {
+      showError(error)
+    }
+  }, [showSuccess, showError, queryClient])
+
+  return { handleDelete }
+}
+```
+
+### Advanced Action Toast Patterns
+
+```typescript
+// Multiple actions in toast
+const showMultiActionToast = (message: string, actions: Array<{ label: string; onClick: () => void }>) => {
+  // For multiple actions, show the primary action in the toast
+  // and handle secondary actions differently
+  const [primaryAction, ...secondaryActions] = actions
+  
+  toast.success(message, {
+    action: primaryAction ? {
+      label: primaryAction.label,
+      onClick: primaryAction.onClick,
+    } : undefined,
+    description: secondaryActions.length > 0 
+      ? `${secondaryActions.length} more action${secondaryActions.length > 1 ? 's' : ''} available`
+      : undefined,
+    duration: 8000,
+  })
+}
+
+// Contextual actions based on user permissions
+function usePermissionAwareToast() {
+  const { canDelete, canCreate } = useClientPermissions()
+  const { showSuccess } = useErrorHandler()
+
+  const showDeleteSuccess = useCallback((itemId: string) => {
+    const actions = []
+    
+    // Only show undo if user has create permission (to restore)
+    if (canCreate()) {
+      actions.push({
+        label: 'Undo',
+        onClick: () => undoDelete(itemId)
+      })
+    }
+
+    showSuccess('Item deleted', {
+      action: actions[0] // Show first available action
+    })
+  }, [canCreate, showSuccess])
+
+  return { showDeleteSuccess }
+}
+```
+
+### Toast Accessibility Considerations
+
+```typescript
+// Accessible toast implementation
+const showAccessibleSuccess = (message: string, action?: { label: string; onClick: () => void }) => {
+  toast.success(message, {
+    action: action ? {
+      label: action.label,
+      onClick: action.onClick,
+    } : undefined,
+    duration: action ? 10000 : 4000, // Longer for actions
+    // Accessibility improvements
+    ariaProps: {
+      role: 'status',
+      'aria-live': 'polite',
+      'aria-atomic': true,
+    },
+    // Ensure action button is keyboard accessible
+    actionButtonProps: {
+      tabIndex: 0,
+      'aria-label': `${action?.label}. Press Enter to activate.`,
+    },
+  })
+}
+```
+
+### Error Recovery Patterns with Actions
+
+```typescript
+// Network error with retry action
+const handleNetworkError = (error: Error, retryFn: () => Promise<void>) => {
+  const { showError } = useErrorHandler()
+  
+  if (error.message.includes('network') || error.message.includes('fetch')) {
+    showError('Network error occurred', {
+      action: {
+        label: 'Retry',
+        onClick: async () => {
+          try {
+            await retryFn()
+            showSuccess('Operation completed successfully')
+          } catch (retryError) {
+            showError(retryError)
+          }
+        }
+      }
+    })
+  } else {
+    showError(error)
+  }
+}
+
+// Permission error with upgrade action
+const handlePermissionError = (error: AppError) => {
+  const { showError } = useErrorHandler()
+  
+  if (error.code === 'BIZ_LIMIT_EXCEEDED') {
+    showError('Upgrade required to continue', {
+      action: {
+        label: 'Upgrade',
+        onClick: () => {
+          // Navigate to billing page
+          window.location.href = '/billing'
+        }
+      }
+    })
+  } else if (error.code === 'FORBIDDEN') {
+    showError('Access denied', {
+      action: {
+        label: 'Contact Admin',
+        onClick: () => {
+          // Open support chat or email
+          window.open('mailto:support@company.com?subject=Access Request')
+        }
+      }
+    })
+  } else {
+    showError(error)
+  }
+}
+```
+
+### Integration with Form Systems
+
+```typescript
+// Form submission with undo capability
+function useFormWithUndo<T>() {
+  const { showSuccess, showError } = useErrorHandler()
+  const [lastSavedData, setLastSavedData] = useState<T | null>(null)
+
+  const submitWithUndo = useCallback(async (
+    data: T, 
+    submitFn: (data: T) => Promise<void>,
+    undoFn?: (previousData: T) => Promise<void>
+  ) => {
+    const previousData = lastSavedData
+    
+    try {
+      await submitFn(data)
+      setLastSavedData(data)
+      
+      showSuccess('Changes saved', {
+        action: previousData && undoFn ? {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await undoFn(previousData)
+              setLastSavedData(previousData)
+              showSuccess('Changes reverted')
+            } catch (error) {
+              showError(error)
+            }
+          }
+        } : undefined
+      })
+    } catch (error) {
+      showError(error)
+    }
+  }, [lastSavedData, showSuccess, showError])
+
+  return { submitWithUndo }
+}
+```
+
+### Testing Action Toast Functionality
+
+```typescript
+// Testing toast actions
+describe('Toast Action Buttons', () => {
+  it('should show success toast with undo action', async () => {
+    const mockUndo = vi.fn().mockResolvedValue(undefined)
+    const { showSuccess } = useErrorHandler()
+    
+    showSuccess('Item deleted', {
+      action: {
+        label: 'Undo',
+        onClick: mockUndo
+      }
+    })
+
+    // Find and click the undo button
+    const undoButton = screen.getByRole('button', { name: 'Undo' })
+    await user.click(undoButton)
+    
+    expect(mockUndo).toHaveBeenCalledOnce()
+  })
+
+  it('should handle action failures gracefully', async () => {
+    const mockUndoFail = vi.fn().mockRejectedValue(new Error('Undo failed'))
+    const { showSuccess } = useErrorHandler()
+    
+    showSuccess('Item deleted', {
+      action: {
+        label: 'Undo',
+        onClick: mockUndoFail
+      }
+    })
+
+    const undoButton = screen.getByRole('button', { name: 'Undo' })
+    await user.click(undoButton)
+    
+    // Should show error toast for failed undo
+    expect(screen.getByText('Undo failed')).toBeInTheDocument()
+  })
+})
+```
+
+### Best Practices for Action Toasts
+
+**✅ Do:**
+- Use longer durations (8-10 seconds) for action toasts
+- Provide clear, action-oriented labels ("Undo", "Retry", "Upgrade")
+- Handle action failures gracefully with error feedback
+- Consider user permissions when showing actions
+- Make action buttons keyboard accessible
+- Use consistent action patterns across the application
+
+**❌ Don't:**
+- Overwhelm users with too many action options in one toast
+- Use action buttons for navigation (use regular links instead)
+- Show actions that users don't have permission to perform
+- Make critical actions too easy to accidentally trigger
+- Forget to handle loading states during action execution
+
+This comprehensive error handling and file management system provides robust error recovery, user-friendly error messages, secure file handling, efficient development workflows, and enhanced user experience through actionable toast notifications for building production-ready applications.

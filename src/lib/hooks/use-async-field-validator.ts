@@ -1,5 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react'
 
+import { validationMessages } from '@/lib/validation/validation-messages'
+
 /**
  * Hook for async field validation with proper race condition handling
  * 
@@ -37,19 +39,17 @@ export function useAsyncFieldValidator<T>(
       }
       
       return result
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle abort errors gracefully
-      if (error?.name === 'AbortError') {
+      if ((error as Error)?.name === 'AbortError') {
         return true // Valid if aborted
       }
       
-      // Log unexpected errors for debugging
-      console.error('Async validation error:', error)
-      
-      // Return a user-friendly error message
-      return 'Validation failed. Please try again.'
+      // Return a user-friendly error message for unexpected errors
+      return validationMessages.common.validationFailed
     }
-  }, [validationFn, ...deps]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps are passed as spread parameter
+  }, [validationFn, ...deps])
   
   // Cleanup on unmount
   useEffect(() => {

@@ -9,13 +9,17 @@ import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
+import { FormErrorBoundary } from '@/components/taali-ui/form/form-error-boundary'
+import { Button } from '@/ui/button'
+import { Input } from '@/ui/input'
+import { Label } from '@/ui/label'
 
 interface OnboardingFormProps {
   invitationId?: string
   organizationName?: string
 }
 
-export function OnboardingForm({ invitationId, organizationName }: OnboardingFormProps) {
+function OnboardingFormInner({ invitationId, organizationName }: OnboardingFormProps) {
   const { data: session, refetch: refetchSession } = useSession()
   const { refetch: refetchOrganizations } = useListOrganizations()
 
@@ -103,46 +107,54 @@ export function OnboardingForm({ invitationId, organizationName }: OnboardingFor
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-1">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">
             {t('onboarding.firstName')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="firstName"
             type="text"
             value={formData.firstName}
             onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-            className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             placeholder={t('onboarding.firstNamePlaceholder')}
             required
             disabled={isSubmitting}
           />
         </div>
 
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-1">
+        <div className="space-y-2">
+          <Label htmlFor="lastName">
             {t('onboarding.lastName')}
-          </label>
-          <input
+          </Label>
+          <Input
             id="lastName"
             type="text"
             value={formData.lastName}
             onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-            className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             placeholder={t('onboarding.lastNamePlaceholder')}
             required
             disabled={isSubmitting}
           />
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={isSubmitting}
+          className="w-full"
         >
           {isSubmitting ? t('onboarding.settingUp') : t('onboarding.complete')}
-        </button>
+        </Button>
       </form>
     </div>
+  )
+}
+
+// Export with error boundary wrapper
+export function OnboardingForm(props: OnboardingFormProps) {
+  return (
+    <FormErrorBoundary>
+      <OnboardingFormInner {...props} />
+    </FormErrorBoundary>
   )
 }

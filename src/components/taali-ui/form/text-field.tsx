@@ -7,8 +7,8 @@ import {
   FormControl, 
   FormMessage, 
   FormDescription 
-} from '@/components/taali-ui/ui/form'
-import { Input } from '@/components/taali-ui/ui/input'
+} from '@/ui/form'
+import { Input } from '@/ui/input'
 
 interface TextFieldProps<TFieldValues extends FieldValues> {
   control: Control<TFieldValues>

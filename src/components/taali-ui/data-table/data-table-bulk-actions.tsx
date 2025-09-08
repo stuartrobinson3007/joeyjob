@@ -9,6 +9,9 @@ import { cn } from '../lib/utils'
 
 import { SelectionState, BulkAction } from './types'
 
+import { useTranslation } from '@/i18n/hooks/useTranslation'
+
+
 interface DataTableBulkActionsProps {
   selection: SelectionState
   totalCount: number
@@ -26,6 +29,7 @@ export function DataTableBulkActions({
   bulkActions = [],
   className,
 }: DataTableBulkActionsProps) {
+  const { t } = useTranslation('common')
   const selectedCount = selection.totalSelectedCount
   const hasSelection = selectedCount > 0
   const isAllSelected = selection.isAllSelected
@@ -54,17 +58,15 @@ export function DataTableBulkActions({
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="font-medium">
               {isAllSelected ? (
-                <>{selectedCount.toLocaleString()} items selected</>
+                t('table.allItemsSelected', { count: selectedCount.toLocaleString() })
               ) : (
-                <>
-                  {selectedCount} of {totalCount} items selected
-                </>
+                t('table.itemsSelected', { selected: selectedCount, total: totalCount })
               )}
             </Badge>
 
             {canSelectAll && (
               <Button variant="outline" size="sm" onClick={onSelectAll} className="h-7 text-xs">
-                Select all {totalCount.toLocaleString()} items
+                {t('table.selectAllItems', { total: totalCount.toLocaleString() })}
               </Button>
             )}
           </div>
@@ -91,7 +93,7 @@ export function DataTableBulkActions({
             })}
 
             <Button variant="ghost" size="sm" onClick={onClearSelection} className="h-8 w-8 p-0">
-              <X className="h-4 w-4" />
+              <X />
             </Button>
           </div>
         </motion.div>

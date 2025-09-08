@@ -4,13 +4,13 @@ export interface User {
   email: string
   emailVerified: boolean
   image?: string | null
-  role: string
-  banned?: boolean
+  role?: string | null
+  banned?: boolean | null
   banReason?: string | null
   banExpires?: Date | null
   firstName?: string | null
   lastName?: string | null
-  onboardingCompleted: boolean
+  onboardingCompleted?: boolean | null
   createdAt: Date
   updatedAt: Date
 }

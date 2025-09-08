@@ -12,7 +12,8 @@
     "resend": "Resend",
     "revoke": "Revoke",
     "success": "Invitation sent successfully",
-    "error": "Failed to send invitation"
+    "error": "Failed to send invitation",
+    "cancelConfirm": "Are you sure you want to cancel this invitation?"
   },
   "roles": {
     "owner": "Owner",

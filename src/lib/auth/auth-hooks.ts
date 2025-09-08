@@ -23,4 +23,9 @@ export const {
   useAuthQuery,
   useAuthMutation,
   useListOrganizations,
+  useHasPermission,
+  useInvitation
 } = authHooks
+
+// Alias for clearer naming convention
+export const useServerPermissions = useHasPermission

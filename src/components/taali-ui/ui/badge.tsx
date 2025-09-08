@@ -246,7 +246,7 @@ function Badge({
           type="button"
           onClick={onDismiss}
           className="touch-hitbox ml-1 -mr-1 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-          aria-label={t('common:accessibility.remove')}
+          aria-label={t('accessibility.remove')}
         >
           <X className="size-2.5" />
         </button>

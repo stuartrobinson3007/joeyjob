@@ -55,7 +55,7 @@ import viteReact from '@vitejs/plugin-react'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 import tailwindcss from '@tailwindcss/vite'
 
-export const config = defineConfig({
+const config = defineConfig({
   plugins: [
     viteTsConfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
@@ -249,6 +249,46 @@ import { Input } from '@/ui/input'
 // For application-specific components
 import { PageHeader } from '@/components/page-header'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ErrorState } from '@/components/error-state'
+```
+
+### With Error Handling Layer
+```typescript
+// Use standardized error handling hooks and components
+import { useErrorHandler } from '@/lib/errors/hooks'
+import { useResourceQuery } from '@/lib/hooks/use-resource-query'
+import { useSupportingQuery } from '@/lib/hooks/use-supporting-query'
+import { ErrorState } from '@/components/error-state'
+import { parseError } from '@/lib/errors/client-handler'
+
+// Table queries (lists/collections)
+const { data, isError, error, refetch } = useTableQuery({
+  queryKey: ['items'],
+  queryFn: getItems,
+})
+
+if (isError && error) {
+  return <ErrorState error={parseError(error)} onRetry={refetch} />
+}
+
+// Critical single resources
+const { data, isError, error } = useResourceQuery({
+  queryKey: ['item', id],
+  queryFn: () => getItem(id),
+  redirectOnError: '/' // Optional redirect on error
+})
+
+// Supporting/secondary data with graceful degradation
+const { data: stats, showError } = useSupportingQuery({
+  queryKey: ['stats'],
+  queryFn: getStats,
+})
+
+{showError ? (
+  <ErrorState variant="inline" error={parseError({ message: 'Stats unavailable' })} />
+) : (
+  <StatsDisplay stats={stats} />
+)}
 ```
 
 ## 🧪 Testing Requirements
@@ -293,6 +333,7 @@ Before considering the architecture complete, verify:
 - [ ] **Database**: Drizzle ORM connected to PostgreSQL
 - [ ] **Authentication**: Better Auth integrated with Drizzle adapter
 - [ ] **UI System**: Tailwind CSS v4 + Radix UI + Taali UI
+- [ ] **Error Handling**: Standardized patterns with proper hooks and components
 - [ ] **Testing**: Vitest configured with proper setup
 
 ## 🚀 Framework-Specific Patterns

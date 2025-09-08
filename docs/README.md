@@ -148,9 +148,71 @@ const BILLING_PLANS = {
 - **Spanish** (es): Secondary language
 - **Extensible**: Easy addition of new languages
 
-## 🛡️ Error Handling
+## 🛡️ Error Handling & Data Fetching
 
-### Error System Design
+### Standardized Error Handling Patterns
+
+The application uses a comprehensive error handling system with consistent patterns for different data scenarios:
+
+#### Quick Decision Tree
+```
+Is it a table/list? → useTableQuery + Full ErrorState
+Is it critical for page? → useResourceQuery + Full ErrorState  
+Is it supporting data? → useSupportingQuery + Inline Error
+Is it background data? → useQuery + Silent Fallback
+Is it a mutation? → useFormMutation + Toast + Form Errors
+```
+
+#### Pattern Examples
+```typescript
+// 1. Table/List Data - Full page error replacement
+const { data, isError, error, refetch } = useTableQuery({
+  queryKey: ['todos'],
+  queryFn: getTodosTable,
+})
+
+if (isError && error) {
+  return <ErrorState error={parseError(error)} onRetry={refetch} />
+}
+
+// 2. Critical Resources - Full page error or redirect  
+const { data: todo, isError, error } = useResourceQuery({
+  queryKey: ['todo', id],
+  queryFn: () => getTodoById(id),
+  redirectOnError: '/' // Optional redirect
+})
+
+// 3. Supporting Data - Inline error with graceful degradation
+const { data: stats, showError } = useSupportingQuery({
+  queryKey: ['stats'], 
+  queryFn: getStats,
+})
+
+{showError ? (
+  <ErrorState variant="inline" error={parseError({ message: 'Stats unavailable' })} />
+) : (
+  <StatsDisplay stats={stats} />
+)}
+
+// 4. Form Mutations - Field errors + toasts
+const mutation = useFormMutation({
+  mutationFn: updateResource,
+  setError, // from react-hook-form
+  onSuccess: () => showSuccess('Updated successfully')
+})
+```
+
+#### ErrorState Variants
+- **`full-page`** (default): Complete page replacement for critical failures
+- **`inline`**: Small inline message for supporting data
+- **`card`**: Contained error for specific sections
+
+#### Better-Auth Integration
+- Authentication errors are handled by better-auth hooks
+- Business logic errors use our standardized patterns
+- No interference between auth and application error handling
+
+### Error System Components
 - **Custom Error Types**: ValidationError, AppError with i18n keys
 - **Client Boundaries**: React error boundaries for graceful failure
 - **Server Validation**: Zod schema validation with translated messages
@@ -231,8 +293,9 @@ Comprehensive error handling with user-friendly messages and proper fallback sta
 
 ## 📖 Documentation Structure
 
-This overview is part of a comprehensive documentation system:
+This overview is part of a comprehensive documentation system covering **all architectural components**:
 
+### 🏗️ **Core Architecture (Complete)**
 - [x] **01. Architecture & Tech Stack** - Complete technology overview and build system configuration
 - [x] **02. Authentication & Authorization** - Better Auth implementation with RBAC and multi-provider support  
 - [x] **03. Database Schema & Patterns** - Drizzle ORM patterns and multi-tenant data modeling
@@ -244,10 +307,19 @@ This overview is part of a comprehensive documentation system:
 - [x] **09. Billing & Subscription System** - Stripe integration with plan enforcement and usage tracking
 - [x] **10. Error Handling, Development Workflow & File Management** - Error systems, development tooling, and secure file handling
 
-### 📋 Documentation Writing Guidelines
-- [x] **AI-Optimized Guidelines** - Comprehensive standards for writing documentation that AI agents can effectively use
+### 🚀 **Advanced Systems (Complete)**
+- [x] **11. Advanced Form System** - Form error boundaries, form actions, autosave, and sync patterns
+- [x] **12. Validation Architecture** - Centralized validation registry, schemas, and async database constraint validation
+- [x] **13. Super Admin System** - User impersonation, admin layouts, user/workspace management, and visual admin wrapper
+- [x] **14. Advanced Hook Patterns** - Provider composition, form mutations, sync hooks, and loading state management
+- [x] **15. Team Management System** - Member invitations, role management, permission hierarchy, and collaboration features
+- [x] **16. Enhanced Error Management** - Error categorization, comprehensive error codes, and advanced client-side error strategies
+- [x] **17. Soft Delete & Undo Patterns** - Comprehensive soft delete implementation with user-friendly undo functionality and data recovery patterns
 
-**Status**: ✅ **All Core Documentation Complete** - Ready for production use as starter template
+### 📋 **Documentation Standards**
+- [x] **AI-Optimized Writing Guidelines** - Comprehensive standards for creating documentation that AI agents can effectively use to maintain consistency
+
+**Status**: ✅ **Complete Architecture Documentation (17 Guides)** - Production-ready starter template with comprehensive AI-friendly documentation covering every aspect of the sophisticated TanStack SaaS architecture
 
 ## 🚀 Quick Start for New Projects
 

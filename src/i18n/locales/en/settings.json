@@ -17,6 +17,7 @@
     "deleteWorkspace": "Delete Workspace",
     "deleteDescription": "Permanently delete this organization and all its data. This action cannot be undone.",
     "deleteConfirm": "Are you sure you want to delete this organization?",
+    "deleteConfirmTitle": "Delete Organization",
     "deleteSuccess": "Organization deleted successfully",
     "deleteFailed": "Failed to delete organization",
     "deleteWarning": "Once you delete an organization, there is no going back. This will permanently delete all todos, members, and data associated with this organization.",

@@ -25,7 +25,10 @@ export const Route = createFileRoute('/_authenticated')({
 
 function AuthenticatedLayout() {
   const { data: session, isPending: sessionPending } = useSession()
-  const { data: organizations, isPending: orgsPending } = useListOrganizations()
+  // Only fetch organizations if user is authenticated
+  const { data: organizations, isPending: orgsPending } = useListOrganizations({
+    enabled: !!session && !sessionPending
+  })
   const navigate = useNavigate()
   const matches = useMatches()
 
@@ -45,11 +48,14 @@ function AuthenticatedLayout() {
   const showSidebar = currentMatch?.staticData?.sidebar !== false
 
   useEffect(() => {
-    if (!sessionPending && !orgsPending) {
-      if (!session) {
-        navigate({ to: '/auth/signin' })
-        return
-      }
+    // Handle unauthenticated users immediately (no need to wait for orgs)
+    if (!sessionPending && !session) {
+      navigate({ to: '/auth/signin' })
+      return
+    }
+
+    // For authenticated users, wait for both session and organizations
+    if (!sessionPending && session && !orgsPending) {
 
       // Don't redirect to onboarding if we're already on the onboarding page
       if (!session.user.onboardingCompleted && currentPath !== '/onboarding') {
@@ -81,8 +87,8 @@ function AuthenticatedLayout() {
         try {
           await authClient.admin.stopImpersonating()
           window.location.reload()
-        } catch (error) {
-          console.error('Failed to stop impersonation:', error)
+        } catch (_error) {
+          // Failed to stop impersonation - error handled by showError
         }
       }
     }

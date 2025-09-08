@@ -1,4 +1,5 @@
 {
+  "title": "Page",
   "navigation": {
     "todos": "Todos",
     "team": "Team",
@@ -31,7 +32,11 @@
     "copy": "Copy",
     "paste": "Paste",
     "signOut": "Sign Out",
-    "id": "ID"
+    "id": "ID",
+    "markComplete": "Mark as complete",
+    "undo": "Undo",
+    "invite": "Invite",
+    "done": "Done"
   },
   "states": {
     "loading": "Loading...",
@@ -46,7 +51,9 @@
     "signingOut": "Signing out...",
     "savingChanges": "Saving changes",
     "changesSaved": "Changes saved",
-    "unsavedChanges": "Unsaved changes"
+    "unsavedChanges": "Unsaved changes",
+    "saveChanges": "Save Changes",
+    "noOrganizationSelected": "No Organization Selected"
   },
   "labels": {
     "name": "Name",
@@ -64,7 +71,8 @@
     "user": "User",
     "role": "Role",
     "session": "Session",
-    "organization": "Organization"
+    "organization": "Organization",
+    "title": "Title"
   },
   "messages": {
     "success": "Success",
@@ -74,7 +82,9 @@
     "noData": "No data available",
     "noResults": "No results found",
     "required": "This field is required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "deleted": "Deleted successfully",
+    "restored": "Restored successfully"
   },
   "pagination": {
     "previous": "Previous",
@@ -137,7 +147,14 @@
     "noWorkspacesDescription": "Get started by creating your first workspace",
     "createFirstWorkspace": "Create your first workspace",
     "chooseWorkspaceDescription": "Choose a workspace to continue",
-    "title": "Organizations"
+    "title": "Organizations",
+    "noActiveOrganization": "No active organization selected"
+  },
+  "billing": {
+    "currentPlan": "Current Plan",
+    "pastDueAlert": "Payment past due",
+    "incompleteAlert": "Payment incomplete",
+    "fixPayment": "Fix Payment"
   },
   "filters": {
     "setValue": "Set value",
@@ -230,14 +247,16 @@
     "app": "App",
     "superAdmin": "Super Admin"
   },
-  "states": {
-    "noOrganizationSelected": "No Organization Selected",
-    "uploading": "Uploading..."
-  },
-  "labels": {
-    "status": "Status"
-  },
   "onboarding": {
     "subtitle": "Just a few more details to get you started"
+  },
+  "fields": {
+    "dueDate": "Due Date",
+    "title": "Title",
+    "priority": "Priority"
+  },
+  "confirm": {
+    "title": "Are you sure?",
+    "description": "This action cannot be undone."
   }
 }

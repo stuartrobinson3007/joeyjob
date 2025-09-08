@@ -49,7 +49,7 @@ export const ServerRoute = createServerFileRoute('/api/avatars/delete').methods(
         message: 'Avatar deleted successfully',
       })
     } catch (error) {
-      console.error('Avatar delete error:', error)
+      // Avatar delete error - returning error response
       return Response.json(
         {
           error: error instanceof Error ? error.message : 'Failed to delete avatar',

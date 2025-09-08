@@ -53,8 +53,8 @@ export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
           'Content-Length': buffer.length.toString(),
         },
       })
-    } catch (error) {
-      console.error('Error serving avatar:', error)
+    } catch (_error) {
+      // Error serving avatar - returning error response
       return new Response('Internal server error', { status: 500 })
     }
   },

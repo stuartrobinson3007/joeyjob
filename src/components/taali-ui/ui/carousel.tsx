@@ -189,7 +189,7 @@ function CarouselPrevious({
       {...props}
     >
       <ArrowLeft />
-      <span className="sr-only">{t('common:accessibility.previousSlide')}</span>
+      <span className="sr-only">{t('accessibility.previousSlide')}</span>
     </Button>
   )
 }
@@ -220,7 +220,7 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <span className="sr-only">{t('common:accessibility.nextSlide')}</span>
+      <span className="sr-only">{t('accessibility.nextSlide')}</span>
     </Button>
   )
 }

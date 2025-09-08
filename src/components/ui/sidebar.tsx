@@ -6,16 +6,16 @@ import { cva, VariantProps } from 'class-variance-authority'
 import { PanelLeft } from 'lucide-react'
 
 import { useTranslation } from '@/i18n/hooks/useTranslation'
-import { Button } from '@/components/taali-ui/ui/button'
-import { Input } from '@/components/taali-ui/ui/input'
-import { Separator } from '@/components/taali-ui/ui/separator'
-import { Sheet, SheetContent } from '@/components/taali-ui/ui/sheet'
+import { Button } from '@/ui/button'
+import { Input } from '@/ui/input'
+import { Separator } from '@/ui/separator'
+import { Sheet, SheetContent } from '@/ui/sheet'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/taali-ui/ui/tooltip'
+} from '@/ui/tooltip'
 import { cn } from '@/components/taali-ui/lib/utils'
 import { useSuperAdminWrapper } from '@/features/admin/components/super-admin-wrapper'
 
@@ -259,7 +259,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       {...props}
     >
       <PanelLeft />
-      <span className="sr-only">{t('common:accessibility.toggleSidebar')}</span>
+      <span className="sr-only">{t('accessibility.toggleSidebar')}</span>
     </Button>
   )
 }

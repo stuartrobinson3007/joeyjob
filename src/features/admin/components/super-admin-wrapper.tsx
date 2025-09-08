@@ -6,11 +6,12 @@
  * and quick access to exit impersonation functionality.
  */
 
-import { ShieldUser, X } from 'lucide-react'
 import { useCallback, useMemo, memo } from 'react'
+import { ShieldUser, X } from 'lucide-react'
 
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
+// eslint-disable-next-line import/order
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 // Corner mask SVG component for creating rounded corner illusion
@@ -63,11 +64,13 @@ const SuperAdminButton = ({ onClick, title, children }: SuperAdminButtonProps) =
   </button>
 )
 
+import type { User } from '@/types/auth'
+
 export interface SuperAdminWrapperProps {
   isSuperAdmin: boolean
-  user?: any // Use any to match better-auth user type
+  user?: User | undefined
   isImpersonating?: boolean
-  impersonatedUser?: any // Use any to match better-auth user type
+  impersonatedUser?: User | undefined
   onExitImpersonation?: () => void
   onOpenSettings?: () => void
 }
@@ -124,7 +127,7 @@ export const SuperAdminWrapper = memo(function SuperAdminWrapper({
         <div className="flex items-center gap-2">
           {onOpenSettings && <SuperAdminButton onClick={onOpenSettings}>⚙️</SuperAdminButton>}
           <SuperAdminButton onClick={handleExitClick} title={t('users.exitImpersonation')}>
-            <X className="h-4 w-4" />
+            <X />
           </SuperAdminButton>
         </div>
       </div>
@@ -145,8 +148,8 @@ export function useSuperAdminWrapper() {
     try {
       await authClient.admin.stopImpersonating()
       window.location.href = '/superadmin/users'
-    } catch (error) {
-      console.error('Failed to stop impersonation:', error)
+    } catch (_error) {
+      // Impersonation stop failed - user will remain impersonated
     }
   }, [])
 
@@ -168,9 +171,7 @@ export function useSuperAdminWrapper() {
     [
       isSuperAdmin,
       isImpersonating,
-      session?.user?.id, // Use ID instead of full object
-      session?.user?.role,
-      session?.session?.impersonatedBy,
+      session?.user, // Include the full user object since we use it directly
       handleExitImpersonation,
     ]
   )

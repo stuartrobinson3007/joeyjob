@@ -3,7 +3,8 @@
     "accept": "Aceptar Invitación",
     "accepting": "Aceptando invitación...",
     "signInDifferent": "Iniciar sesión con cuenta diferente",
-    "signOutAndUse": "Cerrar sesión y usar email de invitación"
+    "signOutAndUse": "Cerrar sesión y usar email de invitación",
+    "getAccessCode": "Obtener Código de Acceso"
   },
   "invalid": "Invitación inválida",
   "labels": {
@@ -16,7 +17,7 @@
     "acceptFailed": "Error al aceptar invitación",
     "authFailed": "Error de autenticación",
     "signedInAccepting": "Has iniciado sesión y estás aceptando la invitación",
-    "signedInProfile": "Ya has iniciado sesión con un perfil diferente",
+    "signedInProfile": "¡Sesión iniciada con éxito! Completando tu configuración...",
     "verificationFailed": "Error de verificación",
     "verificationSent": "Correo de verificación enviado",
     "wrongEmail": "Dirección de correo incorrecta",
@@ -26,6 +27,7 @@
     "signedInAs": "Conectado como {{email}}",
     "sentToDifferentEmail": "Esta invitación fue enviada a {{invitationEmail}}, pero estás conectado como {{currentEmail}}.",
     "wrongUser": "Cuenta de usuario incorrecta",
-    "acceptInvitationFailed": "Error al aceptar invitación"
+    "acceptInvitationFailed": "Error al aceptar invitación",
+    "sendCodeVerification": "Te enviaremos un código a <strong>{{email}}</strong> para verificar que eres tú"
   }
 }

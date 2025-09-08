@@ -12,6 +12,8 @@ import {
   Tailwind,
 } from '@react-email/components'
 
+import { safePropertyAccess } from '@/lib/utils/type-safe-access'
+
 interface MagicLinkEmailProps {
   url: string
   appName?: string
@@ -37,12 +39,12 @@ function getTranslation(key: string): string {
     const emailTranslations = require('@/i18n/locales/en/email.json')
     return (
       emailTranslations.magicLink[key] ||
-      fallbackContent[key as keyof typeof fallbackContent] ||
+      safePropertyAccess(fallbackContent, key) ||
       key
     )
   } catch {
     // Fallback for preview mode
-    return fallbackContent[key as keyof typeof fallbackContent] || key
+    return safePropertyAccess(fallbackContent, key) || key
   }
 }
 

@@ -33,10 +33,19 @@ export type FilterOperator =
   | 'isNull'
   | 'isNotNull'
 
+// Type guard for FilterOperator
+function isFilterOperator(value: unknown): value is FilterOperator {
+  return typeof value === 'string' && [
+    'eq', 'ne', 'contains', 'startsWith', 'endsWith',
+    'gt', 'gte', 'lt', 'lte', 'between', 'in', 'notIn',
+    'isNull', 'isNotNull'
+  ].includes(value)
+}
+
 export interface ColumnFilter {
   column: PgColumn
   operator?: FilterOperator
-  value: any
+  value: unknown
 }
 
 export interface TableFilter {
@@ -108,10 +117,16 @@ export function buildTableFilters(tableFilter: TableFilter): SQL | undefined {
   return operator === 'and' ? and(...conditions) : or(...conditions)
 }
 
-export function parseFilterValue(value: any): { operator: FilterOperator; value: any } {
+export function parseFilterValue(value: unknown): { operator: FilterOperator; value: unknown } {
   // If value is an object with operator and value properties
   if (typeof value === 'object' && value !== null && 'operator' in value && 'value' in value) {
-    return value
+    const typed = value as { operator: unknown; value: unknown }
+    // Ensure operator is a valid FilterOperator
+    if (isFilterOperator(typed.operator)) {
+      return { operator: typed.operator, value: typed.value }
+    }
+    // Default to 'eq' if operator is invalid
+    return { operator: 'eq', value: typed.value }
   }
 
   // If value is an array, assume it's for "in" or "between" operator
@@ -170,7 +185,7 @@ export function buildSearchFilter(searchColumns: PgColumn[], searchValue: string
   return searchConditions.length === 1 ? searchConditions[0] : or(...searchConditions)
 }
 
-export function preprocessFilterValue(columnId: string, value: any): any {
+export function preprocessFilterValue(columnId: string, value: unknown): unknown {
   // Handle boolean columns
   if (['completed', 'banned', 'status', 'emailVerified'].includes(columnId)) {
     return value === 'true' || value === true

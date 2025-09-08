@@ -20,7 +20,7 @@ export const todoKeys = {
 
   // Utility queries
   creators: (orgId: string) => [...todoKeys.all(orgId), 'creators'] as const,
-  allIds: (orgId: string, filters?: any) =>
+  allIds: (orgId: string, filters?: ServerQueryParams) =>
     filters
       ? ([...todoKeys.all(orgId), 'allIds', filters] as const)
       : ([...todoKeys.all(orgId), 'allIds'] as const),

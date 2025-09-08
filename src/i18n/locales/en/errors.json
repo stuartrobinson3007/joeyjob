@@ -2,7 +2,8 @@
   "general": {
     "unknown": "An unknown error occurred",
     "tryAgain": "Please try again",
-    "contactSupport": "If the problem persists, contact support"
+    "contactSupport": "If the problem persists, contact support",
+    "tryAgainOrContact": "Please try again or contact support if the issue persists."
   },
   "network": {
     "offline": "No internet connection",
@@ -112,5 +113,12 @@
     "permissionError": "Access Denied",
     "notFound": "Not Found",
     "serverError": "Server Error"
+  },
+  "notFound": "Not Found",
+  "forms": {
+    "loadFailed": "Form failed to load",
+    "loadFailedDescription": "Please refresh the page and try again",
+    "title": "Form Error",
+    "description": "The form encountered an error and cannot be displayed."
   }
 }

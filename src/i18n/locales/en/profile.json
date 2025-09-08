@@ -34,7 +34,6 @@
   "security": {
     "title": "Security",
     "description": "Manage your account security settings",
-    "twoFactor": "Two-Factor Authentication",
     "changePassword": "Change Password",
     "passwordDescription": "Update your password regularly for better security",
     "notice": "Security Notice",
@@ -44,9 +43,7 @@
     "warning": "Warning",
     "securityNoticeDescription": "If you notice any unfamiliar devices or locations, revoke those sessions immediately and change your password.",
     "revokeAllSessionsDescription": "This will sign out all other devices from your account except the current one. All users will need to sign in again to access your account.",
-    "revokeWarning": "This action cannot be undone. Make sure you recognize the current device before proceeding.",
-    "twoFactorEnabled": "Two-factor authentication is enabled for your account",
-    "twoFactorDisabled": "Add an extra layer of security to your account"
+    "revokeWarning": "This action cannot be undone. Make sure you recognize the current device before proceeding."
   },
   "sessions": {
     "title": "Active Sessions",

@@ -70,8 +70,17 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    fallbackLng: DEFAULT_LANGUAGE,
-    debug: import.meta.env.DEV,
+    fallbackLng: {
+      'en-US': ['en'],
+      'en-NZ': ['en'],
+      'en-AU': ['en'],
+      'en-GB': ['en'],
+      'es-ES': ['es'],
+      'es-MX': ['es'],
+      'es-AR': ['es'],
+      'default': [DEFAULT_LANGUAGE]
+    },
+    debug: false,
 
     ns: NAMESPACES,
     defaultNS,

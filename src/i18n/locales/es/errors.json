@@ -2,7 +2,8 @@
   "general": {
     "unknown": "Ocurrió un error desconocido",
     "tryAgain": "Por favor intenta de nuevo",
-    "contactSupport": "Si el problema persiste, contacta soporte"
+    "contactSupport": "Si el problema persiste, contacta soporte",
+    "tryAgainOrContact": "Por favor intenta de nuevo o contacta soporte si el problema persiste."
   },
   "network": {
     "offline": "Sin conexión a internet",
@@ -112,5 +113,12 @@
     "permissionError": "Acceso Denegado",
     "notFound": "No Encontrado",
     "serverError": "Error del Servidor"
+  },
+  "notFound": "No Encontrado",
+  "forms": {
+    "loadFailed": "Error al cargar formulario",
+    "loadFailedDescription": "Por favor actualiza la página e intenta de nuevo",
+    "title": "Error de Formulario",
+    "description": "El formulario encontró un error y no puede ser mostrado."
   }
 }

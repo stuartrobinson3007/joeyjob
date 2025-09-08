@@ -87,7 +87,17 @@ import enEmail from './locales/en/email.json'
 // Import Spanish translations
 import esCommon from './locales/es/common.json'
 import esAuth from './locales/es/auth.json'
-// ... other Spanish imports
+import esTodos from './locales/es/todos.json'
+import esTeam from './locales/es/team.json'
+import esBilling from './locales/es/billing.json'
+import esAdmin from './locales/es/admin.json'
+import esErrors from './locales/es/errors.json'
+import esValidation from './locales/es/validation.json'
+import esNotifications from './locales/es/notifications.json'
+import esProfile from './locales/es/profile.json'
+import esSettings from './locales/es/settings.json'
+import esInvitations from './locales/es/invitations.json'
+import esEmail from './locales/es/email.json'
 
 export const defaultNS = 'common'
 

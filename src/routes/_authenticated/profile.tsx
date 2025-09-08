@@ -20,6 +20,14 @@ import {
   Check,
 } from 'lucide-react'
 
+interface SessionItem {
+  token: string
+  userAgent?: string | null
+  ipAddress?: string | null
+  createdAt?: Date | string
+  expiresAt?: Date | string
+}
+
 import {
   useSession,
   useListSessions,
@@ -27,19 +35,19 @@ import {
   useRevokeOtherSessions,
 } from '@/lib/auth/auth-hooks'
 import { authClient } from '@/lib/auth/auth-client'
-import { Button } from '@/components/taali-ui/ui/button'
+import { Button } from '@/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/taali-ui/ui/card'
-import { Input } from '@/components/taali-ui/ui/input'
-import { Label } from '@/components/taali-ui/ui/label'
+} from '@/ui/card'
+import { Input } from '@/ui/input'
+import { Label } from '@/ui/label'
 import { AvatarUploadDialog } from '@/components/avatar-upload-dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/taali-ui/ui/tabs'
-import { Alert, AlertDescription, AlertTitle } from '@/components/taali-ui/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
+import { Alert, AlertDescription, AlertTitle } from '@/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +57,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/taali-ui/ui/alert-dialog'
+} from '@/ui/alert-dialog'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useLanguage } from '@/i18n/hooks/useLanguage'
 import { useErrorHandler } from '@/lib/errors/hooks'
@@ -72,6 +80,7 @@ function ProfileScreen() {
   const revokeOtherSessionsMutation = useRevokeOtherSessions()
   const { t } = useTranslation('profile')
   const { t: tCommon } = useTranslation('common')
+  const { t: tAdmin } = useTranslation('admin')
   const { language, languages, changeLanguage, isReady } = useLanguage()
   const { showError, showSuccess } = useErrorHandler()
 
@@ -83,7 +92,7 @@ function ProfileScreen() {
     email: '',
   })
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false)
-  const [sessionToRevoke, setSessionToRevoke] = useState<any>(null)
+  const [sessionToRevoke, setSessionToRevoke] = useState<SessionItem | null>(null)
   const [revokeAllDialogOpen, setRevokeAllDialogOpen] = useState(false)
 
   const user = session?.user
@@ -131,17 +140,16 @@ function ProfileScreen() {
       await authClient.updateUser({
         name: `${formData.firstName} ${formData.lastName}`.trim(),
       })
-      showSuccess(t('common:messages.profileUpdated'))
+      showSuccess(t('messages.profileUpdated'))
       setIsEditing(false)
     } catch (error) {
-      console.error('Failed to update profile:', error)
       showError(error)
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleRevokeSession = (sessionItem: any) => {
+  const handleRevokeSession = (sessionItem: SessionItem) => {
     setSessionToRevoke(sessionItem)
     setRevokeDialogOpen(true)
   }
@@ -153,10 +161,9 @@ function ProfileScreen() {
       await revokeSessionMutation.mutateAsync({
         token: sessionToRevoke.token,
       })
-      showSuccess(t('common:messages.sessionRevoked'))
+      showSuccess(t('messages.sessionRevoked'))
       await refetchSessions()
     } catch (error) {
-      console.error('Failed to revoke session:', error)
       showError(error)
     } finally {
       setRevokeDialogOpen(false)
@@ -167,10 +174,9 @@ function ProfileScreen() {
   const handleRevokeAllOtherSessions = async () => {
     try {
       await revokeOtherSessionsMutation.mutateAsync({})
-      showSuccess(t('common:messages.allSessionsRevoked'))
+      showSuccess(t('messages.allSessionsRevoked'))
       await refetchSessions()
     } catch (error) {
-      console.error('Failed to revoke sessions:', error)
       showError(error)
     } finally {
       setRevokeAllDialogOpen(false)
@@ -180,9 +186,9 @@ function ProfileScreen() {
   const getDeviceIcon = (userAgent: string) => {
     const ua = userAgent.toLowerCase()
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
-      return <Smartphone className="h-4 w-4" />
+      return <Smartphone />
     }
-    return <Monitor className="h-4 w-4" />
+    return <Monitor />
   }
 
   const parseUserAgent = (userAgent: string) => {
@@ -204,7 +210,7 @@ function ProfileScreen() {
     return `${browser} on ${os}`
   }
 
-  const isCurrentSession = (sessionItem: any) => {
+  const isCurrentSession = (sessionItem: SessionItem) => {
     // BetterAuth: Compare the session tokens directly
     if (!session?.session) return false
 
@@ -222,7 +228,7 @@ function ProfileScreen() {
               to="/"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
               {t('backToDashboard')}
             </Link>
           </div>
@@ -251,7 +257,7 @@ function ProfileScreen() {
                   </div>
                   {!isEditing && (
                     <Button variant="outline" size="sm" onClick={handleEdit}>
-                      <Edit2 className="h-4 w-4 mr-2" />
+                      <Edit2 />
                       {tCommon('actions.edit')}
                     </Button>
                   )}
@@ -301,11 +307,11 @@ function ProfileScreen() {
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={handleSave} disabled={isSaving}>
-                            <Save className="h-4 w-4 mr-2" />
+                            <Save />
                             {isSaving ? tCommon('states.sending') : tCommon('actions.save')}
                           </Button>
                           <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
-                            <X className="h-4 w-4 mr-2" />
+                            <X />
                             {tCommon('actions.cancel')}
                           </Button>
                         </div>
@@ -423,21 +429,6 @@ function ProfileScreen() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">{t('security.twoFactor')}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(user as any).twoFactorEnabled
-                        ? t('security.twoFactorEnabled')
-                        : t('security.twoFactorDisabled')}
-                    </p>
-                  </div>
-                  <Button variant="outline" disabled>
-                    {(user as any).twoFactorEnabled
-                      ? tCommon('actions.edit')
-                      : tCommon('boolean.enabled')}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
                     <p className="font-medium">{t('security.changePassword')}</p>
                     <p className="text-sm text-muted-foreground">
                       {t('security.passwordDescription')}
@@ -453,17 +444,17 @@ function ProfileScreen() {
 
           <TabsContent value="sessions" className="space-y-6">
             <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{t('auth:sessions.title')}</AlertTitle>
-              <AlertDescription>{t('auth:sessions.alertDescription')}</AlertDescription>
+              <AlertCircle />
+              <AlertTitle>{t('sessions.title')}</AlertTitle>
+              <AlertDescription>{t('sessions.alertDescription')}</AlertDescription>
             </Alert>
 
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>{t('auth:sessions.subtitle')}</CardTitle>
-                    <CardDescription>{t('auth:sessions.description')}</CardDescription>
+                    <CardTitle>{t('sessions.subtitle')}</CardTitle>
+                    <CardDescription>{t('sessions.description')}</CardDescription>
                   </div>
                   {sessions && sessions.length > 1 && (
                     <Button
@@ -472,8 +463,8 @@ function ProfileScreen() {
                       onClick={() => setRevokeAllDialogOpen(true)}
                       disabled={revokeOtherSessionsMutation.isPending}
                     >
-                      <ShieldAlert className="h-4 w-4 mr-2" />
-                      {t('auth:sessions.revokeAll')}
+                      <ShieldAlert />
+                      {t('sessions.revokeAll')}
                     </Button>
                   )}
                 </div>
@@ -484,7 +475,7 @@ function ProfileScreen() {
                     <Loader2 className="size-6 animate-spin" />
                   </div>
                 ) : !sessions || sessions.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">{t('auth:sessions.empty')}</p>
+                  <p className="text-center text-muted-foreground py-8">{t('sessions.empty')}</p>
                 ) : (
                   <div className="space-y-4">
                     {sessions.map(sessionItem => {
@@ -492,11 +483,10 @@ function ProfileScreen() {
                       return (
                         <div
                           key={sessionItem.token}
-                          className={`relative flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                            isCurrent
-                              ? 'bg-primary/5 border-primary/50 ring-2 ring-primary/20'
-                              : 'bg-card hover:bg-accent/5'
-                          }`}
+                          className={`relative flex items-center justify-between p-4 rounded-lg border transition-colors ${isCurrent
+                            ? 'bg-primary/5 border-primary/50 ring-2 ring-primary/20'
+                            : 'bg-card hover:bg-accent/5'
+                            }`}
                         >
                           {isCurrent && (
                             <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-r" />
@@ -511,7 +501,7 @@ function ProfileScreen() {
                               <div className="flex items-center gap-2">
                                 <p className="font-medium">
                                   {parseUserAgent(
-                                    sessionItem.userAgent || t('auth:sessions.unknownDevice')
+                                    sessionItem.userAgent || t('sessions.unknownDevice')
                                   )}
                                 </p>
                               </div>
@@ -519,17 +509,17 @@ function ProfileScreen() {
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   <span>
-                                    {t('auth:sessions.created')}
+                                    {tAdmin('sessions.created')}
                                     {': '}
                                     {sessionItem.createdAt
                                       ? new Date(sessionItem.createdAt).toLocaleString()
-                                      : t('auth:sessions.unknown')}
+                                      : t('sessions.unknown')}
                                   </span>
                                 </div>
                               </div>
                               {sessionItem.expiresAt && (
                                 <p className="text-xs text-muted-foreground">
-                                  {t('auth:sessions.expiresLabel')}{' '}
+                                  {t('sessions.expiresLabel')}{' '}
                                   {new Date(sessionItem.expiresAt).toLocaleString()}
                                 </p>
                               )}
@@ -538,7 +528,7 @@ function ProfileScreen() {
                           <div className="flex items-center">
                             {isCurrent ? (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
-                                {t('auth:sessions.current')}
+                                {t('sessions.current')}
                               </span>
                             ) : (
                               <Button
@@ -548,7 +538,7 @@ function ProfileScreen() {
                                 disabled={revokeSessionMutation.isPending}
                                 className="hover:bg-destructive/10 hover:text-destructive"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 />
                               </Button>
                             )}
                           </div>
@@ -562,7 +552,7 @@ function ProfileScreen() {
 
             {sessions && sessions.length > 0 && (
               <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
+                <ShieldAlert />
                 <AlertTitle>{t('security.notice')}</AlertTitle>
                 <AlertDescription>{t('security.securityNoticeDescription')}</AlertDescription>
               </Alert>
@@ -579,17 +569,17 @@ function ProfileScreen() {
                 {sessionToRevoke && (
                   <div className="mt-4 p-3 rounded-lg bg-muted">
                     <p className="text-sm font-medium">
-                      {parseUserAgent(sessionToRevoke.userAgent || t('auth:sessions.unknownDevice'))}
+                      {parseUserAgent(sessionToRevoke.userAgent || t('sessions.unknownDevice'))}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {t('auth:sessions.ipAddress')} {sessionToRevoke.ipAddress || t('auth:sessions.unknown')}
+                      {t('sessions.ipAddress')} {sessionToRevoke.ipAddress || t('sessions.unknown')}
                     </p>
                   </div>
                 )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
+              <AlertDialogCancel>{tCommon('actions.cancel')}</AlertDialogCancel>
               <AlertDialogAction onClick={confirmRevokeSession}>
                 {t('security.revokeSessionAction')}
               </AlertDialogAction>
@@ -604,16 +594,16 @@ function ProfileScreen() {
               <AlertDialogDescription>
                 {t('security.revokeAllSessionsDescription')}
                 <Alert className="mt-4" variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
+                  <AlertCircle />
                   <AlertTitle>{t('security.warning')}</AlertTitle>
                   <AlertDescription>{t('security.revokeWarning')}</AlertDescription>
                 </Alert>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{t('common:actions.cancel')}</AlertDialogCancel>
+              <AlertDialogCancel>{tCommon('actions.cancel')}</AlertDialogCancel>
               <AlertDialogAction onClick={handleRevokeAllOtherSessions}>
-                {t('auth:sessions.revokeAllOthers')}
+                {t('sessions.revokeAllOthers')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

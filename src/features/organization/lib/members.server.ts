@@ -7,6 +7,7 @@ import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { member } from '@/database/schema'
+import { checkPermission } from '@/lib/utils/permissions'
 import { AppError } from '@/lib/utils/errors'
 
 const inviteMemberSchema = z.object({
@@ -46,6 +47,9 @@ export const inviteMember = createServerFn({ method: 'POST' })
       throw AppError.forbidden('access organization')
     }
 
+    // Check permission to invite members
+    await checkPermission('member', ['create'], data.organizationId)
+
     // Create invitation using Better Auth API
     const result = await auth.api.createInvitation({
       headers: request.headers,
@@ -79,6 +83,9 @@ export const removeMember = createServerFn({ method: 'POST' })
       throw AppError.forbidden('access organization')
     }
 
+    // Check permission to remove members
+    await checkPermission('member', ['delete'], data.organizationId)
+
     const result = await auth.api.removeMember({
       headers: request.headers,
       body: {
@@ -109,6 +116,9 @@ export const updateMemberRole = createServerFn({ method: 'POST' })
     if (!membership.length) {
       throw AppError.forbidden('access organization')
     }
+
+    // Check permission to update member roles
+    await checkPermission('member', ['update'], data.organizationId)
 
     const result = await auth.api.updateMemberRole({
       headers: request.headers,

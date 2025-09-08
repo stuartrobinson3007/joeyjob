@@ -49,6 +49,17 @@ function Button({
   }) {
   const Comp = asChild ? Slot : 'button'
 
+  // When asChild is true, we can't render multiple children
+  // So we only pass through the original children
+  const content = asChild ? (
+    children
+  ) : (
+    <>
+      {loading && <Loader2 className="animate-spin" />}
+      {children}
+    </>
+  )
+
   return (
     <Comp
       data-slot="button"
@@ -56,8 +67,7 @@ function Button({
       disabled={disabled || loading}
       {...props}
     >
-      {loading && <Loader2 className="animate-spin" />}
-      {children}
+      {content}
     </Comp>
   )
 }

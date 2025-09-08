@@ -140,16 +140,41 @@ const getAuthConfig = serverOnly(() =>
       }),
       admin({
         adminRoles: ['superadmin'], // TODO: Not sure if this actually does anything. We keep the superadmin role in the user db for quick checks
-        adminUserIds: ['xCkr7sfb6x0GKsY2vCkQThP4IiSHjG7p'], // But its this that actually makes a user an admin (superadmin as we call it)
+        adminUserIds: process.env.ADMIN_USER_IDS?.split(',') || [], // But its this that actually makes a user an admin (superadmin as we call it)
       }),
       stripePlugin({
         stripeClient: stripe,
         stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
         createCustomerOnSignUp: false, // We'll create on org creation
+        // Add metadata when creating Stripe customers
+        getCustomerCreateParams: async (data, _ctx) => {
+          // Note: At customer creation time, we don't have the organizationId yet
+          // It will be added when the subscription is created
+          return {
+            metadata: {
+              userId: data.user.id,
+            },
+          }
+        },
         successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
         cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
         subscription: {
           enabled: true,
+          // Add metadata to Stripe checkout sessions and subscriptions
+          getCheckoutSessionParams: async (data) => {
+            return {
+              params: {
+                subscription_data: {
+                  metadata: {
+                    organizationId: data.subscription.referenceId,
+                  },
+                },
+                metadata: {
+                  organizationId: data.subscription.referenceId,
+                },
+              },
+            }
+          },
           authorizeReference: async ({ user, referenceId }) => {
             // Allow users to manage subscriptions for their organizations
             // Check if user is a member of the organization with billing permissions

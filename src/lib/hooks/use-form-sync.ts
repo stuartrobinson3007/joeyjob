@@ -42,7 +42,8 @@ export function useFormSync<T extends FieldValues>(
       form.reset(data)
       previousDataRef.current = data
     }
-  }, [data, form.reset, ...dependencies]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dependencies are passed as spread parameter
+  }, [data, form, ...dependencies])
 }
 
 /**
@@ -74,7 +75,8 @@ export function useFormSyncWithStatus<T extends FieldValues>(
       previousDataRef.current = data
       isSyncedRef.current = true
     }
-  }, [data, form.reset, ...dependencies]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dependencies are passed as spread parameter
+  }, [data, form, ...dependencies])
   
   return {
     isSynced: isSyncedRef.current,

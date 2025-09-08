@@ -1,33 +1,38 @@
 import { useState, useEffect } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { Check, Loader2, AlertCircle, CreditCard, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
   createCheckout,
   createBillingPortal,
-  getSubscription,
-  getUsageStats,
 } from '../lib/billing.server'
+import { useSubscription } from '../hooks/use-subscription'
+import { useUsageStats } from '../hooks/use-usage-stats'
 import { BILLING_PLANS } from '../lib/plans.config'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/taali-ui/ui/card'
-import { Button } from '@/components/taali-ui/ui/button'
-import { Badge } from '@/components/taali-ui/ui/badge'
-import { Alert, AlertDescription } from '@/components/taali-ui/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
+import { Button } from '@/ui/button'
+import { Badge } from '@/ui/badge'
+import { Alert, AlertDescription } from '@/ui/alert'
 import { PageHeader } from '@/components/page-header'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
+import { useClientPermissions } from '@/lib/hooks/use-permissions'
+import { useLoadingItems } from '@/lib/hooks/use-loading-state'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/lib/errors/client-handler'
-
+import { SubscriptionResponse } from '@/lib/auth/auth-types'
 
 export function BillingPage() {
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
   const { t } = useTranslation('billing')
+  const { t: tCommon } = useTranslation('common')
   const { showError } = useErrorHandler()
+  const { canManageBilling, canViewBilling, isLoading: permissionsLoading } = useClientPermissions()
+  const { startLoading, stopLoading, isLoading: itemsLoading } = useLoadingItems<string>()
 
   // Fetch subscription data
   const {
@@ -35,56 +40,28 @@ export function BillingPage() {
     isLoading,
     error: subscriptionError,
     refetch: refetchSubscription,
-  } = useQuery({
-    queryKey: ['subscription'],
-    queryFn: () => getSubscription(),
-    retry: 2,
-    retryDelay: 1000,
-  })
+  } = useSubscription()
 
   // Type guard for subscription data
   const hasSubscriptionData = subscription && 'currentPlan' in subscription
 
-  // Comprehensive debug logging
-  useEffect(() => {
-    console.log('==================== BILLING DEBUG START ====================')
-    console.log('[DEBUG] Raw subscription response:', subscription)
-    console.log('[DEBUG] Loading state:', isLoading)
-    console.log('[DEBUG] Error state:', subscriptionError)
-    console.log('[DEBUG] hasSubscriptionData:', hasSubscriptionData)
-
-    if (subscription) {
-      console.log('[DEBUG] subscription keys:', Object.keys(subscription))
-      console.log('[DEBUG] subscription.currentPlan:', (subscription as any)?.currentPlan)
-      console.log('[DEBUG] subscription.subscription:', (subscription as any)?.subscription)
-      console.log(
-        '[DEBUG] subscription.hasStripeCustomer:',
-        (subscription as any)?.hasStripeCustomer
-      )
-      console.log('[DEBUG] subscription.organization:', (subscription as any)?.organization)
-    }
-    console.log('==================== BILLING DEBUG END ====================')
-  }, [subscription, hasSubscriptionData, isLoading, subscriptionError])
-
   // Fetch usage stats
-  const { data: usage, error: usageError } = useQuery({
-    queryKey: ['usage-stats'],
-    queryFn: () => getUsageStats(),
-    refetchInterval: 30000, // Refresh every 30 seconds
-    enabled: !!subscription, // Only fetch if subscription data is loaded
-    retry: 1,
-  })
+  const { data: usage, error: usageError } = useUsageStats()
 
   // Create checkout mutation
   const createCheckoutMutation = useMutation({
-    mutationFn: (checkoutData: { plan: 'pro' | 'business'; interval: 'monthly' | 'annual' }) =>
-      createCheckout({ data: checkoutData }),
-    onSuccess: (data: { checkoutUrl?: string }) => {
+    mutationFn: (checkoutData: { plan: 'pro' | 'business'; interval: 'monthly' | 'annual' }) => {
+      startLoading(checkoutData.plan)
+      return createCheckout({ data: checkoutData })
+    },
+    onSuccess: (data: { checkoutUrl?: string }, variables) => {
+      stopLoading(variables.plan)
       if (data?.checkoutUrl) {
         window.location.href = data.checkoutUrl
       }
     },
-    onError: error => {
+    onError: (error, variables) => {
+      stopLoading(variables.plan)
       showError(error)
     },
   })
@@ -101,13 +78,12 @@ export function BillingPage() {
             ERROR_CODES.SYS_CONFIG_ERROR,
             500,
             undefined,
-            'Failed to create billing portal session'
+            t('errors.billingPortalFailed')
           )
         )
       }
     },
     onError: (error: Error) => {
-      console.error('Portal error:', error)
       showError(error)
     },
   })
@@ -124,7 +100,39 @@ export function BillingPage() {
       toast.info(t('subscription.cancelled'))
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [])
+  }, [refetchSubscription, t])
+
+  // Check permissions first
+  if (permissionsLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">{t('loading.permissions')}</span>
+      </div>
+    )
+  }
+
+  // Show unauthorized message if user cannot view billing
+  if (!canViewBilling) {
+    return (
+      <div className="flex flex-col h-full">
+        <PageHeader title={t('title')} />
+        <div className="flex-1 p-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">{t('errors.accessRestricted')}</h3>
+                <p className="text-muted-foreground">
+                  You don't have permission to view billing information. Contact your organization administrator for access.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -139,21 +147,29 @@ export function BillingPage() {
     return <ErrorState error={parseError(subscriptionError)} onRetry={refetchSubscription} />
   }
 
-  const currentPlan = hasSubscriptionData ? (subscription as any).currentPlan : 'free'
-  const subscriptionRecord = hasSubscriptionData ? (subscription as any)?.subscription : null
-  const allSubscriptions = hasSubscriptionData ? (subscription as any)?.allSubscriptions || [] : []
+  const currentPlan = hasSubscriptionData ? (subscription as SubscriptionResponse).currentPlan : 'free'
+  const subscriptionData = hasSubscriptionData ? (subscription as SubscriptionResponse) : null
+  const subscriptionRecord = subscriptionData?.subscription
+  const allSubscriptions = subscriptionData?.allSubscriptions || []
   const hasActiveSubscription = subscriptionRecord?.status === 'active'
-  const isCancelled = subscriptionRecord?.stripeCancelAtPeriodEnd
+  const isCancelled = subscriptionRecord && 'stripeCancelAtPeriodEnd' in subscriptionRecord
+    ? Boolean(subscriptionRecord.stripeCancelAtPeriodEnd)
+    : false
   const subscriptionStatus = subscriptionRecord?.status
-  const hasStripeCustomer = hasSubscriptionData && (subscription as any)?.hasStripeCustomer
+  const hasStripeCustomer = hasSubscriptionData && (subscription as SubscriptionResponse)?.hasStripeCustomer
   const isPaidPlan = currentPlan !== 'free'
 
   // Show button if: paid plan, has any subscription history, or has stripe customer
   const showManageButton = isPaidPlan || hasStripeCustomer || allSubscriptions?.length > 0
 
+  // Check if subscription needs attention (past_due, incomplete, etc.)
+  const hasSubscriptionIssue = subscriptionStatus === 'past_due' || subscriptionStatus === 'incomplete'
+
   // Determine button text based on state
   const getManageButtonText = () => {
     if (hasActiveSubscription) return t('subscription.manage')
+    // If subscription has issues (past_due, incomplete), show manage to let them fix it
+    if (hasSubscriptionIssue) return t('subscription.manage')
     if (subscriptionRecord && !hasActiveSubscription) return t('subscription.viewHistory')
     if (hasStripeCustomer && !subscriptionRecord) return t('payment.update')
     return t('subscription.manage')
@@ -206,34 +222,39 @@ export function BillingPage() {
                     )}
                   </div>
                   {hasSubscriptionData &&
-                    (subscription as any)?.subscription?.stripeCurrentPeriodEnd && (
+                    subscriptionRecord && 'stripeCurrentPeriodEnd' in subscriptionRecord &&
+                    (subscriptionRecord.stripeCurrentPeriodEnd as string) && (
                       <p className="text-muted-foreground">
                         {isCancelled ? t('subscription.expires') : t('subscription.renews')}{' '}
                         {t('subscription.on')}{' '}
-                        {new Date(
-                          (subscription as any)?.subscription?.stripeCurrentPeriodEnd
-                        ).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                        {(() => {
+                          const periodEnd = 'stripeCurrentPeriodEnd' in subscriptionRecord
+                            ? subscriptionRecord.stripeCurrentPeriodEnd as string
+                            : null
+                          if (!periodEnd) return 'N/A'
+                          return new Date(periodEnd).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })
+                        })()}
                       </p>
                     )}
                   {isCancelled && (
                     <Alert className="mt-2">
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle />
                       <AlertDescription>{t('alerts.cancelled')}</AlertDescription>
                     </Alert>
                   )}
                   {subscriptionStatus === 'past_due' && (
                     <Alert className="mt-2" variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle />
                       <AlertDescription>{t('alerts.pastDue')}</AlertDescription>
                     </Alert>
                   )}
                   {subscriptionStatus === 'incomplete' && (
                     <Alert className="mt-2" variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle />
                       <AlertDescription>{t('alerts.incomplete')}</AlertDescription>
                     </Alert>
                   )}
@@ -244,14 +265,11 @@ export function BillingPage() {
                       <Button
                         variant="outline"
                         onClick={() => createPortalMutation.mutate()}
-                        disabled={createPortalMutation.isPending}
+                        disabled={!canManageBilling}
+                        loading={createPortalMutation.isPending}
                         title={t('subscription.manageTitle')}
                       >
-                        {createPortalMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Settings className="h-4 w-4 mr-2" />
-                        )}
+                        <Settings />
                         {getManageButtonText()}
                       </Button>
                     </>
@@ -276,7 +294,7 @@ export function BillingPage() {
         {/* Usage Statistics */}
         {usageError && (
           <Alert className="mb-8" variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle />
             <AlertDescription>
               Failed to load usage statistics. This won't affect your subscription.
             </AlertDescription>
@@ -285,7 +303,7 @@ export function BillingPage() {
         {usage && !usageError && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Usage Statistics</CardTitle>
+              <CardTitle>{t('usage.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -321,21 +339,19 @@ export function BillingPage() {
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-lg border p-1">
             <button
-              className={`px-4 py-2 rounded-md transition-colors ${
-                billingInterval === 'monthly'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              }`}
+              className={`px-4 py-2 rounded-md transition-colors ${billingInterval === 'monthly'
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted'
+                }`}
               onClick={() => setBillingInterval('monthly')}
             >
               Monthly
             </button>
             <button
-              className={`px-4 py-2 rounded-md transition-colors ${
-                billingInterval === 'annual'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
-              }`}
+              className={`px-4 py-2 rounded-md transition-colors ${billingInterval === 'annual'
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted'
+                }`}
               onClick={() => setBillingInterval('annual')}
             >
               Annual (Save 20%)
@@ -345,8 +361,7 @@ export function BillingPage() {
 
         {/* Pricing Cards */}
         <div id="pricing-plans" className="grid md:grid-cols-3 gap-6">
-          {Object.entries(BILLING_PLANS).map(([key, plan]) => {
-            const planKey = key as keyof typeof BILLING_PLANS
+          {(Object.entries(BILLING_PLANS) as [keyof typeof BILLING_PLANS, typeof BILLING_PLANS[keyof typeof BILLING_PLANS]][]).map(([planKey, plan]) => {
             const isCurrentPlan = currentPlan === planKey
             const price =
               planKey === 'free'
@@ -363,7 +378,7 @@ export function BillingPage() {
               <Card key={planKey} className={planKey === 'pro' ? 'border-primary shadow-lg' : ''}>
                 {planKey === 'pro' && (
                   <div className="bg-primary text-primary-foreground text-center py-1 text-sm">
-                    {t('common:labels.mostPopular')}
+                    {t('labels.mostPopular')}
                   </div>
                 )}
                 <CardHeader>
@@ -413,50 +428,80 @@ export function BillingPage() {
                       className="w-full"
                       variant="outline"
                       onClick={() => createPortalMutation.mutate()}
-                      disabled={createPortalMutation.isPending}
+                      disabled={!canManageBilling}
+                      loading={createPortalMutation.isPending}
                     >
-                      {createPortalMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
                       {t('subscription.reactivate')}
                     </Button>
                   ) : planKey === 'free' ? (
                     <Button className="w-full" variant="outline" disabled={!hasActiveSubscription}>
                       {hasActiveSubscription
-                        ? t('common:actions.download')
+                        ? tCommon('actions.download')
                         : t('subscription.currentPlan')}
                     </Button>
                   ) : (
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        if (!hasSubscriptionData || !(subscription as any)?.organization) {
-                          showError(
-                            new AppError(
-                              ERROR_CODES.VAL_REQUIRED_FIELD,
-                              400,
-                              { field: 'Organization' },
-                              t('subscription.noOrganization')
+                    <div>
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          if (!hasSubscriptionData || !(subscription as SubscriptionResponse)?.organization) {
+                            showError(
+                              new AppError(
+                                ERROR_CODES.VAL_REQUIRED_FIELD,
+                                400,
+                                { field: t('fields.organization', { ns: 'errors' }) },
+                                t('subscription.noOrganization')
+                              )
                             )
-                          )
-                          return
+                            return
+                          }
+                          createCheckoutMutation.mutate({
+                            plan: planKey as 'pro' | 'business',
+                            interval: billingInterval,
+                          })
+                        }}
+                        disabled={
+                          !canManageBilling ||
+                          !hasSubscriptionData ||
+                          !(subscription as SubscriptionResponse)?.organization
                         }
-                        createCheckoutMutation.mutate({
-                          plan: planKey as 'pro' | 'business',
-                          interval: billingInterval,
-                        })
-                      }}
-                      disabled={
-                        createCheckoutMutation.isPending ||
-                        !hasSubscriptionData ||
-                        !(subscription as any)?.organization
-                      }
-                    >
-                      {createCheckoutMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      {hasActiveSubscription ? t('common:actions.cancel') : t('common:actions.upgrade')}
-                    </Button>
+                        loading={itemsLoading(planKey)}
+                      >
+                        {(() => {
+                          // Define plan hierarchy for comparison
+                          const planHierarchy: Record<string, number> = {
+                            'free': 0,
+                            'pro': 1,
+                            'business': 2
+                          }
+                          
+                          const currentPlanLevel = planHierarchy[currentPlan] ?? 0
+                          const targetPlanLevel = planHierarchy[planKey] ?? 0
+                          
+                          // If target plan is higher level, show upgrade
+                          if (targetPlanLevel > currentPlanLevel) {
+                            return t('subscription.upgrade')
+                          }
+                          
+                          // If target plan is lower level, show downgrade
+                          if (targetPlanLevel < currentPlanLevel) {
+                            return t('subscription.downgrade') || 'Downgrade'
+                          }
+                          
+                          // If same level but has active subscription, show cancel
+                          if (hasActiveSubscription) {
+                            return tCommon('actions.cancel')
+                          }
+                          
+                          return t('subscription.upgrade')
+                        })()}
+                      </Button>
+                      {!canManageBilling && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {t('messages.contactAdmin')}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -471,7 +516,7 @@ export function BillingPage() {
 function PlanFeature({ text }: { text: string }) {
   return (
     <li className="flex items-center gap-2">
-      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+      <Check className="h-4 w-4 text-success flex-shrink-0" />
       <span>{text}</span>
     </li>
   )
@@ -505,9 +550,8 @@ function UsageBar({
       {!isUnlimited && (
         <div className="w-full bg-secondary rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all ${
-              isAtLimit ? 'bg-destructive' : isNearLimit ? 'bg-warning' : 'bg-primary'
-            }`}
+            className={`h-2 rounded-full transition-all ${isAtLimit ? 'bg-destructive' : isNearLimit ? 'bg-warning' : 'bg-primary'
+              }`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
           />
         </div>

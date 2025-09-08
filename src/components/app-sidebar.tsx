@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/sidebar'
 import { UserTile } from '@/components/user-tile'
 import { OrganizationSwitcher } from '@/features/organization/components/organization-switcher'
+import { BillingStatusDisplay } from '@/components/billing-status-display'
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
@@ -27,33 +28,7 @@ import { queryClient } from '@/lib/hooks/providers'
 
 // Type definitions
 
-// We'll define navigation items inside the component to access translations
-const getNavigationItems = (t: (key: string, options?: any) => string) => [
-  {
-    title: t('common:navigation.todos'),
-    url: '/',
-    icon: CheckSquare,
-    requiresPermission: null, // Everyone can access
-  },
-  {
-    title: t('common:navigation.team'),
-    url: '/team',
-    icon: Users,
-    requiresPermission: null, // Everyone can access (with different capabilities)
-  },
-  {
-    title: t('common:navigation.billing'),
-    url: '/billing',
-    icon: CreditCard,
-    requiresPermission: 'billing',
-  },
-  {
-    title: t('common:navigation.settings'),
-    url: '/settings',
-    icon: Settings,
-    requiresPermission: 'workspace',
-  },
-]
+// Navigation items will be defined inside the component to use proper hooks
 
 // Permission helper functions
 const hasAdminPermission = (role: string | null): boolean => {
@@ -73,7 +48,7 @@ export function AppSidebar() {
   })
 
   const user = session?.user
-  const isImpersonating = !!(session as any)?.session?.impersonatedBy
+  const isImpersonating = !!(session as { session?: { impersonatedBy?: string } })?.session?.impersonatedBy
 
   // Get the user's role in the active organization
   useEffect(() => {
@@ -89,7 +64,7 @@ export function AppSidebar() {
         })
 
         // Handle different response structures from Better Auth
-        let membersArray: any[] = []
+        let membersArray: { userId: string; role: string }[] = []
 
         if (response && 'members' in response) {
           // Response has members property
@@ -108,7 +83,7 @@ export function AppSidebar() {
         }
 
         // Find the current user's membership
-        const currentUserMember = membersArray.find((m: any) => m.userId === user.id)
+        const currentUserMember = membersArray.find((m) => m.userId === user.id)
         setMemberRole(currentUserMember?.role || null)
       } catch {
         setMemberRole(null)
@@ -118,8 +93,33 @@ export function AppSidebar() {
     fetchMemberRole()
   }, [activeOrganizationId, user?.id])
 
-  // Filter navigation items based on user permissions
-  const navigationItems = getNavigationItems(t).filter(item => {
+  // Define navigation items with proper hook-based translations
+  const navigationItems = [
+    {
+      title: t('navigation.todos'),
+      url: '/',
+      icon: CheckSquare,
+      requiresPermission: null, // Everyone can access
+    },
+    {
+      title: t('navigation.team'),
+      url: '/team',
+      icon: Users,
+      requiresPermission: null, // Everyone can access (with different capabilities)
+    },
+    {
+      title: t('navigation.billing'),
+      url: '/billing',
+      icon: CreditCard,
+      requiresPermission: 'billing',
+    },
+    {
+      title: t('navigation.settings'),
+      url: '/settings',
+      icon: Settings,
+      requiresPermission: 'workspace',
+    },
+  ].filter(item => {
     if (!item.requiresPermission) return true
 
     // Billing and Settings require admin or owner role
@@ -180,8 +180,11 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="px-2 py-2">
-          <h2 className="text-lg font-semibold mb-2">{t('common:sidebar.app')}</h2>
-          <OrganizationSwitcher />
+          <h2 className="text-lg font-semibold mb-2">{t('sidebar.app')}</h2>
+          <div className='space-y-2'>
+            <OrganizationSwitcher />
+            <BillingStatusDisplay />
+          </div>
         </div>
       </SidebarHeader>
 
@@ -193,7 +196,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={currentPath === item.url}>
                     <Link to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
+                      <item.icon />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>

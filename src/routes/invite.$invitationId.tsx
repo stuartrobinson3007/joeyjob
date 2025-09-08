@@ -2,9 +2,11 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { Building2, Mail, UserPlus, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Trans } from 'react-i18next'
 
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { authClient } from '@/lib/auth/auth-client'
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
 import { getInvitationDetails } from '@/features/organization/lib/onboarding.server'
 import { OTPSignIn } from '@/features/auth/components/otp-sign-in'
 import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
@@ -18,8 +20,8 @@ export const Route = createFileRoute('/invite/$invitationId')({
         data: { invitationId: params.invitationId },
       })
       return { invitation }
-    } catch (error) {
-      console.error('Failed to load invitation:', error)
+    } catch (_error) {
+      // Failed to load invitation - error handled by UI state
       return { invitation: null }
     }
   },
@@ -56,7 +58,7 @@ function InvitationPage() {
           email: invitation?.email || '',
           type: 'sign-in',
         })
-        showSuccess(t('common:messages.verificationSent'))
+        showSuccess(t('messages.verificationSent'))
       } catch (error) {
         showError(error)
       }
@@ -65,7 +67,7 @@ function InvitationPage() {
 
     // Check if the logged-in user's email matches the invitation email
     if (session.user.email !== invitation?.email) {
-      showError(t('common:messages.wrongEmail'))
+      showError(t('messages.wrongEmail'))
       return
     }
 
@@ -87,7 +89,7 @@ function InvitationPage() {
 
         if (result.data) {
           // Get the organization ID from the result - check various possible locations
-          const data = result.data as any
+          const data = result.data as { organizationId?: string; organization?: { id?: string }; member?: { organizationId?: string } }
           const organizationId =
             data?.organizationId || data?.organization?.id || data?.member?.organizationId
 
@@ -111,11 +113,16 @@ function InvitationPage() {
             navigate({ to: '/' })
           }, 100)
         } else {
-          throw new Error(t('common:messages.acceptInvitationFailed'))
+          throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            400,
+            { invitationId },
+            t('messages.acceptInvitationFailed')
+          )
         }
       }
     } catch (error) {
-      console.error('Failed to accept invitation:', error)
+      // Failed to accept invitation - error handled by showError
       showError(error)
     } finally {
       setIsAccepting(false)
@@ -138,7 +145,7 @@ function InvitationPage() {
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">{t('invalid')}</h1>
-          <p className="text-muted-foreground mb-6">{t('common:messages.invalidOrExpired')}</p>
+          <p className="text-muted-foreground mb-6">{t('messages.invalidOrExpired')}</p>
           <button
             onClick={() => navigate({ to: '/' })}
             className="px-6 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80"
@@ -166,7 +173,6 @@ function InvitationPage() {
 
                 // Check if user needs onboarding
                 if (!newSession.user.onboardingCompleted) {
-                  showSuccess(t('common:messages.signedInProfile'))
                   // Redirect to onboarding with invitation
                   await navigate({
                     to: '/onboarding',
@@ -174,8 +180,6 @@ function InvitationPage() {
                   })
                 } else {
                   // User is already onboarded, accept invitation directly
-                  showSuccess(t('common:messages.signedInAccepting'))
-
                   try {
                     const result = await authClient.organization.acceptInvitation({
                       invitationId,
@@ -183,7 +187,7 @@ function InvitationPage() {
 
                     if (result.data) {
                       // Get the organization ID from the result - check various possible locations
-                      const data = result.data as any
+                      const data = result.data as { organizationId?: string; organization?: { id?: string }; member?: { organizationId?: string } }
                       const organizationId =
                         data?.organizationId ||
                         data?.organization?.id ||
@@ -209,7 +213,12 @@ function InvitationPage() {
                         navigate({ to: '/' })
                       }, 100)
                     } else {
-                      throw new Error(t('common:messages.acceptInvitationFailed'))
+                      throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            400,
+            { invitationId },
+            t('messages.acceptInvitationFailed')
+          )
                     }
                   } catch (error) {
                     showError(error)
@@ -217,7 +226,7 @@ function InvitationPage() {
                   }
                 }
               } else {
-                showError(t('common:messages.authFailed'))
+                showError(t('messages.authFailed'))
               }
             }}
             onBack={() => setShowOTPForm(false)}
@@ -234,14 +243,14 @@ function InvitationPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
             <UserPlus className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">{t('common:messages.youreInvited')}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('messages.youreInvited')}</h1>
         </div>
 
         <div className="space-y-4 mb-8">
           <div className="flex items-start gap-3">
             <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm text-muted-foreground">{t('common:labels.organization')}</p>
+              <p className="text-sm text-muted-foreground">{t('labels.organization')}</p>
               <p className="font-medium text-foreground">{invitation.organizationName}</p>
             </div>
           </div>
@@ -249,7 +258,7 @@ function InvitationPage() {
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm text-muted-foreground">{t('common:labels.invitedBy')}</p>
+              <p className="text-sm text-muted-foreground">{t('labels.invitedBy')}</p>
               <p className="font-medium text-foreground">{invitation.inviterName}</p>
             </div>
           </div>
@@ -257,9 +266,9 @@ function InvitationPage() {
           <div className="flex items-start gap-3">
             <UserPlus className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-sm text-muted-foreground">{t('common:labels.role')}</p>
+              <p className="text-sm text-muted-foreground">{t('labels.role')}</p>
               <p className="font-medium text-foreground capitalize">
-                {invitation.role || t('common:labels.defaultRole')}
+                {invitation.role || t('labels.defaultRole')}
               </p>
             </div>
           </div>
@@ -271,34 +280,34 @@ function InvitationPage() {
               // User is logged in with the correct email
               <>
                 <p className="text-sm text-muted-foreground text-center mb-4">
-                  {t('common:messages.signedInAs', { email: session.user.email })}
+                  {t('messages.signedInAs', { email: session.user.email })}
                 </p>
                 <button
                   onClick={handleAcceptInvitation}
                   disabled={isAccepting}
                   className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isAccepting ? t('common:actions.accepting') : t('common:actions.accept')}
+                  {isAccepting ? t('actions.accepting') : t('actions.accept')}
                 </button>
                 <button
                   onClick={() => authClient.signOut()}
                   className="w-full px-4 py-2 border border-input text-foreground font-medium rounded-lg hover:bg-accent"
                 >
-                  {t('common:actions.signInDifferent')}
+                  {t('actions.signInDifferent')}
                 </button>
               </>
             ) : (
               // User is logged in but with a different email
               <>
-                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+                <div className="bg-warning/10 dark:bg-warning/20 border border-warning/20 dark:border-warning/30 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                        {t('common:messages.wrongUser')}
+                      <p className="font-medium text-warning mb-1">
+                        {t('messages.wrongUser')}
                       </p>
-                      <p className="text-sm text-amber-700 dark:text-amber-300">
-                        {t('common:messages.sentToDifferentEmail', {
+                      <p className="text-sm text-warning/80">
+                        {t('messages.sentToDifferentEmail', {
                           invitationEmail: invitation.email,
                           currentEmail: session.user.email,
                         })}
@@ -314,7 +323,7 @@ function InvitationPage() {
                   }}
                   className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90"
                 >
-                  {t('common:actions.signOutAndUse')}
+                  {t('actions.signOutAndUse')}
                 </button>
                 <button
                   onClick={() => navigate({ to: '/' })}
@@ -330,10 +339,15 @@ function InvitationPage() {
                 onClick={handleAcceptInvitation}
                 className="w-full px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90"
               >
-                {t('common:actions.getAccessCode')}
+                {t('actions.getAccessCode')}
               </button>
               <p className="text-sm text-muted-foreground text-center">
-                {t('common:messages.sendCodeVerification', { email: invitation.email })}
+                <Trans
+                  ns="invitations"
+                  i18nKey="messages.sendCodeVerification"
+                  values={{ email: invitation.email }}
+                  components={{ strong: <strong /> }}
+                />
               </p>
             </>
           )}

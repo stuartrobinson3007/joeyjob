@@ -11,7 +11,7 @@ import { Check, ChevronsUpDown, Plus, Loader2, Building2, Lock } from 'lucide-re
 import { useSuperAdminWrapper } from '../../admin/components/super-admin-wrapper'
 
 import { useErrorHandler } from '@/lib/errors/hooks'
-import { Button } from '@/components/taali-ui/ui/button'
+import { Button } from '@/ui/button'
 import {
   Command,
   CommandEmpty,
@@ -20,7 +20,7 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from '@/components/taali-ui/ui/command'
+} from '@/ui/command'
 import {
   Dialog,
   DialogContent,
@@ -28,16 +28,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/taali-ui/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/taali-ui/ui/popover'
-import { Input } from '@/components/taali-ui/ui/input'
-import { Label } from '@/components/taali-ui/ui/label'
-import { Textarea } from '@/components/taali-ui/ui/textarea'
-import { Skeleton } from '@/components/taali-ui/ui/skeleton'
+} from '@/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/popover'
+import { Input } from '@/ui/input'
+import { Label } from '@/ui/label'
+import { Textarea } from '@/ui/textarea'
+import { Skeleton } from '@/ui/skeleton'
 import { authClient } from '@/lib/auth/auth-client'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { AppError, ERROR_CODES } from '@/lib/utils/errors'
 
 // Memoized OrganizationSwitcher to prevent re-renders on form state changes
 const OrganizationSwitcher = memo(function OrganizationSwitcher() {
@@ -79,7 +80,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
   // Memoized event handlers to prevent breaking memoization
   const handleCreateWorkspace = useCallback(async () => {
     if (!formData.name.trim()) {
-      setValidationErrors({ name: t('notifications:error.organizationNameRequired') })
+      setValidationErrors({ name: tNotifications('error.organizationNameRequired') })
       return
     }
 
@@ -94,7 +95,12 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
       })
 
       if (error) {
-        throw new Error(error.message || tNotifications('error.organizationCreateFailed'))
+        throw new AppError(
+          ERROR_CODES.BIZ_INVALID_STATE,
+          400,
+          { organizationName: formData.name },
+          error.message || tNotifications('error.organizationCreateFailed')
+        )
       }
 
       if (result) {
@@ -109,11 +115,10 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
         setShowCreateDialog(false)
 
         // Show success message
-        showSuccess(t('notifications:success.organizationCreated'))
+        showSuccess(tNotifications('success.organizationCreated'))
       }
     } catch (error) {
-      console.error('Failed to create workspace:', error)
-      const errorMessage = (error as any)?.message || tNotifications('error.failedToCreateWorkspace')
+      const errorMessage = error instanceof Error ? error.message : tNotifications('error.failedToCreateWorkspace')
       setValidationErrors({
         name: errorMessage,
       })
@@ -121,7 +126,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
     } finally {
       setIsCreating(false)
     }
-  }, [formData, setActiveOrganization])
+  }, [formData, setActiveOrganization, refetchOrganizations, showError, showSuccess, tNotifications])
 
   const handleWorkspaceSelect = useCallback(
     async (organizationId: string) => {
@@ -140,17 +145,16 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
         // Show success toast
         const targetOrg = organizations?.find(org => org.id === organizationId)
         if (targetOrg) {
-          showSuccess(t('notifications:success.organizationSwitched'))
+          showSuccess(tNotifications('success.organizationSwitched'))
         }
-      } catch (error: any) {
-        console.error('Failed to switch workspace:', error)
+      } catch (error: unknown) {
         showError(error)
       } finally {
         setIsSwitching(false)
         setSwitchingToWorkspace(null)
       }
     },
-    [activeOrganization?.id, organizations, setActiveOrganization]
+    [activeOrganization?.id, organizations, setActiveOrganization, showError, showSuccess, tNotifications]
   )
 
   const updateFormField = useCallback(
@@ -168,7 +172,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
     return (
       <div className="flex items-center space-x-2">
         <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-4 w-4" />
+        <Skeleton />
       </div>
     )
   }
@@ -188,7 +192,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
           </span>
         ) : (
           <div className="flex items-center space-x-2">
-            <Building2 className="h-4 w-4" />
+            <Building2 />
             <span>{t('organization.selectWorkspace')}</span>
           </div>
         )}
@@ -215,7 +219,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
               </span>
             ) : (
               <div className="flex items-center space-x-2">
-                <Building2 className="h-4 w-4" />
+                <Building2 />
                 <span>{t('organization.selectWorkspace')}</span>
               </div>
             )}
@@ -246,7 +250,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
                       {switchingToWorkspace === organization.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : activeOrganization?.id === organization.id ? (
-                        <Check className="h-4 w-4" />
+                        <Check />
                       ) : null}
                     </CommandItem>
                   ))}
@@ -257,6 +261,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
             <CommandGroup>
               <CommandItem
                 value="create-workspace"
+                forceMount
                 onSelect={() => {
                   setOpen(false)
                   setShowCreateDialog(true)
@@ -264,7 +269,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
                 className="flex items-center space-x-2"
               >
                 <div className="flex h-6 w-6 items-center justify-center rounded-md border border-dashed">
-                  <Plus className="h-4 w-4" />
+                  <Plus />
                 </div>
                 <span>{t('organization.createWorkspace')}</span>
               </CommandItem>
@@ -324,17 +329,14 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
               }}
               disabled={isCreating}
             >
-              {t('common:actions.cancel')}
+              {t('actions.cancel')}
             </Button>
-            <Button onClick={handleCreateWorkspace} disabled={!formData.name.trim() || isCreating}>
+            <Button onClick={handleCreateWorkspace} disabled={!formData.name.trim()} loading={isCreating}>
               {isCreating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('states.uploading')}
-                </>
+                t('states.uploading')
               ) : (
                 <>
-                  <Building2 className="mr-2 h-4 w-4" />
+                  <Building2 />
                   {t('organization.createWorkspace')}
                 </>
               )}

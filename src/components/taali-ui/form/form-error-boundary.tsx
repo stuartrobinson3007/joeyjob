@@ -3,7 +3,8 @@ import { toast } from 'sonner'
 import { AlertCircle } from 'lucide-react'
 
 import { ErrorBoundary } from '@/components/error-boundary'
-import { Button } from '@/components/taali-ui/ui/button'
+import { Button } from '@/ui/button'
+import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 
 interface FormErrorBoundaryProps {
@@ -28,13 +29,14 @@ export function FormErrorBoundary({
   fallback: FallbackComponent,
   showToast = true
 }: FormErrorBoundaryProps) {
-  const handleError = React.useCallback((error: any, reset: () => void) => {
-    console.error('Form rendering error:', error)
+  const { t } = useTranslation('errors')
+  
+  const handleError = React.useCallback((error: Error, reset: () => void) => {
     
     // Show toast for render errors
     if (showToast) {
-      toast.error('Form failed to load', {
-        description: 'Please refresh the page and try again'
+      toast.error(t('forms.loadFailed'), {
+        description: t('forms.loadFailedDescription')
       })
     }
     
@@ -44,7 +46,7 @@ export function FormErrorBoundary({
     // Render fallback component
     const Component = FallbackComponent || FormErrorFallback
     return <Component error={error} reset={reset} />
-  }, [onError, FallbackComponent, showToast])
+  }, [onError, FallbackComponent, showToast, t])
   
   return (
     <ErrorBoundary fallback={handleError}>
@@ -57,14 +59,16 @@ export function FormErrorBoundary({
  * Default fallback component for form errors
  */
 function FormErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
+  const { t } = useTranslation('errors')
+  
   return (
     <div className="p-6 border border-destructive/30 rounded-lg bg-destructive/5">
       <div className="flex items-start gap-3">
         <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
         <div className="flex-1">
-          <h3 className="font-semibold text-destructive">Form Error</h3>
+          <h3 className="font-semibold text-destructive">{t('forms.title')}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            The form encountered an error and cannot be displayed.
+            {t('forms.description')}
           </p>
           {process.env.NODE_ENV === 'development' && (
             <details className="mt-3">
@@ -82,7 +86,7 @@ function FormErrorFallback({ error, reset }: { error: Error; reset: () => void }
             variant="outline"
             size="sm"
           >
-            Try Again
+            {t('actions.retry')}
           </Button>
         </div>
       </div>

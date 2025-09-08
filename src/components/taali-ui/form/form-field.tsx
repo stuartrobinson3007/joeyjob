@@ -2,8 +2,9 @@ import { ReactNode } from 'react'
 
 import { FormFieldError } from './form-field-error'
 
-import { Label } from '@/components/taali-ui/ui/label'
+import { Label } from '@/ui/label'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
+import type { Namespace } from '@/i18n/constants'
 import { cn } from '@/lib/utils/utils'
 
 interface FormFieldProps {
@@ -13,7 +14,7 @@ interface FormFieldProps {
   children: ReactNode
   required?: boolean
   className?: string
-  namespace?: string
+  namespace?: Namespace
 }
 
 export function FormField({
@@ -25,7 +26,7 @@ export function FormField({
   className,
   namespace = 'common',
 }: FormFieldProps) {
-  const { t } = useTranslation([namespace as any, 'common'] as const)
+  const { t } = useTranslation([namespace, 'common'])
 
   const translatedLabel = label || t(`fields.${name}`, { defaultValue: name })
 

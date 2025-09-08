@@ -1,4 +1,5 @@
 {
+  "title": "Página",
   "navigation": {
     "todos": "Tareas",
     "team": "Equipo",
@@ -30,7 +31,11 @@
     "share": "Compartir",
     "copy": "Copiar",
     "paste": "Pegar",
-    "signOut": "Cerrar Sesión"
+    "signOut": "Cerrar Sesión",
+    "markComplete": "Marcar como completa",
+    "undo": "Deshacer",
+    "invite": "Invitar",
+    "done": "Hecho"
   },
   "states": {
     "loading": "Cargando...",
@@ -45,7 +50,9 @@
     "signingOut": "Cerrando sesión...",
     "savingChanges": "Guardando cambios",
     "changesSaved": "Cambios guardados",
-    "unsavedChanges": "Cambios sin guardar"
+    "unsavedChanges": "Cambios sin guardar",
+    "saveChanges": "Guardar Cambios",
+    "noOrganizationSelected": "Ninguna Organización Seleccionada"
   },
   "labels": {
     "name": "Nombre",
@@ -63,7 +70,8 @@
     "user": "Usuario",
     "role": "Rol",
     "session": "Sesión",
-    "organization": "Organización"
+    "organization": "Organización",
+    "title": "Título"
   },
   "messages": {
     "success": "Éxito",
@@ -73,7 +81,9 @@
     "noData": "No hay datos disponibles",
     "noResults": "No se encontraron resultados",
     "required": "Este campo es obligatorio",
-    "optional": "Opcional"
+    "optional": "Opcional",
+    "deleted": "Eliminado exitosamente",
+    "restored": "Restaurado exitosamente"
   },
   "pagination": {
     "previous": "Anterior",
@@ -136,7 +146,14 @@
     "noWorkspacesDescription": "Comienza creando tu primer espacio de trabajo",
     "createFirstWorkspace": "Crea tu primer espacio de trabajo",
     "chooseWorkspaceDescription": "Elige un espacio de trabajo para continuar",
-    "title": "Organizaciones"
+    "title": "Organizaciones",
+    "noActiveOrganization": "No hay organización activa seleccionada"
+  },
+  "billing": {
+    "currentPlan": "Plan Actual",
+    "pastDueAlert": "Pago vencido",
+    "incompleteAlert": "Pago incompleto",
+    "fixPayment": "Arreglar Pago"
   },
   "filters": {
     "setValue": "Establecer valor",
@@ -159,7 +176,10 @@
     "selectRow": "Seleccionar fila",
     "openMenu": "Abrir menú",
     "unknown": "Desconocido",
-    "notAvailable": "N/D"
+    "notAvailable": "N/D",
+    "allItemsSelected": "Todos los {{count}} elementos seleccionados",
+    "itemsSelected": "{{selected}} de {{total}} elementos seleccionados",
+    "selectAllItems": "Seleccionar todos los {{total}} elementos"
   },
   "app": {
     "title": "App de Tareas TanStack",
@@ -225,17 +245,16 @@
     "app": "App",
     "superAdmin": "Super Admin"
   },
-  "states": {
-    "noOrganizationSelected": "Ninguna Organización Seleccionada",
-    "uploading": "Subiendo..."
-  },
-  "labels": {
-    "status": "Estado"
-  },
   "onboarding": {
     "subtitle": "Solo unos detalles más para empezar"
   },
   "fields": {
+    "dueDate": "Fecha de Vencimiento", 
+    "title": "Título",
     "priority": "Prioridad"
+  },
+  "confirm": {
+    "title": "¿Estás seguro?",
+    "description": "Esta acción no se puede deshacer."
   }
 }

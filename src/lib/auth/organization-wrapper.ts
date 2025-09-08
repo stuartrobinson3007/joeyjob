@@ -6,24 +6,27 @@ import { validateField } from '@/lib/validation/validation.server'
 /**
  * Transform Better Auth errors to our AppError format
  */
-function transformBetterAuthError(error: any): Error {
+function transformBetterAuthError(error: unknown): Error {
+  // Type guard for error object
+  const errorObj = error as { field?: string; message?: string } | null | undefined
+  
   // Check if Better Auth provides field information
-  if (error?.field) {
+  if (errorObj?.field) {
     return new ValidationError({
-      [error.field]: error.message || 'Invalid value'
+      [errorObj.field]: errorObj.message || 'Invalid value'
     })
   }
   
   // Map common Better Auth errors to our error codes
-  if (error?.message) {
-    if (error.message.includes('already exists')) {
-      return new AppError(ERROR_CODES.BIZ_DUPLICATE_ENTRY, 400, undefined, error.message)
+  if (errorObj?.message) {
+    if (errorObj.message.includes('already exists')) {
+      return new AppError(ERROR_CODES.BIZ_DUPLICATE_ENTRY, 400, undefined, errorObj.message)
     }
-    if (error.message.includes('not found')) {
-      return new AppError(ERROR_CODES.BIZ_NOT_FOUND, 404, undefined, error.message)
+    if (errorObj.message.includes('not found')) {
+      return new AppError(ERROR_CODES.BIZ_NOT_FOUND, 404, undefined, errorObj.message)
     }
-    if (error.message.includes('permission') || error.message.includes('unauthorized')) {
-      return new AppError(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 403, undefined, error.message)
+    if (errorObj.message.includes('permission') || errorObj.message.includes('unauthorized')) {
+      return new AppError(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 403, undefined, errorObj.message)
     }
   }
   
@@ -32,7 +35,7 @@ function transformBetterAuthError(error: any): Error {
     ERROR_CODES.SYS_SERVER_ERROR,
     500,
     undefined,
-    error?.message || 'Operation failed'
+    errorObj?.message || 'Operation failed'
   )
 }
 
@@ -89,7 +92,10 @@ export async function updateOrganizationWithValidation(data: {
     throw transformBetterAuthError(result.error)
   }
   
-  return result.data
+  return {
+    ...result.data,
+    updatedAt: new Date()
+  }
 }
 
 /**

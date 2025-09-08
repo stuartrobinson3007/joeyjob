@@ -38,9 +38,10 @@ export function DataTableToolbar<TData>({
     [table]
   )
 
+  const globalFilter = table.getState().globalFilter
   const searchValue = React.useMemo(() => {
-    return (table.getState().globalFilter ?? '') as string
-  }, [table.getState().globalFilter])
+    return (globalFilter ?? '') as string
+  }, [globalFilter])
 
   const renderFilter = (columnId: string) => {
     const column = table.getColumn(columnId)

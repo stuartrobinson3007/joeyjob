@@ -1,7 +1,7 @@
 import React from 'react'
 
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/taali-ui/ui/separator'
+import { Separator } from '@/ui/separator'
 
 interface PageHeaderProps {
   title?: string

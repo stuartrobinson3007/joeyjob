@@ -1,13 +1,28 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { eq, count } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 import { BILLING_PLANS } from './plans.config'
 
+// Define subscription type based on BetterAuth Stripe plugin actual response
+interface BetterAuthSubscription {
+  id: string
+  status: 'active' | 'trialing' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'unpaid' | 'paused'
+  plan: string
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  limits?: Record<string, number>
+  seats?: number
+  referenceId?: string
+}
+
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { checkPermission } from '@/lib/utils/permissions'
+import { getOrganizationUsage } from '@/lib/utils/plan-limits'
+import { safeEnumAccess } from '@/lib/utils/type-safe-access'
 import { db } from '@/lib/db/db'
-import { organization, todos, member } from '@/database/schema'
+import { organization } from '@/database/schema'
+import * as schema from '@/database/schema'
 import { auth } from '@/lib/auth/auth'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
@@ -18,28 +33,29 @@ export const getSubscription = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
   .handler(async ({ context }) => {
     const orgId = context.organizationId! // organizationMiddleware ensures this exists
-    console.log('[BILLING SERVER] getSubscription called for org:', orgId)
 
-    // Get organization with current plan
-    const [org] = await db.select().from(organization).where(eq(organization.id, orgId))
-    console.log(
-      '[BILLING SERVER] Organization found:',
-      !!org,
-      'Plan:',
-      org?.currentPlan,
-      'StripeCustomerId:',
-      org?.stripeCustomerId
-    )
+
+    // Get organization to check if it exists and get current plan
+    const [org] = await db.select({
+      id: organization.id,
+      name: organization.name,
+      currentPlan: organization.currentPlan,
+      stripeCustomerId: organization.stripeCustomerId,
+    }).from(organization).where(eq(organization.id, orgId))
+
 
     if (!org) {
       throw AppError.notFound(errorTranslations.fields.organization)
     }
 
     // Use BetterAuth's API to list subscriptions
-    let activeSubscription: any = null
-    let allSubscriptions: any[] = []
+    let activeSubscription: BetterAuthSubscription | null = null
+    let allSubscriptions: BetterAuthSubscription[] = []
 
     try {
+      // First, let's try to query the database directly to see what's there
+      const directDbQuery = await db.select().from(schema.subscription).where(eq(schema.subscription.referenceId, orgId))
+
       const subscriptions = await auth.api.listActiveSubscriptions({
         query: {
           referenceId: orgId,
@@ -47,44 +63,82 @@ export const getSubscription = createServerFn({ method: 'GET' })
         headers: context.headers,
       })
 
-      console.log('[BILLING SERVER] BetterAuth subscriptions found:', subscriptions?.length || 0)
 
-      if (subscriptions && subscriptions.length > 0) {
-        allSubscriptions = subscriptions
-        // Find the most relevant subscription
-        activeSubscription =
-          subscriptions.find(sub => sub.status === 'active' || sub.status === 'trialing') ||
-          subscriptions[0] // Fall back to most recent if none active
-
-        console.log('[BILLING SERVER] Active subscription:', {
-          id: activeSubscription?.id,
-          status: activeSubscription?.status,
-          plan: activeSubscription?.plan,
+      // Also try without referenceId to see if we get any subscriptions at all
+      try {
+        await auth.api.listActiveSubscriptions({
+          query: {},
+          headers: context.headers,
         })
+      } catch (_testError) {
+        // Silently continue - this is just a test query
+      }
+
+      // If BetterAuth returns subscriptions, use them
+      if (subscriptions && subscriptions.length > 0) {
+        // Cast subscriptions to our interface type - Better-auth returns compatible objects
+        allSubscriptions = subscriptions.map(sub => ({
+          id: sub.id,
+          status: sub.status,
+          plan: sub.plan,
+          stripeCustomerId: sub.stripeCustomerId,
+          stripeSubscriptionId: sub.stripeSubscriptionId,
+          limits: sub.limits,
+          seats: sub.seats,
+          referenceId: sub.referenceId,
+        })) as BetterAuthSubscription[]
+        
+      } 
+      // If BetterAuth returns empty but we have subscriptions in DB, use DB results
+      else if (directDbQuery && directDbQuery.length > 0) {
+        
+        // Map DB results to match BetterAuthSubscription interface
+        allSubscriptions = directDbQuery.map(sub => ({
+          id: sub.id,
+          status: sub.status as BetterAuthSubscription['status'],
+          plan: sub.plan,
+          stripeCustomerId: sub.stripeCustomerId || undefined,
+          stripeSubscriptionId: sub.stripeSubscriptionId || undefined,
+          limits: undefined, // Limits are now fetched from BILLING_PLANS config, not stored in DB
+          seats: sub.seats || undefined,
+          referenceId: sub.referenceId,
+        })) as BetterAuthSubscription[]
+      }
+      
+      // Find the most relevant subscription (including past_due, incomplete, etc.)
+      if (allSubscriptions.length > 0) {
+        // Prioritize active/trialing, but include all statuses
+        activeSubscription =
+          allSubscriptions.find(sub => sub.status === 'active' || sub.status === 'trialing') ||
+          allSubscriptions[0] // Use first subscription even if past_due/incomplete
+
       }
     } catch (error) {
-      console.error('[BILLING SERVER] Error fetching subscriptions:', error)
+      console.error('[getSubscription] Error fetching subscriptions from BetterAuth', {
+        orgId,
+        error,
+        timestamp: new Date().toISOString()
+      })
       // Continue without subscription data rather than failing entirely
+      // Subscription data is optional for basic functionality
     }
 
+    // Use organization's currentPlan as primary source, fall back to subscription or free
+    const currentPlan = org.currentPlan || activeSubscription?.plan || 'free'
+    
     const result = {
       organization: org,
       subscription: activeSubscription,
       allSubscriptions,
-      currentPlan: activeSubscription?.plan || org.currentPlan || 'free',
-      features: BILLING_PLANS[org.currentPlan as keyof typeof BILLING_PLANS]?.features,
-      limits: activeSubscription?.limits || org.planLimits || BILLING_PLANS.free.limits,
+      currentPlan,
+      features: safeEnumAccess(BILLING_PLANS, currentPlan)?.features,
+      limits: activeSubscription?.limits || safeEnumAccess(BILLING_PLANS, currentPlan)?.limits || BILLING_PLANS.free.limits,
       hasStripeCustomer:
         !!org.stripeCustomerId ||
         !!activeSubscription?.stripeCustomerId ||
         allSubscriptions.length > 0,
     }
 
-    console.log('[BILLING SERVER] Returning:', {
-      currentPlan: result.currentPlan,
-      hasStripeCustomer: result.hasStripeCustomer,
-      hasSubscription: !!activeSubscription,
-    })
 
     return result
   })
@@ -106,7 +160,6 @@ export const createCheckout = createServerFn({ method: 'POST' })
 
     const { plan, interval } = data
 
-    console.log('[BILLING] Creating checkout for:', { plan, interval, orgId })
 
     try {
       // Use BetterAuth's subscription upgrade API
@@ -121,7 +174,6 @@ export const createCheckout = createServerFn({ method: 'POST' })
         headers: context.headers,
       })
 
-      console.log('[BILLING] BetterAuth upgrade result:', !!result)
 
       if (!result?.url) {
         throw new AppError(
@@ -134,19 +186,19 @@ export const createCheckout = createServerFn({ method: 'POST' })
 
       return { checkoutUrl: result.url }
     } catch (error) {
-      console.error('[BILLING] Checkout creation error:', error)
+      // Handle checkout creation errors
 
       // Handle specific error types
-      if ((error as any).type === 'StripeCardError') {
+      if ((error as { type?: string; message?: string }).type === 'StripeCardError') {
         throw new AppError(
           ERROR_CODES.BIZ_PAYMENT_FAILED,
           400,
-          { reason: (error as any).message },
+          { reason: (error as { message?: string }).message },
           errorTranslations.server.paymentFailed
         )
       }
 
-      if ((error as any).type === 'StripeRateLimitError') {
+      if ((error as { type?: string }).type === 'StripeRateLimitError') {
         throw new AppError(ERROR_CODES.SYS_RATE_LIMIT, 429, undefined, 'Rate limit exceeded')
       }
 
@@ -173,7 +225,6 @@ export const createBillingPortal = createServerFn({ method: 'POST' })
     // Check billing permissions
     await checkPermission('billing', ['manage'], orgId)
 
-    console.log('[BILLING] createBillingPortal - Organization:', orgId)
 
     // Get organization to check for stripeCustomerId
     const [org] = await db.select().from(organization).where(eq(organization.id, orgId)).limit(1)
@@ -183,17 +234,16 @@ export const createBillingPortal = createServerFn({ method: 'POST' })
     }
 
     // Try to create portal session
-    // BetterAuth's billingPortal should work if there's a customer associated
+    // BetterAuth's createBillingPortal should work if there's a customer associated
     try {
-      const result = await (auth.api as any).billingPortal({
+      const result = await auth.api.createBillingPortal({
         body: {
           referenceId: orgId,
         },
         headers: context.headers,
       })
 
-      if (!result?.data?.url) {
-        console.error('[BILLING] Portal creation failed - no URL returned')
+      if (!result?.url) {
         throw new AppError(
           ERROR_CODES.SYS_CONFIG_ERROR,
           500,
@@ -202,9 +252,8 @@ export const createBillingPortal = createServerFn({ method: 'POST' })
         )
       }
 
-      return { portalUrl: result.data.url }
+      return { portalUrl: result.url }
     } catch (error) {
-      console.error('[BILLING] Portal creation error:', error)
       // If no customer exists, we need to handle this differently
       if (org.stripeCustomerId) {
         // Customer exists but portal failed - this is a real error
@@ -237,48 +286,10 @@ export const getUsageStats = createServerFn({ method: 'GET' })
       )
     }
 
-    // Get organization with limits
-    const [org] = await db.select().from(organization).where(eq(organization.id, orgId)).limit(1)
+    // Use the new utility function that leverages Better Auth
+    const usage = await getOrganizationUsage(orgId, context.headers)
 
-    // Count todos
-    const todoCount = await db
-      .select({ count: count(todos.id) })
-      .from(todos)
-      .where(eq(todos.organizationId, orgId))
-
-    // Count members
-    const memberCount = await db
-      .select({ count: count(member.id) })
-      .from(member)
-      .where(eq(member.organizationId, orgId))
-
-    const limits = org?.planLimits || BILLING_PLANS.free.limits
-
-    return {
-      usage: {
-        todos: {
-          used: todoCount[0]?.count || 0,
-          limit: limits.todos || 0,
-          percentage:
-            (limits.todos || 0) === -1
-              ? 0
-              : Math.round(((todoCount[0]?.count || 0) / (limits.todos || 1)) * 100),
-        },
-        members: {
-          used: memberCount[0]?.count || 0,
-          limit: limits.members || 0,
-          percentage:
-            (limits.members || 0) === -1
-              ? 0
-              : Math.round(((memberCount[0]?.count || 0) / (limits.members || 1)) * 100),
-        },
-        storage: {
-          used: 0, // Implement storage tracking
-          limit: limits.storage || 0,
-          percentage: 0,
-        },
-      },
-    }
+    return { usage }
   })
 
 // Check if action is allowed based on plan limits
@@ -291,7 +302,6 @@ export const checkPlanLimit = createServerFn({ method: 'POST' })
     }).parse
   )
   .handler(async ({ data, context }) => {
-    // Get usage stats for the organization
     const orgId = context.organizationId
 
     if (!orgId) {
@@ -303,62 +313,13 @@ export const checkPlanLimit = createServerFn({ method: 'POST' })
       )
     }
 
-    // Get organization with limits
-    const [org] = await db.select().from(organization).where(eq(organization.id, orgId)).limit(1)
-
-    // Count todos
-    const todoCount = await db
-      .select({ count: count(todos.id) })
-      .from(todos)
-      .where(eq(todos.organizationId, orgId))
-
-    // Count members
-    const memberCount = await db
-      .select({ count: count(member.id) })
-      .from(member)
-      .where(eq(member.organizationId, orgId))
-
-    const limits = org?.planLimits || BILLING_PLANS.free.limits
-
-    const usage = {
-      todos: {
-        used: todoCount[0]?.count || 0,
-        limit: limits.todos || 0,
-        percentage:
-          (limits.todos || 0) === -1
-            ? 0
-            : Math.round(((todoCount[0]?.count || 0) / (limits.todos || 1)) * 100),
-      },
-      members: {
-        used: memberCount[0]?.count || 0,
-        limit: limits.members || 0,
-        percentage:
-          (limits.members || 0) === -1
-            ? 0
-            : Math.round(((memberCount[0]?.count || 0) / (limits.members || 1)) * 100),
-      },
-      storage: {
-        used: 0,
-        limit: limits.storage || 0,
-        percentage: 0,
-      },
+    // Use the checkPlanLimitUtil function which now uses Better Auth subscriptions
+    const { checkPlanLimitUtil } = await import('@/lib/utils/plan-limits')
+    const result = await checkPlanLimitUtil(data.resource, data.action, orgId, context.headers)
+    
+    return {
+      allowed: result.allowed,
+      reason: result.reason,
+      usage: result.usage,
     }
-
-    const resourceUsage = usage[data.resource]
-
-    if ((resourceUsage?.limit || 0) === -1) {
-      return { allowed: true }
-    }
-
-    if (data.action === 'create') {
-      return {
-        allowed: (resourceUsage?.used || 0) < (resourceUsage?.limit || 0),
-        reason:
-          (resourceUsage?.used || 0) >= (resourceUsage?.limit || 0)
-            ? `You've reached your plan limit of ${resourceUsage?.limit || 0} ${data.resource}`
-            : undefined,
-      }
-    }
-
-    return { allowed: true }
   })

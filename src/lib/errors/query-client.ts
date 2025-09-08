@@ -32,9 +32,9 @@ export function createQueryClient() {
       },
       mutations: {
         retry: false, // Don't retry mutations by default
-        onError: error => {
+        onError: _error => {
           // Global error handling is done in hooks
-          console.error('Mutation error:', error)
+          // Mutation error is handled by error boundary or query error handling
         },
       },
     },
