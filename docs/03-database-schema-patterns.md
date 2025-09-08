@@ -335,15 +335,21 @@ import { db } from '@/lib/db/db'
 import { todos } from '@/database/schema'
 
 // ALWAYS include organization scoping AND soft delete filtering in queries
-export const getTodos = async (organizationId: string) => {
-  return await db
+export const getTodoById = async (id: string, organizationId: string) => {
+  const result = await db
     .select()
     .from(todos)
     .where(and(
+      eq(todos.id, id),
       eq(todos.organizationId, organizationId),
       isNull(todos.deletedAt) // CRITICAL: Filter out soft-deleted records
     ))
-    .orderBy(desc(todos.createdAt))
+    .limit(1)
+  
+  if (!result[0]) {
+    throw AppError.notFound('Todo')
+  }
+  return result[0]
 }
 
 // ALWAYS validate organization access in mutations
@@ -456,20 +462,20 @@ afterEach(async () => {
 ```typescript
 // Test organization scoping
 import { describe, it, expect } from 'vitest'
-import { getTodos, createTodo } from './todos.server'
+import { getTodoById, createTodo } from './todos.server'
 
-describe('getTodos', () => {
-  it('should only return todos for the specified organization', async () => {
+describe('getTodoById', () => {
+  it('should only return todo if it belongs to the specified organization', async () => {
     // Create todos in different organizations
-    await createTodo({ title: 'Org 1 Todo' }, 'org1', 'user1')
-    await createTodo({ title: 'Org 2 Todo' }, 'org2', 'user1')
+    const todo1 = await createTodo({ title: 'Org 1 Todo' }, 'org1', 'user1')
+    const todo2 = await createTodo({ title: 'Org 2 Todo' }, 'org2', 'user1')
     
-    const org1Todos = await getTodos('org1')
-    const org2Todos = await getTodos('org2')
+    // Should get correct todo for org1
+    const org1Todo = await getTodoById(todo1.id, 'org1')
+    expect(org1Todo.title).toBe('Org 1 Todo')
     
-    expect(org1Todos).toHaveLength(1)
-    expect(org2Todos).toHaveLength(1)
-    expect(org1Todos[0].title).toBe('Org 1 Todo')
+    // Should throw when trying to access org2's todo from org1 context
+    await expect(getTodoById(todo2.id, 'org1')).rejects.toThrow('Todo not found')
   })
 })
 ```
@@ -496,7 +502,7 @@ Before considering database implementation complete, verify:
 // Multi-table queries with proper typing
 import { alias } from 'drizzle-orm/pg-core'
 
-export const getTodosWithAssignees = async (organizationId: string) => {
+export const getTodoByIdWithAssignee = async (id: string, organizationId: string) => {
   const assigneeUser = alias(user, 'assignee_user')
   const creatorUser = alias(user, 'creator_user')
   
@@ -616,21 +622,27 @@ const todoIdSchema = z.object({
 })
 
 // GET - Always filter out soft-deleted records
-export const getTodos = createServerFn({ method: 'GET' })
+export const getTodoById = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }) => {
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
     const orgId = context.organizationId
 
-    const todoList = await db
+    const todo = await db
       .select()
       .from(todos)
       .where(and(
+        eq(todos.id, data.id),
         eq(todos.organizationId, orgId),
         isNull(todos.deletedAt) // CRITICAL: Exclude soft-deleted
       ))
-      .orderBy(desc(todos.createdAt))
+      .limit(1)
 
-    return todoList
+    if (!todo[0]) {
+      throw AppError.notFound('Todo')
+    }
+
+    return todo[0]
   })
 
 // DELETE - Soft delete with undo capability
@@ -836,8 +848,7 @@ describe('Soft Delete Implementation', () => {
     expect(directQuery[0].deletedAt).not.toBeNull()
     
     // But should not appear in normal queries
-    const activeQuery = await getTodos(orgId)
-    expect(activeQuery.find(t => t.id === todo.id)).toBeUndefined()
+    await expect(getTodoById(todo.id, orgId)).rejects.toThrow('Todo not found')
   })
 
   it('should restore soft deleted records', async () => {
@@ -849,8 +860,8 @@ describe('Soft Delete Implementation', () => {
     expect(restored.deletedAt).toBeNull()
     
     // Should appear in normal queries again
-    const activeQuery = await getTodos(orgId)
-    expect(activeQuery.find(t => t.id === todo.id)).toBeDefined()
+    const activeTodo = await getTodoById(todo.id, orgId)
+    expect(activeTodo.id).toBe(todo.id)
   })
 })
 ```

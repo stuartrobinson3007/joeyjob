@@ -972,9 +972,9 @@ export class Logger {
 ### Error Recovery Patterns
 ```typescript
 // Automatic error recovery in queries
-const todosQuery = useQuery({
-  queryKey: ['todos'],
-  queryFn: getTodos,
+const todoQuery = useQuery({
+  queryKey: ['todos', todoId],
+  queryFn: () => getTodoById({ data: { id: todoId } }),
   retry: (failureCount, error) => {
     // Auto-retry on network errors
     if ((error as any)?.code === 'NETWORK_ERROR' && failureCount < 3) {

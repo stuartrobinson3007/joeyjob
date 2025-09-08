@@ -15,24 +15,33 @@ This document provides comprehensive guidance for implementing soft delete patte
 ### Missing Soft Delete Filtering
 ```typescript
 // ❌ NEVER forget to filter out soft-deleted records
-export const getTodos = async (orgId: string) => {
-  return await db
-    .select()
-    .from(todos)
-    .where(eq(todos.organizationId, orgId)) // Missing deletedAt filter!
-    .orderBy(desc(todos.createdAt))
-}
-
-// ✅ ALWAYS filter soft-deleted records
-export const getTodos = async (orgId: string) => {
+export const getTodoById = async (id: string, orgId: string) => {
   return await db
     .select()
     .from(todos)
     .where(and(
+      eq(todos.id, id),
+      eq(todos.organizationId, orgId) // Missing deletedAt filter!
+    ))
+    .limit(1)
+}
+
+// ✅ ALWAYS filter soft-deleted records
+export const getTodoById = async (id: string, orgId: string) => {
+  const result = await db
+    .select()
+    .from(todos)
+    .where(and(
+      eq(todos.id, id),
       eq(todos.organizationId, orgId),
       isNull(todos.deletedAt) // CRITICAL: Exclude soft-deleted
     ))
-    .orderBy(desc(todos.createdAt))
+    .limit(1)
+  
+  if (!result[0]) {
+    throw AppError.notFound('Todo')
+  }
+  return result[0]
 }
 ```
 
@@ -150,25 +159,32 @@ const todoIdSchema = z.object({
   id: z.string(),
 })
 
-// GET - Always filter out soft-deleted records
-export const getTodos = createServerFn({ method: 'GET' })
+// GET - Always filter out soft-deleted records when fetching by ID
+export const getTodoById = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }) => {
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
     const orgId = context.organizationId
 
-    const todoList = await db
+    const todo = await db
       .select()
       .from(todos)
       .where(and(
+        eq(todos.id, data.id),
         eq(todos.organizationId, orgId),
         isNull(todos.deletedAt) // CRITICAL: Exclude soft-deleted
       ))
-      .orderBy(desc(todos.createdAt))
+      .limit(1)
 
-    return todoList.map(todo => ({
-      ...todo,
-      priority: numberToPriority(todo.priority),
-    }))
+    if (!todo[0]) {
+      throw AppError.notFound('Todo')
+    }
+
+    // Transform data for client
+    return {
+      ...todo[0],
+      priority: numberToPriority(todo[0].priority),
+    }
   })
 
 // DELETE - Soft delete with undo capability
@@ -530,7 +546,7 @@ export const getDeletedTodos = createServerFn({ method: 'GET' })
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { db } from '@/lib/db/db'
 import { todos } from '@/database/schema'
-import { deleteTodo, undoDeleteTodo, getTodos } from '../todos.server'
+import { deleteTodo, undoDeleteTodo, getTodoById } from '../todos.server'
 
 describe('Soft Delete Implementation', () => {
   let testTodo: any
@@ -574,10 +590,12 @@ describe('Soft Delete Implementation', () => {
     expect(directQuery[0].deletedAt).not.toBeNull()
     
     // But should not appear in normal queries
-    const activeQuery = await getTodos.handler({
-      context: { organizationId: testOrgId }
-    })
-    expect(activeQuery.find(t => t.id === testTodo.id)).toBeUndefined()
+    await expect(
+      getTodoById.handler({
+        data: { id: testTodo.id },
+        context: { organizationId: testOrgId }
+      })
+    ).rejects.toThrow(AppError.notFound('Todo'))
   })
 
   it('should restore soft deleted records', async () => {
@@ -595,10 +613,11 @@ describe('Soft Delete Implementation', () => {
     expect(restored.deletedAt).toBeNull()
     
     // Should appear in normal queries again
-    const activeQuery = await getTodos.handler({
+    const activeTodo = await getTodoById.handler({
+      data: { id: testTodo.id },
       context: { organizationId: testOrgId }
     })
-    expect(activeQuery.find(t => t.id === testTodo.id)).toBeDefined()
+    expect(activeTodo.id).toBe(testTodo.id)
   })
 
   it('should prevent undo after time limit', async () => {
@@ -636,7 +655,7 @@ import * as todosServer from '../../lib/todos.server'
 vi.mock('../../lib/todos.server', () => ({
   deleteTodo: vi.fn(),
   undoDeleteTodo: vi.fn(),
-  getTodos: vi.fn(),
+  getTodoById: vi.fn(),
 }))
 
 describe('Todos Table with Undo', () => {

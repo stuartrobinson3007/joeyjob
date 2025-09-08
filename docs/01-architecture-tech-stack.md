@@ -357,15 +357,16 @@ export const serverAction = createServerFn({ method: 'POST' })
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/todos')({
-  component: TodosPage,
-  loader: () => getTodos(),
+export const Route = createFileRoute('/todos/$id')({
+  component: TodoPage,
+  loader: ({ params }) => getTodoById({ data: { id: params.id } }),
 })
 
-function TodosPage() {
-  const todosQuery = useQuery({
-    queryKey: ['todos'],
-    queryFn: getTodos,
+function TodoPage() {
+  const { id } = Route.useParams()
+  const todoQuery = useQuery({
+    queryKey: ['todos', id],
+    queryFn: () => getTodoById({ data: { id } }),
   })
   // Component implementation
 }

@@ -259,10 +259,11 @@ sendInvitationEmail(email, inviter, organization, url)
 ### Data Fetching Strategy
 ```typescript
 // Server function with middleware and validation
-export const getTodos = createServerFn({ method: 'GET' })
+export const getTodoById = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }) => {
-    // Organization-scoped data fetching
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    // Organization-scoped data fetching with validation
   })
 ```
 

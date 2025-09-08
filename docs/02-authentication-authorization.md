@@ -701,7 +701,7 @@ await checkPermission('todos', ['create', 'update'], organizationId)
 // Do NOT use: await checkPermission('member', ['read'], organizationId) 
 // The 'member' resource doesn't have a 'read' permission in Better Auth
 // Instead, use organizationMiddleware to verify membership:
-export const getTeamMembers = createServerFn({ method: 'POST' })
+export const getTeamMembersTable = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware]) // Gets organizationId from context, verifies membership
   .handler(async ({ data, context }) => {
     const organizationId = context.organizationId
@@ -710,6 +710,7 @@ export const getTeamMembers = createServerFn({ method: 'POST' })
     }
     // organizationMiddleware already verified user is a member
     // No additional permission check needed for viewing
+    // Fetch team members with pagination and filtering...
   })
 ```
 

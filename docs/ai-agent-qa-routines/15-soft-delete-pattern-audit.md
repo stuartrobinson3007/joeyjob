@@ -518,8 +518,9 @@ describe('Soft Delete Implementation', () => {
     expect(directQuery[0].deletedAt).not.toBeNull()
     
     // Verify record doesn't appear in normal queries
-    const activeQuery = await getTodos.handler({ context: mockContext })
-    expect(activeQuery.find(t => t.id === todo.id)).toBeUndefined()
+    await expect(
+      getTodoById.handler({ data: { id: todo.id }, context: mockContext })
+    ).rejects.toThrow('Todo not found')
   })
 
   it('should restore soft deleted records via undo', async () => {
@@ -534,8 +535,11 @@ describe('Soft Delete Implementation', () => {
     expect(restored.deletedAt).toBeNull()
     
     // Verify appears in normal queries again
-    const activeQuery = await getTodos.handler({ context: mockContext })
-    expect(activeQuery.find(t => t.id === todo.id)).toBeDefined()
+    const activeTodo = await getTodoById.handler({ 
+      data: { id: todo.id }, 
+      context: mockContext 
+    })
+    expect(activeTodo.id).toBe(todo.id)
   })
 
   it('should prevent undo after time limit', async () => {

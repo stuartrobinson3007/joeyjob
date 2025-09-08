@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, desc, isNull, isNotNull } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 
@@ -60,34 +60,6 @@ const numberToPriority = (priority: number): 'low' | 'medium' | 'high' | 'urgent
 const todoIdSchema = z.object({
   id: z.string(),
 })
-
-// Get todos for current organization
-export const getTodos = createServerFn({ method: 'GET' })
-  .middleware([organizationMiddleware])
-  .handler(async ({ context }) => {
-
-    const orgId = context.organizationId
-    if (!orgId) {
-      throw new AppError(
-        ERROR_CODES.VAL_REQUIRED_FIELD,
-        400,
-        { field: 'organizationId' },
-        'No organization context'
-      )
-    }
-
-    const todoList = await db
-      .select()
-      .from(todos)
-      .where(and(eq(todos.organizationId, orgId!), isNull(todos.deletedAt)))
-      .orderBy(desc(todos.createdAt))
-
-    // Convert priority numbers to strings
-    return todoList.map(todo => ({
-      ...todo,
-      priority: numberToPriority(todo.priority),
-    }))
-  })
 
 // Get single todo by ID
 export const getTodoById = createServerFn({ method: 'GET' })

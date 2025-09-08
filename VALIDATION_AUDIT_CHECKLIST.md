@@ -19,7 +19,7 @@ These functions accept unvalidated POST data and pose security risks:
   - [x] `updateMemberRole` (line ~105) - ✅ **FIXED** - Now has validator
 
 - [x] **src/features/team/lib/team.server.ts**
-  - [x] `getTeamMembers` (line ~40) - ✅ **FIXED** - Has validator
+  - [x] ~~`getTeamMembers`~~ - **REMOVED** - Function was unused and has been removed from codebase
   - [x] `inviteTeamMember` (line ~205) - ✅ **FIXED** - Now has validator
   - [x] `removeTeamMember` (line ~260) - ✅ **ALREADY HAD VALIDATOR** - Has proper validation
   - [x] `updateTeamMemberRole` (line ~295) - ✅ **ALREADY HAD VALIDATOR** - Has proper validation

@@ -15,8 +15,8 @@ This document provides comprehensive guidance for implementing organization-base
 ### Data Isolation Violations
 ```typescript
 // ❌ NEVER create queries without organization scoping
-export const getTodos = async () => {
-  return await db.select().from(todos) // Security vulnerability - shows all todos!
+export const getTodoById = async (id: string) => {
+  return await db.select().from(todos).where(eq(todos.id, id)) // Security vulnerability - shows todo from any org!
 }
 
 // ❌ NEVER bypass organization validation
@@ -267,9 +267,10 @@ Use for operations on the user's current active organization:
 - **Validation**: Automatic membership verification by middleware
 
 ```typescript
-export const getTodos = createServerFn({ method: 'POST' })
+export const getTodoById = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }) => {
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
     const organizationId = context.organizationId
     if (!organizationId) {
       throw new AppError('No organization context')
@@ -323,20 +324,28 @@ const createTodoSchema = z.object({
   description: z.string().optional(),
 })
 
-// Get todos for current organization ONLY
-export const getTodos = createServerFn({ method: 'GET' })
+// Get single todo for current organization ONLY
+export const getTodoById = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }: { context: any }) => {
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }: { data: any, context: any }) => {
     const orgId = context.organizationId
 
     // ALWAYS scope queries by organization
-    const todoList = await db
+    const todo = await db
       .select()
       .from(todos)
-      .where(eq(todos.organizationId, orgId))
-      .orderBy(desc(todos.createdAt))
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+      .limit(1)
 
-    return todoList
+    if (!todo[0]) {
+      throw AppError.notFound('Todo')
+    }
+
+    return todo[0]
   })
 
 // Create todo in current organization context
@@ -653,11 +662,11 @@ describe('Organization Isolation', () => {
     await createTodo({ title: 'Org 2 Todo' }, 'org2', 'user1')
 
     // User should only see their org's data
-    const org1Todos = await getTodos('org1')
-    const org2Todos = await getTodos('org2')
+    const org1Todo = await getTodoById(todoId1, 'org1')
+    const org2Todo = await getTodoById(todoId2, 'org2')
 
-    expect(org1Todos).toHaveLength(1)
-    expect(org2Todos).toHaveLength(1)
+    expect(org1Todo.organizationId).toBe('org1')
+    expect(org2Todo.organizationId).toBe('org2')
     expect(org1Todos[0].organizationId).toBe('org1')
     expect(org2Todos[0].organizationId).toBe('org2')
   })

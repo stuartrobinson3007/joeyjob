@@ -110,22 +110,30 @@ const updateTodoSchema = z.object({
   completed: z.boolean().optional(),
 })
 
-// GET operation with organization scoping
-export const getTodos = createServerFn({ method: 'GET' })
+// GET operation with organization scoping and validation
+export const getTodoById = createServerFn({ method: 'GET' })
   .middleware([organizationMiddleware])
-  .handler(async ({ context }: { context: any }) => {
+  .validator((data: unknown) => todoIdSchema.parse(data))
+  .handler(async ({ data, context }: { data: any, context: any }) => {
     const orgId = context.organizationId
 
-    const todoList = await db
+    const todo = await db
       .select()
       .from(todos)
-      .where(eq(todos.organizationId, orgId))
-      .orderBy(desc(todos.createdAt))
+      .where(and(
+        eq(todos.id, data.id),
+        eq(todos.organizationId, orgId)
+      ))
+      .limit(1)
 
-    return todoList.map(todo => ({
-      ...todo,
-      priority: numberToPriority(todo.priority), // Transform data for client
-    }))
+    if (!todo[0]) {
+      throw AppError.notFound('Todo')
+    }
+
+    return {
+      ...todo[0],
+      priority: numberToPriority(todo[0].priority), // Transform data for client
+    }
   })
 
 // POST operation with validation and permissions
@@ -719,12 +727,12 @@ export const ServerRoute = createServerFileRoute('/api/resource').methods({
 ```typescript
 // Client-side integration with server functions
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createTodo, getTodos, updateTodo } from '@/features/todos/lib/todos.server'
+import { createTodo, getTodoById, updateTodo } from '@/features/todos/lib/todos.server'
 
-function useTodos() {
+function useTodo(id: string) {
   return useQuery({
-    queryKey: ['todos'],
-    queryFn: getTodos,
+    queryKey: ['todos', id],
+    queryFn: () => getTodoById({ data: { id } }),
   })
 }
 
