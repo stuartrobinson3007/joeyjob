@@ -59,7 +59,7 @@ import {
   AlertDialogTitle,
 } from '@/ui/alert-dialog'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
-import { useLanguage } from '@/i18n/hooks/useLanguage'
+import { useLanguage } from '@/taali/i18n/hooks/useLanguage'
 import { useErrorHandler } from '@/lib/errors/hooks'
 
 export const Route = createFileRoute('/_authenticated/profile')({
@@ -81,7 +81,12 @@ function ProfileScreen() {
   const { t } = useTranslation('profile')
   const { t: tCommon } = useTranslation('common')
   const { t: tAdmin } = useTranslation('admin')
-  const { language, languages, changeLanguage, isReady } = useLanguage()
+  const { language, languages, changeLanguage, isReady } = useLanguage({
+    user: session?.user ? { language: session.user.language || undefined } : null,
+    onLanguageChange: async (lang) => {
+      await authClient.updateUser({ language: lang })
+    }
+  })
   const { showError, showSuccess } = useErrorHandler()
 
   const [isEditing, setIsEditing] = useState(false)

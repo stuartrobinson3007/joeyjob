@@ -3,7 +3,7 @@ import { getWebRequest } from '@tanstack/react-start/server'
 
 import { auth } from './auth'
 
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 export const authMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
   const request = getWebRequest()

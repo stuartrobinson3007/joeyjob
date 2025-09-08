@@ -1,5 +1,5 @@
-import { isAppError } from '@/lib/utils/errors'
-import type { ErrorAction } from '@/lib/utils/errors'
+import { isAppError } from '@/taali/utils/errors'
+import type { ErrorAction } from '@/taali/utils/errors'
 
 export interface ParsedError {
   code: string

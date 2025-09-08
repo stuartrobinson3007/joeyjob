@@ -7,7 +7,7 @@ import { setActiveOrganizationId } from '@/features/organization/lib/organizatio
 import { authClient } from '@/lib/auth/auth-client'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import {
   Dialog,
   DialogContent,

@@ -1,6 +1,6 @@
 import { getWebRequest } from '@tanstack/react-start/server'
 
-import { PermissionError } from './errors'
+import { PermissionError } from '../../taali/utils/errors'
 
 import { auth } from '@/lib/auth/auth'
 

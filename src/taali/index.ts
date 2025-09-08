@@ -9,6 +9,7 @@ export { cn } from './lib/utils'
 // Error System
 export * from './errors/codes'
 export * from './errors/client-handler'
+export * from './errors/error-categories'
 export { createQueryClient } from './errors/query-client'
 
 // Hooks
@@ -17,8 +18,13 @@ export * from './hooks/use-form-autosave'
 export * from './hooks/use-async-field-validator'
 export * from './hooks/use-resource-query'
 export * from './hooks/use-supporting-query'
+export * from './hooks/use-form-mutation'
+export * from './hooks/use-form-sync'
 export * from './hooks/use-sticky-state'
 export * from './hooks/use-table-query'
+
+// i18n Utilities (can be used by app's i18n setup)
+export * from './i18n/utils/formatters'
 
 // Validation
 export * from './validation/validation-messages'

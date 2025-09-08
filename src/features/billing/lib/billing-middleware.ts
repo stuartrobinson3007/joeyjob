@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth/auth'
 import { checkPermission } from '@/lib/utils/permissions'
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 interface BillingContext {
   request?: Request

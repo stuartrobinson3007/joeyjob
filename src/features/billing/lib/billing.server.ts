@@ -24,7 +24,7 @@ import { db } from '@/lib/db/db'
 import { organization } from '@/database/schema'
 import * as schema from '@/database/schema'
 import { auth } from '@/lib/auth/auth'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import errorTranslations from '@/i18n/locales/en/errors.json'
 
@@ -87,11 +87,11 @@ export const getSubscription = createServerFn({ method: 'GET' })
           seats: sub.seats,
           referenceId: sub.referenceId,
         })) as BetterAuthSubscription[]
-        
-      } 
+
+      }
       // If BetterAuth returns empty but we have subscriptions in DB, use DB results
       else if (directDbQuery && directDbQuery.length > 0) {
-        
+
         // Map DB results to match BetterAuthSubscription interface
         allSubscriptions = directDbQuery.map(sub => ({
           id: sub.id,
@@ -104,7 +104,7 @@ export const getSubscription = createServerFn({ method: 'GET' })
           referenceId: sub.referenceId,
         })) as BetterAuthSubscription[]
       }
-      
+
       // Find the most relevant subscription (including past_due, incomplete, etc.)
       if (allSubscriptions.length > 0) {
         // Prioritize active/trialing, but include all statuses
@@ -125,7 +125,7 @@ export const getSubscription = createServerFn({ method: 'GET' })
 
     // Use organization's currentPlan as primary source, fall back to subscription or free
     const currentPlan = org.currentPlan || activeSubscription?.plan || 'free'
-    
+
     const result = {
       organization: org,
       subscription: activeSubscription,
@@ -316,7 +316,7 @@ export const checkPlanLimit = createServerFn({ method: 'POST' })
     // Use the checkPlanLimitUtil function which now uses Better Auth subscriptions
     const { checkPlanLimitUtil } = await import('@/lib/utils/plan-limits')
     const result = await checkPlanLimitUtil(data.resource, data.action, orgId, context.headers)
-    
+
     return {
       allowed: result.allowed,
       reason: result.reason,

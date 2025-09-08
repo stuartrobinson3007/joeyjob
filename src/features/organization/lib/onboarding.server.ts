@@ -8,7 +8,7 @@ import errorTranslations from '@/i18n/locales/en/errors.json'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { invitation, organization, user } from '@/database/schema'
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { validationRules } from '@/lib/validation/validation-registry'
 
 const completeOnboardingSchema = z.object({

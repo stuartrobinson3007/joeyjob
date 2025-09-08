@@ -18,7 +18,7 @@ import { toggleTodo, deleteTodo, createTodo, undoDeleteTodo } from '../lib/todos
 import { todoKeys } from '../lib/query-keys'
 
 import { useConfirm } from '@/ui/confirm-dialog'
-import { formatDate } from '@/lib/utils/date'
+import { formatDate } from '@/taali/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useLoadingItems } from '@/taali/hooks/use-loading-state'
@@ -44,7 +44,7 @@ import { Checkbox } from '@/ui/checkbox'
 import { useClientPermissions } from '@/lib/hooks/use-permissions'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
@@ -158,7 +158,7 @@ export function TodosTablePage() {
       try {
         await deleteTodo({ data: { id } })
         refetch()
-        
+
         // Show success toast with undo action
         showSuccess(tCommon('messages.deleted'), {
           action: {
@@ -210,7 +210,7 @@ export function TodosTablePage() {
         }
 
         refetch()
-        
+
         // Show success toast with bulk undo action
         showSuccess(`Successfully deleted ${count} todo${count !== 1 ? 's' : ''}`, {
           action: {

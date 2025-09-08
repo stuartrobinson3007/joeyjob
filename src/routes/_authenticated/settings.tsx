@@ -12,16 +12,16 @@ import {
   deleteOrganizationWithValidation,
   checkSlugAvailability
 } from '@/lib/auth/organization-wrapper'
-import { useFormMutation } from '@/lib/hooks/use-form-mutation'
+import { useFormMutation } from '@/taali/hooks/use-form-mutation'
 import { useAsyncFieldValidator } from '@/taali/hooks/use-async-field-validator'
-import { useFormSync } from '@/lib/hooks/use-form-sync'
+import { useFormSync } from '@/taali/hooks/use-form-sync'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { clearActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 import { PageHeader } from '@/components/page-header'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import {
   FormErrorBoundary,
   Form,

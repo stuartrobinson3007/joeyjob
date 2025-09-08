@@ -7,7 +7,7 @@ import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
 import { user } from '@/database/schema'
 import { validateSystemRole } from '@/lib/auth/auth-types'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import {
   buildColumnFilter,
   parseFilterValue,
@@ -160,7 +160,7 @@ export const getAdminUsersTable = createServerFn({ method: 'POST' })
         })
         .from(user)
 
-      const query = conditions.length > 0 
+      const query = conditions.length > 0
         ? baseQuery.where(and(...conditions)).orderBy(orderBy!)
         : baseQuery.orderBy(orderBy!)
 

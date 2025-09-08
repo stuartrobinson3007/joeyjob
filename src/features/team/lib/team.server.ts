@@ -13,7 +13,7 @@ import { member, invitation, user } from '@/database/schema'
 import { checkPermission } from '@/lib/utils/permissions'
 import { checkPlanLimitUtil } from '@/lib/utils/plan-limits'
 import { ServerQueryParams, ServerQueryResponse } from '@/taali/components/data-table'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 
 const inviteMemberSchema = z.object({

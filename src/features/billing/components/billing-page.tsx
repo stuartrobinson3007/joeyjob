@@ -20,7 +20,7 @@ import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { useClientPermissions } from '@/lib/hooks/use-permissions'
 import { useLoadingItems } from '@/taali/hooks/use-loading-state'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
@@ -474,25 +474,25 @@ export function BillingPage() {
                             'pro': 1,
                             'business': 2
                           }
-                          
+
                           const currentPlanLevel = planHierarchy[currentPlan] ?? 0
                           const targetPlanLevel = planHierarchy[planKey] ?? 0
-                          
+
                           // If target plan is higher level, show upgrade
                           if (targetPlanLevel > currentPlanLevel) {
                             return t('subscription.upgrade')
                           }
-                          
+
                           // If target plan is lower level, show downgrade
                           if (targetPlanLevel < currentPlanLevel) {
                             return t('subscription.downgrade') || 'Downgrade'
                           }
-                          
+
                           // If same level but has active subscription, show cancel
                           if (hasActiveSubscription) {
                             return tCommon('actions.cancel')
                           }
-                          
+
                           return t('subscription.upgrade')
                         })()}
                       </Button>

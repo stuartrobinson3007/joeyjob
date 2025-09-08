@@ -38,7 +38,7 @@ import { authClient } from '@/lib/auth/auth-client'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 // Memoized OrganizationSwitcher to prevent re-renders on form state changes
 const OrganizationSwitcher = memo(function OrganizationSwitcher() {

@@ -101,36 +101,3 @@ export class NotFoundError extends AppError {
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError
 }
-
-// Legacy handleError function - kept for backward compatibility
-export function handleError(error: unknown): {
-  userMessage: string
-  technicalMessage: string
-  statusCode: number
-  context?: ErrorContext
-} {
-  if (isAppError(error)) {
-    return {
-      userMessage: error.fallbackMessage || error.code,
-      technicalMessage: error.fallbackMessage || error.message,
-      statusCode: error.statusCode,
-      context: error.context,
-    }
-  }
-
-  if (error instanceof Error) {
-    // Error is being thrown for handling
-    return {
-      userMessage: 'An unexpected error occurred. Please try again.',
-      technicalMessage: error.message,
-      statusCode: 500,
-    }
-  }
-
-  // Unknown error type, throwing generic error
-  return {
-    userMessage: 'An unexpected error occurred. Please try again.',
-    technicalMessage: 'Unknown error',
-    statusCode: 500,
-  }
-}

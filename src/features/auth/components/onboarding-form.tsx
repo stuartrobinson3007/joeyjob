@@ -7,7 +7,7 @@ import { completeOnboarding } from '@/features/organization/lib/onboarding.serve
 import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import { FormErrorBoundary } from '@/taali/components/form/form-error-boundary'
 import { Button } from '@/ui/button'

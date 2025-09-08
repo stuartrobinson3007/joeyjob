@@ -9,7 +9,7 @@ import { checkPermission } from '@/lib/utils/permissions'
 import { checkPlanLimitUtil } from '@/lib/utils/plan-limits'
 import { db } from '@/lib/db/db'
 import { todos } from '@/database/schema'
-import { ValidationError, AppError } from '@/lib/utils/errors'
+import { ValidationError, AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import { validationRules } from '@/lib/validation/validation-registry'
 
@@ -121,7 +121,7 @@ export const createTodo = createServerFn({ method: 'POST' })
 
     const user = context.user
     const orgId = context.organizationId
-    
+
     if (!orgId) {
       throw new AppError(
         ERROR_CODES.VAL_REQUIRED_FIELD,
@@ -197,7 +197,7 @@ export const updateTodo = createServerFn({ method: 'POST' })
   })
   .handler(async ({ data, context }) => {
     const orgId = context.organizationId
-    
+
     if (!orgId) {
       throw new AppError(
         ERROR_CODES.VAL_REQUIRED_FIELD,
@@ -254,7 +254,7 @@ export const deleteTodo = createServerFn({ method: 'POST' })
   .validator((data: unknown) => todoIdSchema.parse(data))
   .handler(async ({ data, context }) => {
     const orgId = context.organizationId
-    
+
     if (!orgId) {
       throw new AppError(
         ERROR_CODES.VAL_REQUIRED_FIELD,
@@ -282,7 +282,7 @@ export const deleteTodo = createServerFn({ method: 'POST' })
     // Soft delete: set deletedAt timestamp instead of hard delete
     await db
       .update(todos)
-      .set({ 
+      .set({
         deletedAt: new Date(),
         updatedAt: new Date()
       })
@@ -297,7 +297,7 @@ export const toggleTodo = createServerFn({ method: 'POST' })
   .validator((data: unknown) => todoIdSchema.parse(data))
   .handler(async ({ data, context }) => {
     const orgId = context.organizationId
-    
+
     if (!orgId) {
       throw new AppError(
         ERROR_CODES.VAL_REQUIRED_FIELD,
@@ -343,7 +343,7 @@ export const undoDeleteTodo = createServerFn({ method: 'POST' })
   .validator((data: unknown) => todoIdSchema.parse(data))
   .handler(async ({ data, context }) => {
     const orgId = context.organizationId
-    
+
     if (!orgId) {
       throw new AppError(
         ERROR_CODES.VAL_REQUIRED_FIELD,
@@ -383,7 +383,7 @@ export const undoDeleteTodo = createServerFn({ method: 'POST' })
     // Restore by clearing deletedAt timestamp
     const restored = await db
       .update(todos)
-      .set({ 
+      .set({
         deletedAt: null,
         updatedAt: new Date()
       })

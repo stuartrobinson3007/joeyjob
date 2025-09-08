@@ -6,7 +6,7 @@ import { Trans } from 'react-i18next'
 
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { authClient } from '@/lib/auth/auth-client'
-import { AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { getInvitationDetails } from '@/features/organization/lib/onboarding.server'
 import { OTPSignIn } from '@/features/auth/components/otp-sign-in'
 import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
@@ -214,11 +214,11 @@ function InvitationPage() {
                       }, 100)
                     } else {
                       throw new AppError(
-            ERROR_CODES.BIZ_INVALID_STATE,
-            400,
-            { invitationId },
-            t('messages.acceptInvitationFailed')
-          )
+                        ERROR_CODES.BIZ_INVALID_STATE,
+                        400,
+                        { invitationId },
+                        t('messages.acceptInvitationFailed')
+                      )
                     }
                   } catch (error) {
                     showError(error)

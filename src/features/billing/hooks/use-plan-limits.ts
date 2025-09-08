@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 
 import { checkPlanLimit } from '../lib/billing.server'
 
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 
 interface PlanLimitResult {
   allowed: boolean

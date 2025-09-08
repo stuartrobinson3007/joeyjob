@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { member } from '@/database/schema'
 import { checkPermission } from '@/lib/utils/permissions'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 
 const inviteMemberSchema = z.object({
   email: z.string().email(),

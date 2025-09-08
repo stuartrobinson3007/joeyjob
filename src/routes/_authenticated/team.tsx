@@ -36,11 +36,11 @@ import {
   type TeamMember,
 } from '@/features/team/lib/team.server'
 import { useErrorHandler } from '@/lib/errors/hooks'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
-import { formatDate } from '@/lib/utils/date'
+import { formatDate } from '@/taali/utils/date'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { Button } from '@/ui/button'
 import {

@@ -1,5 +1,5 @@
 import { authClient } from '@/lib/auth/auth-client'
-import { ValidationError, AppError, ERROR_CODES } from '@/lib/utils/errors'
+import { ValidationError, AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { validationMessages as vm } from '@/taali/validation/validation-messages'
 import { validateField } from '@/lib/validation/validation.server'
 
@@ -9,14 +9,14 @@ import { validateField } from '@/lib/validation/validation.server'
 function transformBetterAuthError(error: unknown): Error {
   // Type guard for error object
   const errorObj = error as { field?: string; message?: string } | null | undefined
-  
+
   // Check if Better Auth provides field information
   if (errorObj?.field) {
     return new ValidationError({
       [errorObj.field]: errorObj.message || 'Invalid value'
     })
   }
-  
+
   // Map common Better Auth errors to our error codes
   if (errorObj?.message) {
     if (errorObj.message.includes('already exists')) {
@@ -29,7 +29,7 @@ function transformBetterAuthError(error: unknown): Error {
       return new AppError(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 403, undefined, errorObj.message)
     }
   }
-  
+
   // Default to generic error
   return new AppError(
     ERROR_CODES.SYS_SERVER_ERROR,
@@ -56,13 +56,13 @@ export async function updateOrganizationWithValidation(data: {
       options: { skipDatabase: true }
     }
   })
-  
+
   if (!nameValidation.valid) {
     throw new ValidationError({
       name: nameValidation.error || vm.organization.name.required
     })
   }
-  
+
   const slugValidation = await validateField({
     data: {
       entity: 'organization',
@@ -71,13 +71,13 @@ export async function updateOrganizationWithValidation(data: {
       options: { context: { excludeId: data.organizationId } }
     }
   })
-  
+
   if (!slugValidation.valid) {
     throw new ValidationError({
       slug: slugValidation.error || vm.organization.slug.required
     })
   }
-  
+
   // 2. Call Better Auth
   const result = await authClient.organization.update({
     organizationId: data.organizationId,
@@ -86,12 +86,12 @@ export async function updateOrganizationWithValidation(data: {
       slug: data.slug
     }
   })
-  
+
   // 3. Transform Better Auth errors to our format
   if (result.error) {
     throw transformBetterAuthError(result.error)
   }
-  
+
   return {
     ...result.data,
     updatedAt: new Date()
@@ -114,13 +114,13 @@ export async function createOrganizationWithValidation(data: {
       options: { skipDatabase: true }
     }
   })
-  
+
   if (!nameValidation.valid) {
     throw new ValidationError({
       name: nameValidation.error || vm.organization.name.required
     })
   }
-  
+
   const slugValidation = await validateField({
     data: {
       entity: 'organization',
@@ -128,21 +128,21 @@ export async function createOrganizationWithValidation(data: {
       value: data.slug
     }
   })
-  
+
   if (!slugValidation.valid) {
     throw new ValidationError({
       slug: slugValidation.error || vm.organization.slug.required
     })
   }
-  
+
   // 2. Call Better Auth
   const result = await authClient.organization.create(data)
-  
+
   // 3. Handle errors
   if (result.error) {
     throw transformBetterAuthError(result.error)
   }
-  
+
   return result.data
 }
 
@@ -158,10 +158,10 @@ export async function deleteOrganizationWithValidation(organizationId: string) {
   const result = await authClient.organization.delete({
     organizationId
   })
-  
+
   if (result.error) {
     throw transformBetterAuthError(result.error)
   }
-  
+
   return result.data
 }

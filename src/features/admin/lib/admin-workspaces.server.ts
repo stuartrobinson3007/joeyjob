@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
 import { organization, member, user } from '@/database/schema'
-import { AppError } from '@/lib/utils/errors'
+import { AppError } from '@/taali/utils/errors'
 import { buildColumnFilter, parseFilterValue, preprocessFilterValue } from '@/taali/utils/table-filters'
 import { ServerQueryResponse } from '@/taali/components/data-table'
 
@@ -47,7 +47,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
     if (context.user.role !== 'superadmin') {
       throw AppError.forbidden('Superadmin access required')
     }
-    
+
     const pageIndex = data.pagination?.pageIndex ?? 0
     const pageSize = data.pagination?.pageSize ?? 10
     const offset = pageIndex * pageSize
@@ -56,7 +56,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
 
     try {
       // Use direct database query for proper server-side performance
-      
+
       // Build base query - get all organizations first, then get owner info
       // Step 1: Get all organizations with member count
       let workspacesQuery = db.select({
@@ -68,10 +68,10 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
         stripeCustomerId: organization.stripeCustomerId,
         memberCount: count(member.id)
       })
-      .from(organization)
-      .leftJoin(member, eq(member.organizationId, organization.id))
-      .groupBy(organization.id, organization.name, organization.slug, organization.createdAt, organization.currentPlan, organization.stripeCustomerId)
-      .$dynamic()
+        .from(organization)
+        .leftJoin(member, eq(member.organizationId, organization.id))
+        .groupBy(organization.id, organization.name, organization.slug, organization.createdAt, organization.currentPlan, organization.stripeCustomerId)
+        .$dynamic()
 
       // Apply search filter with SQL
       const conditions = []
@@ -94,7 +94,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
 
           // Parse the filter value to get operator and actual value
           const { operator, value: filterValue } = parseFilterValue(value)
-          
+
           // Map column IDs to database columns
           let column: PgColumn | undefined
           switch (columnId) {
@@ -110,7 +110,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
             default:
               return
           }
-          
+
           const processedValue = preprocessFilterValue(columnId, filterValue)
           const filter = buildColumnFilter({
             column,
@@ -132,7 +132,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
       if (data.sorting && data.sorting.length > 0) {
         const sort = data.sorting[0]
         const sortFn = sort.desc ? desc : asc
-        
+
         switch (sort.id) {
           case 'id':
             workspacesQuery = workspacesQuery.orderBy(sortFn(organization.id))
@@ -175,7 +175,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
       // Step 2: Get owner information for each organization
       const orgIds = workspacesResult.map(org => org.id)
       const ownerInfoMap = new Map()
-      
+
       if (orgIds.length > 0) {
         const ownerRecords = await db.select({
           organizationId: member.organizationId,
@@ -183,14 +183,14 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
           ownerName: user.name,
           ownerBanned: user.banned
         })
-        .from(member)
-        .innerJoin(user, eq(user.id, member.userId))
-        .where(
-          and(
-            eq(member.role, 'owner'),
-            eq(member.organizationId, orgIds[0]) // We'll do this per org for now
+          .from(member)
+          .innerJoin(user, eq(user.id, member.userId))
+          .where(
+            and(
+              eq(member.role, 'owner'),
+              eq(member.organizationId, orgIds[0]) // We'll do this per org for now
+            )
           )
-        )
 
 
         // Create a map for quick lookup
@@ -209,15 +209,15 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
             ownerName: user.name,
             ownerBanned: user.banned
           })
-          .from(member)
-          .innerJoin(user, eq(user.id, member.userId))
-          .where(
-            and(
-              eq(member.organizationId, org.id),
-              eq(member.role, 'owner')
+            .from(member)
+            .innerJoin(user, eq(user.id, member.userId))
+            .where(
+              and(
+                eq(member.organizationId, org.id),
+                eq(member.role, 'owner')
+              )
             )
-          )
-          .limit(1)
+            .limit(1)
 
           if (ownerInfo.length > 0) {
             ownerInfoMap.set(org.id, ownerInfo[0])
@@ -228,10 +228,10 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
               role: member.role,
               userName: user.name
             })
-            .from(member)
-            .leftJoin(user, eq(user.id, member.userId))
-            .where(eq(member.organizationId, org.id))
-            
+              .from(member)
+              .leftJoin(user, eq(user.id, member.userId))
+              .where(eq(member.organizationId, org.id))
+
           }
         }
       }
@@ -285,25 +285,25 @@ export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
     try {
       // Get total organizations count
       const totalOrgsResult = await db.select({ count: count(organization.id) }).from(organization)
-      
+
       // Get organizations count by plan
       const freeOrgsResult = await db.select({ count: count(organization.id) })
         .from(organization)
         .where(eq(organization.currentPlan, 'free'))
-      
+
       const proOrgsResult = await db.select({ count: count(organization.id) })
         .from(organization)
         .where(eq(organization.currentPlan, 'pro'))
-      
+
       const businessOrgsResult = await db.select({ count: count(organization.id) })
         .from(organization)
         .where(eq(organization.currentPlan, 'business'))
-      
+
       const totalOrgs = Number(totalOrgsResult[0]?.count || 0)
       const freeOrgs = Number(freeOrgsResult[0]?.count || 0)
       const proOrgs = Number(proOrgsResult[0]?.count || 0)
       const businessOrgs = Number(businessOrgsResult[0]?.count || 0)
-      
+
       return {
         totalOrganizations: totalOrgs,
         freeOrganizations: freeOrgs,

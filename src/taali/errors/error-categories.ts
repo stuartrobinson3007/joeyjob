@@ -1,4 +1,4 @@
-import { ERROR_CODES, type ErrorCode } from '@/taali/errors/codes'
+import { ERROR_CODES, type ErrorCode } from './codes'
 
 // Define where each error type should be displayed
 const ERROR_CATEGORIES = {

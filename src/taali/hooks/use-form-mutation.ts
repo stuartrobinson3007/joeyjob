@@ -2,9 +2,9 @@ import { useMutation } from '@tanstack/react-query'
 import { UseFormSetError, FieldValues, Path } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { ValidationError, isAppError } from '@/lib/utils/errors'
-import { parseError } from '@/taali/errors/client-handler'
-import { getErrorDisplayType } from '@/lib/errors/error-categories'
+import { ValidationError, isAppError } from '../utils/errors'
+import { parseError } from '../errors/client-handler'
+import { getErrorDisplayType } from '../errors/error-categories'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 
 interface UseFormMutationOptions<TData = unknown, TVariables = unknown, TFieldValues extends FieldValues = FieldValues> {
@@ -37,7 +37,7 @@ export function useFormMutation<TData = unknown, TVariables = unknown, TFieldVal
     onSuccess,
     onError: (error) => {
       const parsed = parseError(error)
-      
+
       // SCENARIO 1: Backend field-level validation errors
       if (error instanceof ValidationError && error.context?.fields) {
         // Map each field error to the correct form field
@@ -47,14 +47,14 @@ export function useFormMutation<TData = unknown, TVariables = unknown, TFieldVal
             message: Array.isArray(message) ? message[0] : message
           })
         })
-        
+
         // If there are field errors, don't show additional notifications
         return onError?.(error)
       }
-      
+
       // SCENARIO 2: General errors - route based on error type
       const displayType = getErrorDisplayType(parsed.code)
-      
+
       switch (displayType) {
         case 'field':
           // This shouldn't happen without fields, but handle gracefully
@@ -64,7 +64,7 @@ export function useFormMutation<TData = unknown, TVariables = unknown, TFieldVal
             message: parsed.message
           })
           break
-          
+
         case 'form':
           // Show in form error area
           setError('root', {
@@ -72,7 +72,7 @@ export function useFormMutation<TData = unknown, TVariables = unknown, TFieldVal
             message: parsed.message
           })
           break
-          
+
         case 'toast':
           // Show as toast notification
           if (showToast) {
@@ -106,7 +106,7 @@ export function useFormMutation<TData = unknown, TVariables = unknown, TFieldVal
           }
           break
       }
-      
+
       // Always call custom error handler if provided
       onError?.(error)
     }

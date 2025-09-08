@@ -21,7 +21,7 @@ interface BetterAuthSession {
 }
 import { parseError } from '@/taali/errors/client-handler'
 import { useSupportingQuery } from '@/taali/hooks/use-supporting-query'
-import { formatDate, formatDateTime } from '@/lib/utils/date'
+import { formatDate, formatDateTime } from '@/taali/utils/date'
 import { Badge } from '@/ui/badge'
 import {
   DropdownMenu,
@@ -354,7 +354,7 @@ function SuperAdminUsers() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => handleImpersonate(user.id)}
                     disabled={user.banned}
                   >
@@ -428,8 +428,8 @@ function SuperAdminUsers() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {showStatsError ? (
             <div className="col-span-full">
-              <ErrorState 
-                error={parseError({ message: 'Unable to load user statistics' })} 
+              <ErrorState
+                error={parseError({ message: 'Unable to load user statistics' })}
                 variant="inline"
               />
             </div>
