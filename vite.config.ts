@@ -19,7 +19,8 @@ const config = defineConfig({
   ],
   resolve: {
     alias: {
-      '@/ui': resolve(__dirname, './src/components/taali-ui/ui'),
+      '@/ui': resolve(__dirname, './src/taali/components/ui'),
+      '@/taali': resolve(__dirname, './src/taali'),
       '@': resolve(__dirname, './src')
     }
   },

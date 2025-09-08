@@ -33,7 +33,10 @@
         "./src/*"
       ],
       "@/ui/*": [
-        "./src/components/taali-ui/ui/*"
+        "./src/taali/components/ui/*"
+      ],
+      "@/taali/*": [
+        "./src/taali/*"
       ]
     }
   }

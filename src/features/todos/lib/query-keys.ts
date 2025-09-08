@@ -1,4 +1,4 @@
-import type { ServerQueryParams } from '@/components/taali-ui/data-table/types'
+import type { ServerQueryParams } from '@/taali/components/data-table/types'
 
 /**
  * Todo Query Keys Factory

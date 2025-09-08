@@ -13,7 +13,7 @@ import {
   parseFilterValue,
   preprocessFilterValue,
 } from '@/lib/utils/table-filters'
-import { ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { ServerQueryResponse } from '@/taali/components/data-table'
 
 export type AdminUser = {
   id: string

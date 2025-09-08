@@ -8,7 +8,7 @@ import { db } from '@/lib/db/db'
 import { organization, member, user } from '@/database/schema'
 import { AppError } from '@/lib/utils/errors'
 import { buildColumnFilter, parseFilterValue, preprocessFilterValue } from '@/lib/utils/table-filters'
-import { ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { ServerQueryResponse } from '@/taali/components/data-table'
 
 export type AdminWorkspace = {
   id: string

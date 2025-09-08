@@ -3,7 +3,7 @@ import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Building2, Users, Calendar, Trash2, MoreHorizontal, Eye } from 'lucide-react'
 
-import { useConfirm } from '@/components/taali-ui/ui/confirm-dialog'
+import { useConfirm } from '@/ui/confirm-dialog'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/lib/errors/client-handler'
@@ -15,7 +15,7 @@ import {
   useTableQuery,
   DataTableConfig,
   DataTableColumnMeta,
-} from '@/components/taali-ui/data-table'
+} from '@/taali/components/data-table'
 import {
   getAdminWorkspacesTable,
   getAdminWorkspaceStats,
@@ -33,7 +33,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from '@/components/taali-ui/ui/tooltip'
+} from '@/ui/tooltip'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 

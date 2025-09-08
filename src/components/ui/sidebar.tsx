@@ -16,7 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/ui/tooltip'
-import { cn } from '@/components/taali-ui/lib/utils'
+import { cn } from '@/taali/lib/utils'
 import { useSuperAdminWrapper } from '@/features/admin/components/super-admin-wrapper'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'

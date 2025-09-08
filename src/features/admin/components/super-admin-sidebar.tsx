@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/sidebar'
 import { UserTile } from '@/components/user-tile'
 import { authClient } from '@/lib/auth/auth-client'
-import { cn } from '@/components/taali-ui/lib/utils'
+import { cn } from '@/taali/lib/utils'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { isUserImpersonating } from '@/lib/auth/auth-types'
 

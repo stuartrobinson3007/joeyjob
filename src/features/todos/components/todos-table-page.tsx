@@ -17,20 +17,20 @@ import {
 import { toggleTodo, deleteTodo, createTodo, undoDeleteTodo } from '../lib/todos.server'
 import { todoKeys } from '../lib/query-keys'
 
-import { useConfirm } from '@/components/taali-ui/ui/confirm-dialog'
+import { useConfirm } from '@/ui/confirm-dialog'
 import { formatDate } from '@/lib/utils/date'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useLoadingItems } from '@/lib/hooks/use-loading-state'
-import { DataTable, DataTableHeader } from '@/components/taali-ui/data-table'
-import { useTableQuery } from '@/components/taali-ui/data-table'
+import { DataTable, DataTableHeader } from '@/taali/components/data-table'
+import { useTableQuery } from '@/taali/components/data-table'
 import {
   DataTableConfig,
   DataTableColumnMeta,
   SelectionState,
   BulkAction,
   ServerQueryParams,
-} from '@/components/taali-ui/data-table'
+} from '@/taali/components/data-table'
 import { Button } from '@/ui/button'
 import { Badge } from '@/ui/badge'
 import {

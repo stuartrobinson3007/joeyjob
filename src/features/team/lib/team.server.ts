@@ -12,7 +12,7 @@ import { db } from '@/lib/db/db'
 import { member, invitation, user } from '@/database/schema'
 import { checkPermission } from '@/lib/utils/permissions'
 import { checkPlanLimitUtil } from '@/lib/utils/plan-limits'
-import { ServerQueryParams, ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { ServerQueryParams, ServerQueryResponse } from '@/taali/components/data-table'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
 

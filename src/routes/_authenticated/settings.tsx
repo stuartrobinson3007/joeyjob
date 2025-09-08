@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { useConfirm } from '@/components/taali-ui/ui/confirm-dialog'
+import { useConfirm } from '@/ui/confirm-dialog'
 import { organizationFormSchema, type OrganizationFormData } from '@/lib/validation/organization.schema'
 import type { Organization } from '@/types/organization'
 import {
@@ -28,7 +28,7 @@ import {
   TextField,
   FormActions,
   FormRootError
-} from '@/components/taali-ui/form'
+} from '@/taali/components/form'
 import { Button } from '@/ui/button'
 import { Skeleton } from '@/ui/skeleton'
 

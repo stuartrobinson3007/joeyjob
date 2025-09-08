@@ -14,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-import { useConfirm } from '@/components/taali-ui/ui/confirm-dialog'
+import { useConfirm } from '@/ui/confirm-dialog'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { PageHeader } from '@/components/page-header'
 import { useLoadingItems } from '@/lib/hooks/use-loading-state'
@@ -25,7 +25,7 @@ import {
   useTableQuery,
   DataTableConfig,
   DataTableColumnMeta,
-} from '@/components/taali-ui/data-table'
+} from '@/taali/components/data-table'
 import {
   getTeamMembersTable,
   inviteTeamMember,
@@ -69,7 +69,7 @@ import { Badge } from '@/ui/badge'
 import { Input } from '@/ui/input'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/ui/separator'
-import { FormField } from '@/components/taali-ui/form/form-field'
+import { FormField } from '@/taali/components/form/form-field'
 import { useFieldError } from '@/lib/errors/hooks'
 
 export const Route = createFileRoute('/_authenticated/team')({

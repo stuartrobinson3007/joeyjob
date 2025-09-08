@@ -43,7 +43,7 @@ import {
   useTableQuery,
   DataTableConfig,
   DataTableColumnMeta,
-} from '@/components/taali-ui/data-table'
+} from '@/taali/components/data-table'
 import {
   getAdminUsersTable,
   getAdminUserStats,

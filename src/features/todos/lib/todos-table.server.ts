@@ -16,7 +16,7 @@ import {
   parseFilterValue,
   preprocessFilterValue,
 } from '@/lib/utils/table-filters'
-import { ServerQueryResponse } from '@/components/taali-ui/data-table'
+import { ServerQueryResponse } from '@/taali/components/data-table'
 import { AppError } from '@/lib/utils/errors'
 import { ERROR_CODES } from '@/lib/errors/codes'
 import { validateServerQueryParams } from '@/lib/utils/server-query-schemas'

@@ -8,7 +8,7 @@ import appCss from '../styles.css?url'
 
 import { Providers } from '@/lib/hooks/providers'
 import { NotFoundComponent } from '@/components/not-found'
-import { ConfirmDialogProvider } from '@/components/taali-ui/ui/confirm-dialog'
+import { ConfirmDialogProvider } from '@/ui/confirm-dialog'
 
 export const Route = createRootRoute({
   head: () => ({
