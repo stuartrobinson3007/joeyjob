@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import { parseError, handleErrorAction } from '@/taali/errors/client-handler'
 import { isErrorCode } from '@/taali/errors/codes'
 import type { ParsedError } from '@/taali/errors/client-handler'
-
 import { safePropertyAccess } from '@/taali/utils/type-safe-access'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 

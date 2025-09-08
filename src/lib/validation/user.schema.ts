@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { validationRules } from './validation-registry'
+
 import { validationMessages } from '@/taali/validation/validation-messages'
 
 // User profile schema

@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { and, eq, not } from 'drizzle-orm'
 
 import { validationRules } from './validation-registry'
-import { validationMessages as vm } from '@/taali/validation/validation-messages'
 
+import { validationMessages as vm } from '@/taali/validation/validation-messages'
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
 import { organization, user } from '@/database/schema'
