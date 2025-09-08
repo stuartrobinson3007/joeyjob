@@ -3,7 +3,7 @@
 
 // Utilities
 export * from './utils/type-safe-access'
-export * from './utils/table-filters'
+export * as TableFilters from './utils/table-filters' // Namespace to avoid conflicts
 export { cn } from './lib/utils'
 
 // Error System
@@ -27,7 +27,7 @@ export * from './validation/validation-registry'
 // Components - Form
 export * from './components/form'
 
-// Components - Data Table
+// Components - Data Table (has its own filter types)
 export * from './components/data-table'
 
 // Components - UI (re-exported for convenience)
@@ -38,7 +38,6 @@ export * from './components/ui/dialog'
 export * from './components/ui/dropdown-menu'
 export * from './components/ui/select'
 export * from './components/ui/table'
-// Add more UI exports as needed
 
 // Library utilities
 export * from './lib/compose-refs'
