@@ -1,9 +1,9 @@
 {
   "magicLink": {
-    "title": "Sign in to Todo App",
-    "heading": "Sign in to Todo App",
+    "title": "Sign in to JoeyJob",
+    "heading": "Sign in to JoeyJob",
     "description": "Click the button below to sign in to your account:",
-    "button": "Sign in to Todo App",
+    "button": "Sign in to JoeyJob",
     "alternative": "Or copy and paste this link in your browser:",
     "copyright": "© {{year}} {{appName}}. All rights reserved.",
     "expiry": "This link will expire in 5 minutes for security reasons.",
@@ -13,7 +13,7 @@
     "subject": "{{inviterName}} invited you to join {{organizationName}}",
     "preview": "Invitation to join {{organizationName}}",
     "title": "You're invited!",
-    "message": "<strong>{{inviterName}}</strong> has invited you to join <strong>{{organizationName}}</strong> on Todo App.",
+    "message": "<strong>{{inviterName}}</strong> has invited you to join <strong>{{organizationName}}</strong> on JoeyJob.",
     "acceptButton": "Accept Invitation",
     "orCopy": "Or copy and paste this link in your browser:",
     "footer": "If you don't want to join this organization, you can safely ignore this email.",
@@ -33,22 +33,22 @@
   },
   "otp": {
     "signIn": {
-      "subject": "Your sign-in code for Todo App",
-      "title": "Sign in to Todo App",
+      "subject": "Your sign-in code for JoeyJob",
+      "title": "Sign in to JoeyJob",
       "message": "Use this code to sign in to your account:"
     },
     "emailVerification": {
-      "subject": "Verify your email for Todo App",
+      "subject": "Verify your email for JoeyJob",
       "title": "Verify your email",
       "message": "Use this code to verify your email address:"
     },
     "forgetPassword": {
-      "subject": "Reset your password for Todo App",
+      "subject": "Reset your password for JoeyJob",
       "title": "Reset your password",
       "message": "Use this code to reset your password:"
     },
     "default": {
-      "subject": "Your verification code for Todo App",
+      "subject": "Your verification code for JoeyJob",
       "title": "Verification code",
       "message": "Your verification code is:"
     },

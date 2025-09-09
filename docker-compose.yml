@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: dev
     ports:
-      - "8472:5432"
+      - "4829:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     image: redis:8-alpine
     container_name: tanstack-todo-redis
     ports:
-      - "3591:6379"
+      - "9162:6379"
     volumes:
       - redis_data:/data
     healthcheck:

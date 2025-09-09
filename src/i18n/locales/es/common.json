@@ -182,8 +182,8 @@
     "selectAllItems": "Seleccionar todos los {{total}} elementos"
   },
   "app": {
-    "title": "App de Tareas TanStack",
-    "name": "App de Tareas",
+    "title": "JoeyJob",
+    "name": "JoeyJob",
     "notFound": "La página que buscas no existe.",
     "backHome": "Volver al Inicio"
   },
