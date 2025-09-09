@@ -18,12 +18,14 @@ import {
 import * as React from 'react'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
-import { cn } from '@/taali/lib/utils'
+
 
 import { DataTablePagination } from './data-table-pagination'
 import { DataTableToolbar } from './data-table-toolbar'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { DataTableConfig, SelectionState, ServerQueryParams } from './types'
+
+import { cn } from '@/taali/lib/utils'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
