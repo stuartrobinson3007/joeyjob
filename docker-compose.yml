@@ -3,9 +3,9 @@ version: '3.8'
 services:
   postgres:
     image: postgres:17
-    container_name: tanstack-todo-postgres
+    container_name: joeyjob-postgres
     environment:
-      POSTGRES_DB: tanstack_todo_dev
+      POSTGRES_DB: joeyjob_dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: dev
     ports:
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:8-alpine
-    container_name: tanstack-todo-redis
+    container_name: joeyjob-redis
     ports:
       - "9162:6379"
     volumes:

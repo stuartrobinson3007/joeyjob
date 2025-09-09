@@ -1,0 +1,61 @@
+{
+  "title": "Bookings",
+  "fields": {
+    "dateTime": "Date & Time",
+    "date": "Date",
+    "time": "Time",
+    "customerName": "Customer",
+    "email": "Email",
+    "phone": "Phone",
+    "service": "Service",
+    "status": "Status",
+    "duration": "Duration",
+    "price": "Price",
+    "notes": "Notes",
+    "internalNotes": "Internal Notes",
+    "confirmationCode": "Confirmation Code",
+    "source": "Source",
+    "createdAt": "Created",
+    "updatedAt": "Updated"
+  },
+  "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "noShow": "No-show"
+  },
+  "source": {
+    "web": "Web",
+    "api": "API",
+    "admin": "Admin"
+  },
+  "filters": {
+    "search": "Search bookings...",
+    "status": "Status",
+    "service": "Service",
+    "dateRange": "Date Range",
+    "from": "From",
+    "to": "To",
+    "clearFilters": "Clear filters"
+  },
+  "details": {
+    "title": "Booking Details",
+    "customerInfo": "Customer Information",
+    "bookingInfo": "Booking Information",
+    "serviceInfo": "Service Information",
+    "formData": "Form Submission",
+    "metadata": "Metadata",
+    "noFormData": "No form data available",
+    "reminderSent": "Reminder sent",
+    "reminderNotSent": "No reminder sent"
+  },
+  "empty": {
+    "title": "No bookings found",
+    "description": "There are no bookings matching your filters."
+  },
+  "duration": {
+    "minutes": "{{count}} min",
+    "hours": "{{hours}}h {{minutes}}m"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "title": "Forms",
+  "description": "Create and manage booking forms for your services",
+  "new": {
+    "title": "Create Form",
+    "description": "Build a custom form for collecting customer information",
+    "formName": "Form Name",
+    "formDescription": "Description",
+    "associatedService": "Associated Service",
+    "allServices": "All Services",
+    "active": "Active",
+    "setAsDefault": "Set as default"
+  },
+  "builder": {
+    "title": "Form Builder",
+    "noFields": "No fields added yet",
+    "addFieldPrompt": "Click \"Add Field\" to start building your form",
+    "preview": "Preview",
+    "previewTitle": "Form Preview",
+    "previewDescription": "This is how your form will appear to customers"
+  },
+  "actions": {
+    "createForm": "Create Form",
+    "addField": "Add Field",
+    "save": "Save Form",
+    "cancel": "Cancel",
+    "preview": "Preview",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "delete": "Delete"
+  },
+  "fields": {
+    "count": "{{count}} fields"
+  },
+  "tips": {
+    "keepSimple": "Keep it simple",
+    "keepSimpleDesc": "Only ask for information you really need",
+    "clearLabels": "Use clear labels", 
+    "clearLabelsDesc": "Make sure field names are easy to understand",
+    "testForm": "Test your form",
+    "testFormDesc": "Use the preview to see how customers will experience it"
+  }
+}

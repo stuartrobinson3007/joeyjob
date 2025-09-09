@@ -166,8 +166,8 @@ export const createCheckout = createServerFn({ method: 'POST' })
       const result = await auth.api.upgradeSubscription({
         body: {
           plan,
-          successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
-          cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
+          successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:5722'}/billing?success=true`,
+          cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:5722'}/billing`,
           annual: interval === 'annual',
           referenceId: orgId,
         },

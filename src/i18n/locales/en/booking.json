@@ -1,0 +1,43 @@
+{
+  "title": "Bookings",
+  "dashboard": {
+    "title": "Booking Dashboard",
+    "description": "Manage your appointments and bookings"
+  },
+  "new": {
+    "title": "Create New Booking",
+    "description": "Complete the booking process step by step"
+  },
+  "details": {
+    "title": "Booking Details",
+    "confirmationCode": "Confirmation Code"
+  },
+  "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed", 
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "noShow": "No Show"
+  },
+  "actions": {
+    "newBooking": "New Booking",
+    "editBooking": "Edit Booking",
+    "cancelBooking": "Cancel Booking",
+    "confirmBooking": "Confirm Booking",
+    "markComplete": "Mark Complete",
+    "viewCalendar": "Calendar View"
+  },
+  "stats": {
+    "totalBookings": "Total Bookings",
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "revenue": "Revenue",
+    "thisMonth": "This month"
+  },
+  "customer": {
+    "information": "Customer Information",
+    "name": "Name",
+    "email": "Email", 
+    "phone": "Phone"
+  }
+}

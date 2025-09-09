@@ -1,7 +1,7 @@
 import { serverOnly } from '@tanstack/react-start'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { organization, magicLink, admin, emailOTP } from 'better-auth/plugins'
+import { organization, magicLink, admin, emailOTP, genericOAuth } from 'better-auth/plugins'
 import { stripe as stripePlugin } from '@better-auth/stripe'
 import { createAccessControl } from 'better-auth/plugins/access'
 import Stripe from 'stripe'
@@ -11,7 +11,7 @@ import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/lib/db/db'
 import { redis } from '@/lib/db/redis'
-import { sendMagicLinkEmail, sendInvitationEmail, sendOTPEmail } from '@/lib/utils/email'
+import { sendMagicLinkEmail, sendOTPEmail } from '@/lib/utils/email'
 import * as schema from '@/database/schema'
 
 // Initialize Stripe client
@@ -84,6 +84,23 @@ const getAuthConfig = serverOnly(() =>
           defaultValue: 'en',
           required: false,
         },
+        // SimPro-specific fields
+        simproId: {
+          type: 'string',
+          required: false,
+        },
+        simproBuildName: {
+          type: 'string',
+          required: false,
+        },
+        simproDomain: {
+          type: 'string',
+          required: false,
+        },
+        simproCompanyId: {
+          type: 'string',
+          required: false,
+        },
       },
     },
 
@@ -113,19 +130,71 @@ const getAuthConfig = serverOnly(() =>
     },
 
     socialProviders: {
-      google: {
-        clientId: process.env.GOOGLE_CLIENT_ID!,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      },
-      ...(process.env.GITHUB_CLIENT_ID && {
-        github: {
-          clientId: process.env.GITHUB_CLIENT_ID,
-          clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-        },
-      }),
+      // Removed Google and GitHub providers - replaced with SimPro
     },
 
     plugins: [
+      // SimPro OAuth with dynamic build configuration
+      genericOAuth({
+        config: [
+          {
+            providerId: 'simpro',
+            clientId: process.env.SIMPRO_CLIENT_ID || process.env.VITE_SIMPRO_CLIENT_ID || '',
+            clientSecret: process.env.SIMPRO_CLIENT_SECRET || '',
+            // Default URLs - will be overridden dynamically
+            authorizationUrl: 'https://joeyjob.simprosuite.com/oauth2/login',
+            tokenUrl: 'https://joeyjob.simprosuite.com/oauth2/token',
+            scopes: [], // SimPro doesn't use scopes
+            // Use Better Auth's expected callback pattern
+            redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/oauth2/callback/simpro`,
+            
+            getUserInfo: async (tokens) => {
+              // Get build config from session storage (passed via state parameter)
+              const buildConfig = { 
+                buildName: 'joeyjob', 
+                domain: 'simprosuite.com',
+                baseUrl: 'https://joeyjob.simprosuite.com'
+              }
+              
+              const response = await fetch(`${buildConfig.baseUrl}/api/v1.0/currentUser/`, {
+                headers: {
+                  Authorization: `Bearer ${tokens.accessToken}`,
+                  Accept: 'application/json',
+                },
+              })
+              
+              if (!response.ok) {
+                throw new Error(`SimPro API error: ${response.status}`)
+              }
+              
+              const simproUser = await response.json()
+              const placeholderEmail = `simpro${simproUser.ID}@${buildConfig.buildName}.joeyjob.com`
+              
+              return {
+                id: simproUser.ID,
+                name: simproUser.Name,
+                email: placeholderEmail,
+                emailVerified: false, // SimPro doesn't provide email verification
+                simproBuildName: buildConfig.buildName,
+                simproDomain: buildConfig.domain,
+                simproCompanyId: simproUser.CompanyID,
+              }
+            },
+            
+            mapProfileToUser: async (profile) => {
+              return {
+                name: profile.name,
+                email: profile.email,
+                simproId: profile.id,
+                simproBuildName: profile.simproBuildName,
+                simproDomain: profile.simproDomain,
+                simproCompanyId: profile.simproCompanyId,
+              }
+            },
+          },
+        ],
+      }),
+      // Keep magic link as secondary option for now (can be removed later)
       magicLink({
         sendMagicLink: async ({ email, url }) => {
           await sendMagicLinkEmail(email, url)
@@ -156,8 +225,8 @@ const getAuthConfig = serverOnly(() =>
             },
           }
         },
-        successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing?success=true`,
-        cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:2847'}/billing`,
+        successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:5722'}/billing?success=true`,
+        cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:5722'}/billing`,
         subscription: {
           enabled: true,
           // Add metadata to Stripe checkout sessions and subscriptions
@@ -223,22 +292,20 @@ const getAuthConfig = serverOnly(() =>
       }),
       organization({
         allowUserToCreateOrganization: true,
-        organizationLimit: 99,
-        invitationExpiresIn: 60 * 60 * 48, // 48 hours
+        organizationLimit: 1, // Single organization per user
+        invitationExpiresIn: 60 * 60 * 48, // 48 hours (keeping for future use)
         cancelPendingInvitationsOnReInvite: false,
         requireEmailVerificationOnInvitation: false,
+        // Auto-create organization on sign-up
+        autoCreateOrganization: true,
+        // Disable invitation emails for now
         sendInvitationEmail: async data => {
-          const inviteUrl = `${process.env.BETTER_AUTH_URL}/invite/${data.id}`
-          await sendInvitationEmail(
-            data.email,
-            data.inviter?.user?.name || 'A team member',
-            data.organization.name,
-            inviteUrl
-          )
+          // Disabled - no team invitations in single-user mode
+          console.log('Invitation disabled in single-user mode:', data)
         },
         ac,
         roles: {
-          owner,
+          owner, // All users are owners of their single organization
           admin: orgAdmin,
           member,
           viewer,

@@ -13,7 +13,9 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as Oauth2AccessCodeRouteImport } from './routes/oauth2/accessCode'
 import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
+import { Route as BookFormIdRouteImport } from './routes/book.$formId'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
@@ -21,11 +23,14 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSelectOrganizationRouteImport } from './routes/_authenticated/select-organization'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedFormsRouteImport } from './routes/_authenticated/forms'
+import { Route as AuthenticatedBookingsRouteImport } from './routes/_authenticated/bookings'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
 import { Route as AuthenticatedTodosIdEditRouteImport } from './routes/_authenticated/todos.$id.edit'
+import { Route as AuthenticatedFormFormIdEditRouteImport } from './routes/_authenticated/form.$formId.edit'
 import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
 import { ServerRoute as ApiStripeWebhookServerRouteImport } from './routes/api/stripe/webhook'
 import { ServerRoute as ApiAvatarsUploadServerRouteImport } from './routes/api/avatars/upload'
@@ -44,9 +49,19 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const Oauth2AccessCodeRoute = Oauth2AccessCodeRouteImport.update({
+  id: '/oauth2/accessCode',
+  path: '/oauth2/accessCode',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InviteInvitationIdRoute = InviteInvitationIdRouteImport.update({
   id: '/invite/$invitationId',
   path: '/invite/$invitationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookFormIdRoute = BookFormIdRouteImport.update({
+  id: '/book/$formId',
+  path: '/book/$formId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSigninRoute = AuthSigninRouteImport.update({
@@ -85,6 +100,16 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFormsRoute = AuthenticatedFormsRouteImport.update({
+  id: '/forms',
+  path: '/forms',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedBookingsRoute = AuthenticatedBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -112,6 +137,12 @@ const AuthenticatedTodosIdEditRoute =
   AuthenticatedTodosIdEditRouteImport.update({
     id: '/todos/$id/edit',
     path: '/todos/$id/edit',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFormFormIdEditRoute =
+  AuthenticatedFormFormIdEditRouteImport.update({
+    id: '/form/$formId/edit',
+    path: '/form/$formId/edit',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const ApiHealthServerRoute = ApiHealthServerRouteImport.update({
@@ -147,6 +178,8 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/billing': typeof AuthenticatedBillingRoute
+  '/bookings': typeof AuthenticatedBookingsRoute
+  '/forms': typeof AuthenticatedFormsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
@@ -154,32 +187,42 @@ export interface FileRoutesByFullPath {
   '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/book/$formId': typeof BookFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
+  '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/': typeof AuthenticatedIndexRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/superadmin/': typeof AuthenticatedSuperadminIndexRoute
+  '/form/$formId/edit': typeof AuthenticatedFormFormIdEditRoute
   '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingRoute
+  '/bookings': typeof AuthenticatedBookingsRoute
+  '/forms': typeof AuthenticatedFormsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/book/$formId': typeof BookFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
+  '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/': typeof AuthenticatedIndexRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/superadmin': typeof AuthenticatedSuperadminIndexRoute
+  '/form/$formId/edit': typeof AuthenticatedFormFormIdEditRoute
   '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/bookings': typeof AuthenticatedBookingsRoute
+  '/_authenticated/forms': typeof AuthenticatedFormsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/select-organization': typeof AuthenticatedSelectOrganizationRoute
@@ -187,17 +230,22 @@ export interface FileRoutesById {
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/book/$formId': typeof BookFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
+  '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/_authenticated/superadmin/': typeof AuthenticatedSuperadminIndexRoute
+  '/_authenticated/form/$formId/edit': typeof AuthenticatedFormFormIdEditRoute
   '/_authenticated/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/billing'
+    | '/bookings'
+    | '/forms'
     | '/onboarding'
     | '/profile'
     | '/select-organization'
@@ -205,31 +253,41 @@ export interface FileRouteTypes {
     | '/superadmin'
     | '/team'
     | '/auth/signin'
+    | '/book/$formId'
     | '/invite/$invitationId'
+    | '/oauth2/accessCode'
     | '/'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/superadmin/'
+    | '/form/$formId/edit'
     | '/todos/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/billing'
+    | '/bookings'
+    | '/forms'
     | '/onboarding'
     | '/profile'
     | '/select-organization'
     | '/settings'
     | '/team'
     | '/auth/signin'
+    | '/book/$formId'
     | '/invite/$invitationId'
+    | '/oauth2/accessCode'
     | '/'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/superadmin'
+    | '/form/$formId/edit'
     | '/todos/$id/edit'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_authenticated/billing'
+    | '/_authenticated/bookings'
+    | '/_authenticated/forms'
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/_authenticated/select-organization'
@@ -237,18 +295,23 @@ export interface FileRouteTypes {
     | '/_authenticated/superadmin'
     | '/_authenticated/team'
     | '/auth/signin'
+    | '/book/$formId'
     | '/invite/$invitationId'
+    | '/oauth2/accessCode'
     | '/_authenticated/'
     | '/_authenticated/superadmin/users'
     | '/_authenticated/superadmin/workspaces'
     | '/_authenticated/superadmin/'
+    | '/_authenticated/form/$formId/edit'
     | '/_authenticated/todos/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthSigninRoute: typeof AuthSigninRoute
+  BookFormIdRoute: typeof BookFormIdRoute
   InviteInvitationIdRoute: typeof InviteInvitationIdRoute
+  Oauth2AccessCodeRoute: typeof Oauth2AccessCodeRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/health': typeof ApiHealthServerRoute
@@ -327,11 +390,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/oauth2/accessCode': {
+      id: '/oauth2/accessCode'
+      path: '/oauth2/accessCode'
+      fullPath: '/oauth2/accessCode'
+      preLoaderRoute: typeof Oauth2AccessCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invite/$invitationId': {
       id: '/invite/$invitationId'
       path: '/invite/$invitationId'
       fullPath: '/invite/$invitationId'
       preLoaderRoute: typeof InviteInvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$formId': {
+      id: '/book/$formId'
+      path: '/book/$formId'
+      fullPath: '/book/$formId'
+      preLoaderRoute: typeof BookFormIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/signin': {
@@ -383,6 +460,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/forms': {
+      id: '/_authenticated/forms'
+      path: '/forms'
+      fullPath: '/forms'
+      preLoaderRoute: typeof AuthenticatedFormsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/bookings': {
+      id: '/_authenticated/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AuthenticatedBookingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/billing': {
       id: '/_authenticated/billing'
       path: '/billing'
@@ -416,6 +507,13 @@ declare module '@tanstack/react-router' {
       path: '/todos/$id/edit'
       fullPath: '/todos/$id/edit'
       preLoaderRoute: typeof AuthenticatedTodosIdEditRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/form/$formId/edit': {
+      id: '/_authenticated/form/$formId/edit'
+      path: '/form/$formId/edit'
+      fullPath: '/form/$formId/edit'
+      preLoaderRoute: typeof AuthenticatedFormFormIdEditRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
@@ -488,6 +586,8 @@ const AuthenticatedSuperadminRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedBookingsRoute: typeof AuthenticatedBookingsRoute
+  AuthenticatedFormsRoute: typeof AuthenticatedFormsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSelectOrganizationRoute: typeof AuthenticatedSelectOrganizationRoute
@@ -495,11 +595,14 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRouteWithChildren
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedFormFormIdEditRoute: typeof AuthenticatedFormFormIdEditRoute
   AuthenticatedTodosIdEditRoute: typeof AuthenticatedTodosIdEditRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedBookingsRoute: AuthenticatedBookingsRoute,
+  AuthenticatedFormsRoute: AuthenticatedFormsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSelectOrganizationRoute: AuthenticatedSelectOrganizationRoute,
@@ -507,6 +610,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRouteWithChildren,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedFormFormIdEditRoute: AuthenticatedFormFormIdEditRoute,
   AuthenticatedTodosIdEditRoute: AuthenticatedTodosIdEditRoute,
 }
 
@@ -517,7 +621,9 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthSigninRoute: AuthSigninRoute,
+  BookFormIdRoute: BookFormIdRoute,
   InviteInvitationIdRoute: InviteInvitationIdRoute,
+  Oauth2AccessCodeRoute: Oauth2AccessCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

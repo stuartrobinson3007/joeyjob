@@ -1,127 +1,52 @@
 /**
  * Client-side permission checking hook
- * Provides synchronous permission checks based on user's role in the active organization
+ * Simplified for single-user organizations - all users are owners of their org
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
-import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { getRoleByName } from '@/lib/auth/roles-client'
-
-interface OrganizationMember {
-  id: string
-  userId: string
-  role: string
-  organizationId: string
-}
 
 export function useClientPermissions() {
   const { data: session } = useSession()
   const { activeOrganizationId } = useActiveOrganization()
-  const [memberRole, setMemberRole] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
 
   const user = session?.user
 
-  // Fetch the user's role in the active organization
-  useEffect(() => {
-    async function fetchMemberRole() {
-      if (!activeOrganizationId || !user?.id) {
-        setMemberRole(null)
-        setIsLoading(false)
-        return
-      }
-
-      setIsLoading(true)
-      try {
-        const response = await authClient.organization.listMembers({
-          query: { organizationId: activeOrganizationId },
-        })
-
-        // Handle different response structures from Better Auth
-        let membersArray: OrganizationMember[] = []
-
-        if (response && 'members' in response) {
-          membersArray = Array.isArray(response.members) ? response.members : []
-        } else if (response && 'data' in response) {
-          const data = response.data
-          if (Array.isArray(data)) {
-            membersArray = data
-          } else if (data && 'members' in data) {
-            membersArray = Array.isArray(data.members) ? data.members : []
-          }
-        } else if (Array.isArray(response)) {
-          membersArray = response
-        }
-
-        // Find the current user's membership
-        const currentUserMember = membersArray.find((m: OrganizationMember) => m.userId === user.id)
-        setMemberRole(currentUserMember?.role || null)
-      } catch (_error) {
-        // Failed to fetch member role, defaulting to null
-        setMemberRole(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchMemberRole()
-  }, [activeOrganizationId, user?.id])
-
-  // Create permission checking functions
+  // Create simplified permission functions
+  // In single-user mode, users have full permissions for their own organization
   const permissions = useMemo(() => {
-    const roleConfig = getRoleByName(memberRole)
+    const isAuthenticated = !!user && !!activeOrganizationId
 
-    // Check specific permission synchronously using local role definitions
-    const hasPermission = (resource: string, action: string | string[]): boolean => {
-      if (!memberRole || !roleConfig) {
-        return false
-      }
-
-      const actions = Array.isArray(action) ? action : [action]
-
-      // Check if the role has the required permissions
-      const roleStatements = roleConfig.statements
-      const resourcePermissions = roleStatements[resource as keyof typeof roleStatements]
-
-      if (!resourcePermissions) {
-        return false
-      }
-
-      // Check if all required actions are allowed
-      const hasAllPermissions = actions.every(
-        requiredAction =>
-          Array.isArray(resourcePermissions) && resourcePermissions.includes(requiredAction as 'view' | 'manage')
-      )
-
-      return hasAllPermissions
+    // All permissions return true for authenticated users in their own org
+    const hasPermission = (_resource: string, _action: string | string[]): boolean => {
+      return isAuthenticated
     }
 
-    // Todo-specific permissions
-    const canCreateTodo = () => hasPermission('todos', 'create')
-    const canReadTodo = () => hasPermission('todos', 'read')
-    const canUpdateTodo = () => hasPermission('todos', 'update')
-    const canDeleteTodo = () => hasPermission('todos', 'delete')
-    const canAssignTodo = () => hasPermission('todos', 'assign')
+    // Todo permissions - all allowed
+    const canCreateTodo = () => isAuthenticated
+    const canReadTodo = () => isAuthenticated
+    const canUpdateTodo = () => isAuthenticated
+    const canDeleteTodo = () => isAuthenticated
+    const canAssignTodo = () => isAuthenticated
 
-    // Member management permissions
-    const canManageMembers = () => hasPermission('member', ['create', 'update', 'delete'])
-    const canInviteMembers = () => hasPermission('invitation', 'create')
-    const canCancelInvitations = () => hasPermission('invitation', 'cancel')
+    // Member management permissions - disabled in single-user mode
+    const canManageMembers = () => false
+    const canInviteMembers = () => false
+    const canCancelInvitations = () => false
 
-    // Billing permissions
-    const canViewBilling = () => hasPermission('billing', 'view')
-    const canManageBilling = () => hasPermission('billing', 'manage')
+    // Billing permissions - all allowed
+    const canViewBilling = () => isAuthenticated
+    const canManageBilling = () => isAuthenticated
 
-    // Organization permissions
-    const canUpdateOrganization = () => hasPermission('organization', 'update')
-    const canDeleteOrganization = () => hasPermission('organization', 'delete')
+    // Organization permissions - all allowed
+    const canUpdateOrganization = () => isAuthenticated
+    const canDeleteOrganization = () => isAuthenticated
 
-    // Helper to check if user is admin or owner
-    const isAdmin = () => memberRole === 'admin' || memberRole === 'owner'
-    const isOwner = () => memberRole === 'owner'
+    // Role checks - all users are owners
+    const isAdmin = () => isAuthenticated
+    const isOwner = () => isAuthenticated
 
     return {
       // Generic permission check
@@ -134,7 +59,7 @@ export function useClientPermissions() {
       canDeleteTodo,
       canAssignTodo,
 
-      // Member permissions
+      // Member permissions (disabled)
       canManageMembers,
       canInviteMembers,
       canCancelInvitations,
@@ -152,10 +77,10 @@ export function useClientPermissions() {
       isOwner,
 
       // Raw data
-      role: memberRole,
-      isLoading,
+      role: isAuthenticated ? 'owner' : null,
+      isLoading: false,
     }
-  }, [memberRole, isLoading])
+  }, [user, activeOrganizationId])
 
   return permissions
 }

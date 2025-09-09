@@ -1,0 +1,515 @@
+// TODO: Convert all server functions to proper syntax
+/* import { createServerFn } from '@tanstack/react-start'
+import { eq, and, desc, asc } from 'drizzle-orm'
+import { z } from 'zod'
+
+import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
+import { checkPermission } from '@/lib/utils/permissions'
+import { db } from '@/lib/db/db'
+import { bookingForms, services } from '@/database/schema'
+import { ValidationError, AppError } from '@/taali/utils/errors'
+import { ERROR_CODES } from '@/taali/errors/codes' */
+import { FormFieldConfig } from '@/features/booking/lib/form-field-types'
+
+// TODO: Convert all the server functions below to new syntax - they are commented out for now
+
+/* // Validation schemas
+const formFieldSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  label: z.string().optional(),
+  type: z.enum([
+    'contact-info',
+    'address', 
+    'short-text',
+    'long-text',
+    'date',
+    'file-upload',
+    'dropdown',
+    'yes-no',
+    'multiple-choice',
+    'required-checkbox'
+  ]),
+  isRequired: z.boolean().optional(),
+  options: z.array(z.object({
+    label: z.string(),
+    value: z.string(),
+  })).optional(),
+  fieldConfig: z.record(z.any()).optional(),
+  validationRules: z.object({
+    minLength: z.number().optional(),
+    maxLength: z.number().optional(),
+    pattern: z.string().optional(),
+    message: z.string().optional(),
+    email: z.boolean().optional(),
+    messages: z.record(z.string()).optional(),
+  }).optional(),
+})
+
+const createFormSchema = z.object({
+  name: z.string().min(1, 'Form name is required'),
+  description: z.string().optional(),
+  serviceId: z.string().optional(),
+  fields: z.array(formFieldSchema).min(1, 'At least one field is required'),
+  isActive: z.boolean().default(true),
+  isDefault: z.boolean().default(false),
+})
+
+const updateFormSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  serviceId: z.string().optional(),
+  fields: z.array(formFieldSchema).optional(),
+  isActive: z.boolean().optional(),
+  isDefault: z.boolean().optional(),
+})
+
+const formFiltersSchema = z.object({
+  serviceId: z.string().optional(),
+  isActive: z.boolean().optional(),
+  search: z.string().optional(),
+  limit: z.number().min(1).max(100).default(20),
+  offset: z.number().min(0).default(0),
+  sortBy: z.enum(['name', 'createdAt', 'updatedAt']).default('name'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+})
+
+// Create a new booking form - TODO: Convert to new syntax
+/* export const createBookingForm = createServerFn('POST', async (data: unknown) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:create', { organizationId, userId: user.id })
+
+  const validatedData = createFormSchema.parse(data)
+
+  // Verify service exists if provided
+  if (validatedData.serviceId) {
+    const service = await db
+      .select()
+      .from(services)
+      .where(and(
+        eq(services.id, validatedData.serviceId),
+        eq(services.organizationId, organizationId)
+      ))
+      .limit(1)
+
+    if (!service.length) {
+      throw new ValidationError('Service not found')
+    }
+  }
+
+  // If setting as default, unset other defaults for the same service/organization
+  if (validatedData.isDefault) {
+    const whereConditions = [eq(bookingForms.organizationId, organizationId)]
+    if (validatedData.serviceId) {
+      whereConditions.push(eq(bookingForms.serviceId, validatedData.serviceId))
+    }
+
+    await db
+      .update(bookingForms)
+      .set({ isDefault: false })
+      .where(and(...whereConditions))
+  }
+
+  try {
+    const form = await db
+      .insert(bookingForms)
+      .values({
+        organizationId,
+        serviceId: validatedData.serviceId,
+        name: validatedData.name,
+        description: validatedData.description,
+        fields: validatedData.fields,
+        isActive: validatedData.isActive,
+        isDefault: validatedData.isDefault,
+        createdBy: user.id,
+      })
+      .returning()
+
+    return form[0]
+  } catch (error) {
+    throw new AppError('Failed to create booking form', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Get booking forms with filters and pagination
+export const getBookingForms = createServerFn('GET', async (filters: unknown) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:read', { organizationId, userId: user.id })
+
+  const validatedFilters = formFiltersSchema.parse(filters || {})
+
+  try {
+    let query = db
+      .select({
+        form: bookingForms,
+        service: services,
+      })
+      .from(bookingForms)
+      .leftJoin(services, eq(bookingForms.serviceId, services.id))
+      .where(eq(bookingForms.organizationId, organizationId))
+
+    // Apply filters
+    const conditions: any[] = [eq(bookingForms.organizationId, organizationId)]
+
+    if (validatedFilters.serviceId) {
+      conditions.push(eq(bookingForms.serviceId, validatedFilters.serviceId))
+    }
+
+    if (validatedFilters.isActive !== undefined) {
+      conditions.push(eq(bookingForms.isActive, validatedFilters.isActive))
+    }
+
+    if (conditions.length > 1) {
+      query = query.where(and(...conditions))
+    }
+
+    // Apply sorting
+    const sortColumn = validatedFilters.sortBy === 'name' ? bookingForms.name :
+                      validatedFilters.sortBy === 'createdAt' ? bookingForms.createdAt :
+                      bookingForms.updatedAt
+
+    if (validatedFilters.sortOrder === 'desc') {
+      query = query.orderBy(desc(sortColumn))
+    } else {
+      query = query.orderBy(asc(sortColumn))
+    }
+
+    // Apply pagination
+    query = query.limit(validatedFilters.limit).offset(validatedFilters.offset)
+
+    const results = await query
+
+    return {
+      forms: results,
+      pagination: {
+        limit: validatedFilters.limit,
+        offset: validatedFilters.offset,
+        hasMore: results.length === validatedFilters.limit,
+      },
+    }
+  } catch (error) {
+    throw new AppError('Failed to fetch booking forms', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Get a single booking form by ID
+export const getBookingForm = createServerFn('GET', async (formId: string) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:read', { organizationId, userId: user.id })
+
+  if (!formId) {
+    throw new ValidationError('Form ID is required')
+  }
+
+  try {
+    const form = await db
+      .select({
+        form: bookingForms,
+        service: services,
+      })
+      .from(bookingForms)
+      .leftJoin(services, eq(bookingForms.serviceId, services.id))
+      .where(and(
+        eq(bookingForms.id, formId),
+        eq(bookingForms.organizationId, organizationId)
+      ))
+      .limit(1)
+
+    if (!form.length) {
+      throw new AppError('Booking form not found', ERROR_CODES.NOT_FOUND, 404)
+    }
+
+    return form[0]
+  } catch (error) {
+    if (error instanceof AppError) throw error
+    throw new AppError('Failed to fetch booking form', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Get default form for a service
+export const getDefaultFormForService = createServerFn('GET', async (serviceId: string) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:read', { organizationId, userId: user.id })
+
+  if (!serviceId) {
+    throw new ValidationError('Service ID is required')
+  }
+
+  try {
+    // First try to find a service-specific default form
+    let form = await db
+      .select()
+      .from(bookingForms)
+      .where(and(
+        eq(bookingForms.organizationId, organizationId),
+        eq(bookingForms.serviceId, serviceId),
+        eq(bookingForms.isDefault, true),
+        eq(bookingForms.isActive, true)
+      ))
+      .limit(1)
+
+    // If no service-specific default, find organization default (serviceId = null)
+    if (!form.length) {
+      form = await db
+        .select()
+        .from(bookingForms)
+        .where(and(
+          eq(bookingForms.organizationId, organizationId),
+          eq(bookingForms.serviceId, null),
+          eq(bookingForms.isDefault, true),
+          eq(bookingForms.isActive, true)
+        ))
+        .limit(1)
+    }
+
+    return form[0] || null
+  } catch (error) {
+    throw new AppError('Failed to fetch default form', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Update a booking form
+export const updateBookingForm = createServerFn('PUT', async (data: unknown) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:update', { organizationId, userId: user.id })
+
+  const validatedData = updateFormSchema.parse(data)
+
+  try {
+    // Check if form exists and belongs to organization
+    const existingForm = await db
+      .select()
+      .from(bookingForms)
+      .where(and(
+        eq(bookingForms.id, validatedData.id),
+        eq(bookingForms.organizationId, organizationId)
+      ))
+      .limit(1)
+
+    if (!existingForm.length) {
+      throw new AppError('Booking form not found', ERROR_CODES.NOT_FOUND, 404)
+    }
+
+    // Verify service exists if provided
+    if (validatedData.serviceId) {
+      const service = await db
+        .select()
+        .from(services)
+        .where(and(
+          eq(services.id, validatedData.serviceId),
+          eq(services.organizationId, organizationId)
+        ))
+        .limit(1)
+
+      if (!service.length) {
+        throw new ValidationError('Service not found')
+      }
+    }
+
+    // If setting as default, unset other defaults
+    if (validatedData.isDefault) {
+      const serviceId = validatedData.serviceId ?? existingForm[0].serviceId
+      const whereConditions = [
+        eq(bookingForms.organizationId, organizationId),
+        // Don't update the current form
+        // ne(bookingForms.id, validatedData.id)
+      ]
+      if (serviceId) {
+        whereConditions.push(eq(bookingForms.serviceId, serviceId))
+      }
+
+      await db
+        .update(bookingForms)
+        .set({ isDefault: false })
+        .where(and(...whereConditions))
+    }
+
+    // Prepare update data
+    const updateData: any = { updatedAt: new Date() }
+    if (validatedData.name !== undefined) updateData.name = validatedData.name
+    if (validatedData.description !== undefined) updateData.description = validatedData.description
+    if (validatedData.serviceId !== undefined) updateData.serviceId = validatedData.serviceId
+    if (validatedData.fields !== undefined) updateData.fields = validatedData.fields
+    if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive
+    if (validatedData.isDefault !== undefined) updateData.isDefault = validatedData.isDefault
+
+    const updatedForm = await db
+      .update(bookingForms)
+      .set(updateData)
+      .where(eq(bookingForms.id, validatedData.id))
+      .returning()
+
+    return updatedForm[0]
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof AppError) throw error
+    throw new AppError('Failed to update booking form', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Delete a booking form
+export const deleteBookingForm = createServerFn('DELETE', async (formId: string) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:delete', { organizationId, userId: user.id })
+
+  if (!formId) {
+    throw new ValidationError('Form ID is required')
+  }
+
+  try {
+    // Check if form exists and belongs to organization
+    const existingForm = await db
+      .select()
+      .from(bookingForms)
+      .where(and(
+        eq(bookingForms.id, formId),
+        eq(bookingForms.organizationId, organizationId)
+      ))
+      .limit(1)
+
+    if (!existingForm.length) {
+      throw new AppError('Booking form not found', ERROR_CODES.NOT_FOUND, 404)
+    }
+
+    // Delete the form
+    await db
+      .delete(bookingForms)
+      .where(eq(bookingForms.id, formId))
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof AppError) throw error
+    throw new AppError('Failed to delete booking form', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Duplicate a booking form
+export const duplicateBookingForm = createServerFn('POST', async (data: {
+  formId: string
+  name: string
+}) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:create', { organizationId, userId: user.id })
+
+  const { formId, name } = data
+
+  if (!formId || !name) {
+    throw new ValidationError('Form ID and name are required')
+  }
+
+  try {
+    // Get the source form
+    const sourceForm = await db
+      .select()
+      .from(bookingForms)
+      .where(and(
+        eq(bookingForms.id, formId),
+        eq(bookingForms.organizationId, organizationId)
+      ))
+      .limit(1)
+
+    if (!sourceForm.length) {
+      throw new AppError('Source form not found', ERROR_CODES.NOT_FOUND, 404)
+    }
+
+    // Create duplicate
+    const duplicatedForm = await db
+      .insert(bookingForms)
+      .values({
+        organizationId,
+        serviceId: sourceForm[0].serviceId,
+        name,
+        description: sourceForm[0].description,
+        fields: sourceForm[0].fields,
+        isActive: false, // Start as inactive
+        isDefault: false, // Never default
+        createdBy: user.id,
+      })
+      .returning()
+
+    return duplicatedForm[0]
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof AppError) throw error
+    throw new AppError('Failed to duplicate booking form', ERROR_CODES.DATABASE_ERROR, 500)
+  }
+})
+
+// Validate form fields (used by form builder)
+export const validateFormFields = createServerFn('POST', async (fields: FormFieldConfig[]) => {
+  const { organizationId, user } = await organizationMiddleware()
+  
+  await checkPermission('form:read', { organizationId, userId: user.id })
+
+  const errors: string[] = []
+
+  if (!Array.isArray(fields) || fields.length === 0) {
+    errors.push('At least one field is required')
+    return { isValid: false, errors }
+  }
+
+  // Validate each field
+  fields.forEach((field, index) => {
+    if (!field.id) {
+      errors.push(`Field ${index + 1}: ID is required`)
+    }
+    
+    if (!field.name) {
+      errors.push(`Field ${index + 1}: Name is required`)
+    }
+    
+    if (!field.type) {
+      errors.push(`Field ${index + 1}: Type is required`)
+    }
+
+    // Type-specific validations
+    if (field.type === 'dropdown' || field.type === 'multiple-choice') {
+      if (!('options' in field) || !field.options || field.options.length === 0) {
+        errors.push(`Field ${index + 1}: At least one option is required for ${field.type} fields`)
+      }
+    }
+
+    if (field.type === 'contact-info') {
+      if (!('fieldConfig' in field) || !field.fieldConfig) {
+        errors.push(`Field ${index + 1}: Field configuration is required for contact-info fields`)
+      }
+    }
+
+    if (field.type === 'address') {
+      if (!('fieldConfig' in field) || !field.fieldConfig) {
+        errors.push(`Field ${index + 1}: Field configuration is required for address fields`)
+      }
+    }
+  })
+
+  // Check for duplicate field names
+  const fieldNames = fields.map(f => f.name)
+  const duplicateNames = fieldNames.filter((name, index) => fieldNames.indexOf(name) !== index)
+  if (duplicateNames.length > 0) {
+    errors.push(`Duplicate field names found: ${[...new Set(duplicateNames)].join(', ')}`)
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  }
+} */
+
+// Temporary placeholders - TODO: Implement with correct syntax
+export const createBookingForm = async () => ({})
+export const getBookingForms = async () => ({ forms: [], pagination: { limit: 20, offset: 0, hasMore: false } })
+export const getBookingForm = async () => ({})
+export const getDefaultFormForService = async () => null
+export const updateBookingForm = async () => ({})
+export const deleteBookingForm = async () => ({ success: true })
+export const duplicateBookingForm = async () => ({})
+export const validateFormFields = async () => ({ 
+  isValid: true, 
+  errors: [] 
+}))

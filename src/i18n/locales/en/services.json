@@ -1,0 +1,45 @@
+{
+  "title": "Services",
+  "description": "Manage the services your customers can book",
+  "new": {
+    "title": "Add Service", 
+    "description": "Create a new bookable service"
+  },
+  "actions": {
+    "addService": "Add Service",
+    "createService": "Create Service",
+    "editService": "Edit Service",
+    "deleteService": "Delete Service",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
+  },
+  "stats": {
+    "totalServices": "Total Services",
+    "activeServices": "Active Services", 
+    "averagePrice": "Average Price"
+  },
+  "fields": {
+    "name": "Service Name",
+    "description": "Description",
+    "category": "Category",
+    "duration": "Duration",
+    "price": "Price",
+    "status": "Status"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "tips": {
+    "clearDurations": "Set clear durations",
+    "clearDurationsDesc": "Include travel time in your service duration",
+    "useCategories": "Use categories",
+    "useCategoriesDesc": "Group similar services together for easier navigation", 
+    "competitivePricing": "Competitive pricing",
+    "competitivePricingDesc": "Research local rates to stay competitive"
+  },
+  "empty": {
+    "title": "No services yet",
+    "description": "Create your first service to start accepting bookings"
+  }
+}

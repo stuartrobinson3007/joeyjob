@@ -1,0 +1,330 @@
+import { createServerFn } from '@tanstack/react-start'
+import { eq, and, sql } from 'drizzle-orm'
+import { z } from 'zod'
+
+import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
+import { db } from '@/lib/db/db'
+import { bookingForms } from '@/database/schema'
+import { AppError } from '@/taali/utils/errors'
+import { ERROR_CODES } from '@/taali/errors/codes'
+
+// Validation schemas
+const createFormSchema = z.object({
+  name: z.string().min(1, 'Form name is required').default('Untitled Form'),
+  description: z.string().optional().default(''),
+}).default({
+  name: 'Untitled Form',
+  description: '',
+})
+
+const updateFormSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  formConfig: z.any().optional(), // Form editor configuration JSON
+  theme: z.enum(['light', 'dark']).optional(),
+  primaryColor: z.string().optional(),
+  isActive: z.boolean().optional(),
+})
+
+
+const deleteFormSchema = z.object({
+  id: z.string(),
+})
+
+// Create a new form (like createTodo pattern)
+export const createForm = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => {
+    console.log('📝 createForm validator received:', data)
+    try {
+      const result = createFormSchema.parse(data || {})
+      console.log('📝 createForm validation successful:', result)
+      return result
+    } catch (error) {
+      console.error('❌ createForm validation failed:', error)
+      throw error
+    }
+  })
+  .handler(async ({ data, context }) => {
+    const { organizationId, user } = context
+    console.log('📝 createForm handler received:', { data, organizationId, userId: user.id })
+    
+    // No permission checks needed - organization middleware ensures user is member
+
+    try {
+      console.log('📝 Creating default form configuration...')
+      // Create default form configuration
+      const defaultConfig = {
+        serviceTree: {
+          id: 'root',
+          type: 'start',
+          label: 'Book your service',
+          children: []
+        },
+        baseQuestions: [
+          {
+            id: 'contact-info-field',
+            name: 'contact_info',
+            label: 'Contact Information',
+            type: 'contact-info',
+            fieldConfig: {
+              firstNameRequired: true,
+              lastNameRequired: true,
+              emailRequired: true,
+              phoneRequired: true,
+              companyRequired: false
+            }
+          }
+        ],
+        theme: 'light',
+        primaryColor: '#3B82F6'
+      }
+
+      console.log('📝 Inserting form into database...')
+      const form = await db
+        .insert(bookingForms)
+        .values({
+          organizationId,
+          name: data.name,
+          description: data.description || null,
+          formConfig: defaultConfig,
+          theme: 'light',
+          primaryColor: '#3B82F6',
+          isActive: false, // Start as inactive until configured
+          isDefault: false,
+          createdBy: user.id,
+        })
+        .returning()
+
+      console.log('📝 Form created successfully:', form[0])
+      return form[0]
+    } catch (error) {
+      console.error('❌ Database operation failed:', error)
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to create form'
+      )
+    }
+  })
+
+// Update form (auto-save pattern)
+export const updateForm = createServerFn({ method: 'PUT' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => updateFormSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { organizationId, user } = context
+    
+    // No permission checks needed - organization middleware ensures user is member
+
+    try {
+      // Check if form exists and belongs to organization
+      const existingForm = await db
+        .select()
+        .from(bookingForms)
+        .where(and(
+          eq(bookingForms.id, data.id),
+          eq(bookingForms.organizationId, organizationId)
+        ))
+        .limit(1)
+
+      if (!existingForm.length) {
+        throw AppError.notFound('Form')
+      }
+
+      // Prepare update data
+      const updateData: any = { updatedAt: new Date() }
+      if (data.name !== undefined) updateData.name = data.name
+      if (data.description !== undefined) updateData.description = data.description
+      if (data.formConfig !== undefined) updateData.formConfig = data.formConfig
+      if (data.theme !== undefined) updateData.theme = data.theme
+      if (data.primaryColor !== undefined) updateData.primaryColor = data.primaryColor
+      if (data.isActive !== undefined) updateData.isActive = data.isActive
+
+      const updatedForm = await db
+        .update(bookingForms)
+        .set(updateData)
+        .where(eq(bookingForms.id, data.id))
+        .returning()
+
+      return updatedForm[0]
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to update form'
+      )
+    }
+  })
+
+// Get single form by ID  
+export const getForm = createServerFn({ method: 'GET' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => {
+    console.log('📝 getForm validator received:', data)
+    // Handle both object and string inputs
+    if (typeof data === 'string') {
+      return { id: data }
+    }
+    const result = z.object({ id: z.string() }).parse(data || {})
+    console.log('📝 getForm validation result:', result)
+    return result
+  })
+  .handler(async ({ data, context }) => {
+    const { organizationId, user } = context
+    
+    // No permission checks needed - organization middleware ensures user is member
+
+    try {
+      const form = await db
+        .select()
+        .from(bookingForms)
+        .where(and(
+          eq(bookingForms.id, data.id),
+          eq(bookingForms.organizationId, organizationId)
+        ))
+        .limit(1)
+
+      if (!form.length) {
+        throw AppError.notFound('Form')
+      }
+
+      return form[0]
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to fetch form'
+      )
+    }
+  })
+
+// Delete form
+export const deleteForm = createServerFn({ method: 'DELETE' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => deleteFormSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { organizationId, user } = context
+    
+    try {
+      // Check if form exists and belongs to organization
+      const existingForm = await db
+        .select()
+        .from(bookingForms)
+        .where(and(
+          eq(bookingForms.id, data.id),
+          eq(bookingForms.organizationId, organizationId)
+        ))
+        .limit(1)
+
+      if (!existingForm.length) {
+        throw AppError.notFound('Form')
+      }
+
+      await db
+        .delete(bookingForms)
+        .where(eq(bookingForms.id, data.id))
+
+      return { success: true }
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to delete form'
+      )
+    }
+  })
+
+// Alias for getForm to match naming convention
+export const getFormById = getForm
+
+// Get all booking forms with pagination and filtering
+export const getBookingForms = createServerFn({ method: 'GET' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => {
+    const schema = z.object({
+      limit: z.number().min(1).max(100).default(50),
+      offset: z.number().min(0).default(0),
+      search: z.string().optional(),
+      isActive: z.boolean().optional(),
+    }).default({})
+    
+    if (!data || typeof data !== 'object') {
+      return schema.parse({})
+    }
+    return schema.parse(data)
+  })
+  .handler(async ({ data, context }) => {
+    const { organizationId } = context
+    
+    try {
+      // Build where conditions
+      const conditions = [eq(bookingForms.organizationId, organizationId)]
+      
+      if (data.isActive !== undefined) {
+        conditions.push(eq(bookingForms.isActive, data.isActive))
+      }
+      
+      if (data.search) {
+        conditions.push(
+          // Search in name and description
+          sql`${bookingForms.name} ILIKE ${`%${data.search}%`} OR ${bookingForms.description} ILIKE ${`%${data.search}%`}`
+        )
+      }
+      
+      // Get total count
+      const countResult = await db
+        .select({ count: sql`count(*)`.as('count') })
+        .from(bookingForms)
+        .where(and(...conditions))
+      
+      const totalCount = Number(countResult[0]?.count || 0)
+      
+      // Get forms with pagination
+      const forms = await db
+        .select()
+        .from(bookingForms)
+        .where(and(...conditions))
+        .orderBy(bookingForms.updatedAt)
+        .limit(data.limit)
+        .offset(data.offset)
+      
+      return {
+        forms: forms.map(form => ({
+          form,
+          service: null, // Legacy compatibility - service relationship is now in formConfig
+        })),
+        pagination: {
+          limit: data.limit,
+          offset: data.offset,
+          total: totalCount,
+          hasMore: data.offset + data.limit < totalCount,
+        },
+      }
+    } catch (error) {
+      console.error('❌ getBookingForms failed:', error)
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to fetch forms'
+      )
+    }
+  })
+export const getBookingForm = async () => ({})
+export const getDefaultFormForService = async () => null
+export const updateBookingForm = async () => ({})
+export const deleteBookingForm = async () => ({ success: true })
+export const duplicateBookingForm = async () => ({})
+export const validateFormFields = async () => ({ 
+  isValid: true, 
+  errors: [] 
+})

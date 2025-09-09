@@ -2,9 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Navigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 
-import { MagicLinkSignIn } from '@/features/auth/components/magic-link-sign-in'
-import { GoogleSignIn } from '@/features/auth/components/google-sign-in'
-import { GitHubSignIn } from '@/features/auth/components/github-sign-in'
+import { SimProSignIn } from '@/features/auth/components/simpro-sign-in'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 
@@ -36,25 +34,8 @@ function SignInPage() {
           <p className="text-muted-foreground mt-2">{t('signin.subtitle')}</p>
         </div>
 
-        <div className="bg-card p-8 rounded-xl shadow-lg space-y-6">
-          <div>
-            <h2 className="text-lg font-medium mb-4">{t('signin.emailLabel')}</h2>
-            <MagicLinkSignIn />
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted-foreground">{t('signin.or')}</span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <GoogleSignIn />
-            <GitHubSignIn />
-          </div>
+        <div className="bg-card p-8 rounded-xl shadow-lg">
+          <SimProSignIn />
         </div>
 
         <p className="text-center text-sm text-muted-foreground">

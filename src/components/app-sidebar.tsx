@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useRouterState, Link } from '@tanstack/react-router'
-import { CheckSquare, Users, Settings, CreditCard } from 'lucide-react'
+import { Calendar, FileText, Settings, CreditCard } from 'lucide-react'
 
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import {
@@ -93,23 +93,23 @@ export function AppSidebar() {
     fetchMemberRole()
   }, [activeOrganizationId, user?.id])
 
-  // Define navigation items with proper hook-based translations
+  // Navigation with Bookings as homepage, Forms as primary tool
   const navigationItems = [
     {
-      title: t('navigation.todos'),
-      url: '/',
-      icon: CheckSquare,
+      title: 'Bookings',
+      url: '/bookings',
+      icon: Calendar,
       requiresPermission: null, // Everyone can access
     },
     {
-      title: t('navigation.team'),
-      url: '/team',
-      icon: Users,
-      requiresPermission: null, // Everyone can access (with different capabilities)
+      title: 'Forms',
+      url: '/forms',
+      icon: FileText,
+      requiresPermission: null, // Everyone can access
     },
     {
       title: t('navigation.billing'),
-      url: '/billing',
+      url: '/billing', 
       icon: CreditCard,
       requiresPermission: 'billing',
     },
