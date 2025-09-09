@@ -61,10 +61,9 @@ export const getAdminUsersTable = createServerFn({ method: 'POST' })
     const offset = pageIndex * pageSize
     const searchTerm = data.search || ''
 
-    try {
-      // Use direct database query for proper server-side performance
+    // Use direct database query for proper server-side performance
 
-      // Build all conditions first
+    // Build all conditions first
       const conditions: SQL[] = []
       if (searchTerm) {
         const searchCondition = or(
@@ -196,15 +195,7 @@ export const getAdminUsersTable = createServerFn({ method: 'POST' })
       }
 
 
-      return response
-    } catch (_error) {
-      // Return empty result on error
-      return {
-        data: [],
-        totalCount: 0,
-        pageCount: 0,
-      }
-    }
+    return response
   })
 
 export const getAdminUserStats = createServerFn({ method: 'GET' })
@@ -215,8 +206,7 @@ export const getAdminUserStats = createServerFn({ method: 'GET' })
       throw AppError.forbidden('Superadmin access required')
     }
 
-    try {
-      // Get total users count
+    // Get total users count
       const totalUsersResult = await db.select({ count: count(user.id) }).from(user)
 
       // Get active users count (not banned)
@@ -235,13 +225,5 @@ export const getAdminUserStats = createServerFn({ method: 'GET' })
         totalUsers: Number(totalUsersResult[0]?.count || 0),
         activeUsers: Number(activeUsersResult[0]?.count || 0),
         bannedUsers: Number(bannedUsersResult[0]?.count || 0),
-      }
-    } catch (_error) {
-      // Return zero stats on error
-      return {
-        totalUsers: 0,
-        activeUsers: 0,
-        bannedUsers: 0,
-      }
     }
   })

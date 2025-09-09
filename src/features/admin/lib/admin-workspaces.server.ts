@@ -54,10 +54,9 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
     const searchTerm = data.search || ''
 
 
-    try {
-      // Use direct database query for proper server-side performance
+    // Use direct database query for proper server-side performance
 
-      // Build base query - get all organizations first, then get owner info
+    // Build base query - get all organizations first, then get owner info
       // Step 1: Get all organizations with member count
       let workspacesQuery = db.select({
         id: organization.id,
@@ -263,15 +262,7 @@ export const getAdminWorkspacesTable = createServerFn({ method: 'POST' })
       }
 
 
-      return response
-    } catch (_error) {
-      // Return empty result on error
-      return {
-        data: [],
-        totalCount: 0,
-        pageCount: 0
-      }
-    }
+    return response
   })
 
 export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
@@ -282,8 +273,7 @@ export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
       throw AppError.forbidden('Superadmin access required')
     }
 
-    try {
-      // Get total organizations count
+    // Get total organizations count
       const totalOrgsResult = await db.select({ count: count(organization.id) }).from(organization)
 
       // Get organizations count by plan
@@ -309,14 +299,5 @@ export const getAdminWorkspaceStats = createServerFn({ method: 'GET' })
         freeOrganizations: freeOrgs,
         proOrganizations: proOrgs,
         businessOrganizations: businessOrgs
-      }
-    } catch (_error) {
-      // Return zero stats on error
-      return {
-        totalOrganizations: 0,
-        freeOrganizations: 0,
-        proOrganizations: 0,
-        businessOrganizations: 0
-      }
     }
   })
