@@ -19,6 +19,10 @@ export const NAMESPACES = [
   'settings',
   'invitations',
   'email',
+  'bookings',
+  'booking',
+  'services',
+  'forms',
 ] as const
 
 export type Language = keyof typeof LANGUAGES

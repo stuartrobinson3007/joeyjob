@@ -1,0 +1,43 @@
+{
+  "title": "Formularios",
+  "description": "Crea y gestiona formularios de reserva para tus servicios",
+  "new": {
+    "title": "Crear Formulario",
+    "description": "Construye un formulario personalizado para recopilar información del cliente",
+    "formName": "Nombre del Formulario",
+    "formDescription": "Descripción",
+    "associatedService": "Servicio Asociado",
+    "allServices": "Todos los Servicios",
+    "active": "Activo",
+    "setAsDefault": "Establecer como predeterminado"
+  },
+  "builder": {
+    "title": "Constructor de Formularios",
+    "noFields": "Aún no se han agregado campos",
+    "addFieldPrompt": "Haz clic en \"Agregar Campo\" para comenzar a construir tu formulario",
+    "preview": "Vista previa",
+    "previewTitle": "Vista Previa del Formulario",
+    "previewDescription": "Así es como tu formulario aparecerá a los clientes"
+  },
+  "actions": {
+    "createForm": "Crear Formulario",
+    "addField": "Agregar Campo",
+    "save": "Guardar Formulario",
+    "cancel": "Cancelar",
+    "preview": "Vista previa",
+    "edit": "Editar",
+    "duplicate": "Duplicar",
+    "delete": "Eliminar"
+  },
+  "fields": {
+    "count": "{{count}} campos"
+  },
+  "tips": {
+    "keepSimple": "Mantenlo simple",
+    "keepSimpleDesc": "Solo pide la información que realmente necesitas",
+    "clearLabels": "Usa etiquetas claras", 
+    "clearLabelsDesc": "Asegúrate de que los nombres de los campos sean fáciles de entender",
+    "testForm": "Prueba tu formulario",
+    "testFormDesc": "Usa la vista previa para ver cómo lo experimentarán los clientes"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "title": "Reservas",
+  "fields": {
+    "dateTime": "Fecha y Hora",
+    "date": "Fecha",
+    "time": "Hora",
+    "customerName": "Cliente",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "service": "Servicio",
+    "status": "Estado",
+    "duration": "Duración",
+    "price": "Precio",
+    "notes": "Notas",
+    "internalNotes": "Notas internas",
+    "confirmationCode": "Código de confirmación",
+    "source": "Fuente",
+    "createdAt": "Creado",
+    "updatedAt": "Actualizado"
+  },
+  "status": {
+    "pending": "Pendiente",
+    "confirmed": "Confirmado",
+    "completed": "Completado",
+    "cancelled": "Cancelado",
+    "noShow": "No presentado"
+  },
+  "source": {
+    "web": "Web",
+    "api": "API",
+    "admin": "Admin"
+  },
+  "filters": {
+    "search": "Buscar reservas...",
+    "status": "Estado",
+    "service": "Servicio",
+    "dateRange": "Rango de fechas",
+    "from": "Desde",
+    "to": "Hasta",
+    "clearFilters": "Limpiar filtros"
+  },
+  "details": {
+    "title": "Detalles de la reserva",
+    "customerInfo": "Información del cliente",
+    "bookingInfo": "Información de la reserva",
+    "serviceInfo": "Información del servicio",
+    "formData": "Envío de formulario",
+    "metadata": "Metadatos",
+    "noFormData": "No hay datos de formulario disponibles",
+    "reminderSent": "Recordatorio enviado",
+    "reminderNotSent": "No se envió recordatorio",
+    "labels": {
+      "name": "Nombre:",
+      "email": "Correo:",
+      "phone": "Teléfono:",
+      "date": "Fecha:",
+      "time": "Hora:",
+      "duration": "Duración:",
+      "status": "Estado:",
+      "price": "Precio:",
+      "service": "Servicio:",
+      "description": "Descripción:",
+      "customerNotes": "Notas del cliente:",
+      "internalNotes": "Notas internas:",
+      "source": "Fuente:",
+      "created": "Creado:",
+      "lastUpdated": "Última actualización:",
+      "form": "Formulario:",
+      "createdBy": "Creado por:"
+    }
+  },
+  "empty": {
+    "title": "No se encontraron reservas",
+    "description": "No hay reservas que coincidan con tus filtros."
+  },
+  "duration": {
+    "minutes": "{{count}} min",
+    "hours": "{{hours}}h {{minutes}}m"
+  }
+}

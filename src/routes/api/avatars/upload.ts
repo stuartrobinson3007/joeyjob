@@ -1,14 +1,17 @@
 import { createServerFileRoute } from '@tanstack/react-start/server'
-import { eq } from 'drizzle-orm'
+// import { eq } from 'drizzle-orm'
 
-import { createLocalStorageService } from '@/lib/storage/local-storage-service'
-import { ImageProcessor } from '@/lib/storage/image-processor'
-import { auth } from '@/lib/auth/auth'
-import { db } from '@/lib/db/db'
-import { user } from '@/database/schema'
+// import { createLocalStorageService } from '@/lib/storage/local-storage-service'
+// import { ImageProcessor } from '@/lib/storage/image-processor'
+// import { auth } from '@/lib/auth/auth'
+// import { db } from '@/lib/db/db'
+// import { user } from '@/database/schema'
 
 export const ServerRoute = createServerFileRoute('/api/avatars/upload').methods({
   POST: async ({ request }) => {
+    // Temporarily disabled to debug Buffer issue
+    return Response.json({ error: 'Avatar upload temporarily disabled' }, { status: 503 })
+    
     try {
       // Authenticate user
       const session = await auth.api.getSession({
@@ -51,18 +54,21 @@ export const ServerRoute = createServerFileRoute('/api/avatars/upload').methods(
 
       // Convert file to buffer
       const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
+      // Commented out Buffer usage to fix client-side error
+      // const buffer = Buffer.from(arrayBuffer)
+      const buffer = new Uint8Array(arrayBuffer) as any
 
       // Validate that it's actually an image
-      const isValidImage = await ImageProcessor.validateImage(buffer)
-      if (!isValidImage) {
-        return Response.json({ error: 'File is not a valid image' }, { status: 400 })
-      }
+      // const isValidImage = await ImageProcessor.validateImage(buffer)
+      // if (!isValidImage) {
+      //   return Response.json({ error: 'File is not a valid image' }, { status: 400 })
+      // }
 
       // Skip dimension validation for avatars since we'll resize them anyway
 
       // Process the image (resize, compress, etc.)
-      const processed = await ImageProcessor.processAvatar(buffer)
+      // const processed = await ImageProcessor.processAvatar(buffer)
+      const processed = { buffer: buffer }
 
       // Get current user's avatar to delete old one
       const currentUser = await db.select().from(user).where(eq(user.id, session.user.id)).limit(1)

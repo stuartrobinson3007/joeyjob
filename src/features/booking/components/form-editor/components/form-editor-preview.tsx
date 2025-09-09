@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/taali/lib/utils";
 import React, { ReactNode } from "react";
 
 interface FormEditorPreviewProps {

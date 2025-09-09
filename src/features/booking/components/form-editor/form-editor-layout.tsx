@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ScrollArea } from "@/ui/scroll-area";
 import { FlowNode, NodeType, FormFlowTree } from "@/features/booking/components/form-editor/form-flow-tree";
-import BookingFlow from "@/components/BookingFlow";
+import BookingFlow from "./booking-flow";
 import FormEditorHeader from "./components/form-editor-header";
 import FormEditorPreview from "./components/form-editor-preview";
 import RootView from "./views/root-view";
@@ -15,9 +15,9 @@ import ServiceQuestionsView from "./views/service-questions-view";
 import GroupDetailsView from "./views/group-details-view";
 import { useFormEditorState, NavigationLevel, ServiceDetailView } from "@/features/booking/components/form-editor/hooks/use-form-editor-state";
 import { FormEditorDataProvider } from "@/features/booking/components/form-editor/context/form-editor-data-context";
-import useFormEditorData from "@/features/booking/components/form-editor/hooks/use-form-editor-data";
+import useFormEditorData from "./hooks/use-form-editor-data";
 import { ReactNode, useCallback, useEffect, useState, useRef } from "react";
-import { BookingState } from "@/components/BookingFlow";
+// TODO: Import BookingState from the new booking-flow component\n// import { BookingState } from "./booking-flow";
 import { useForm, UseFormReturn } from "react-hook-form";
 import {
     FormFieldConfig,
@@ -32,11 +32,10 @@ import {
 } from '@/features/booking/lib/form-field-types';
 import {
     fieldTypeLabels
-} from '@/components/FormFieldEditor';
-// TODO: Replace with new API hooks
-// import { BookingForm } from '@/lib/apiClient';
-// import { useUpdateForm } from '@/hooks/useForms';
-// import { useServices, useCreateService, useUpdateService, useDeleteService } from '@/hooks/useServices';
+} from './form-field-editor';
+// Import new API hooks
+import { useServices, useCreateService, useUpdateService, useDeleteService } from '@/features/booking/hooks/use-services';
+import { useUpdateForm } from '@/features/booking/hooks/use-forms';
 
 interface FormEditorLayoutProps {
     children?: ReactNode;

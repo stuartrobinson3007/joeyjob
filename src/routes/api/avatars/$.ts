@@ -1,11 +1,14 @@
-import path from 'path'
+// import path from 'path'
 
 import { createServerFileRoute } from '@tanstack/react-start/server'
 
-import { createLocalStorageService } from '@/lib/storage/local-storage-service'
+// import { createLocalStorageService } from '@/lib/storage/local-storage-service'
 
 export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
   GET: async ({ params }) => {
+    // Temporarily disabled to debug Buffer issue
+    return new Response('Avatar serving temporarily disabled', { status: 503 })
+    
     try {
       const storage = createLocalStorageService()
       const filePath = params._splat || ''
@@ -45,14 +48,16 @@ export const ServerRoute = createServerFileRoute('/api/avatars/$').methods({
       const contentType = metadata?.contentType || contentTypeMap[ext] || 'application/octet-stream'
 
       // Return file with appropriate headers
-      return new Response(Buffer.from(buffer), {
-        status: 200,
-        headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=2592000', // Cache for 30 days
-          'Content-Length': buffer.length.toString(),
-        },
-      })
+      // Commented out Buffer usage to fix client-side error
+      // return new Response(Buffer.from(buffer), {
+      //   status: 200,
+      //   headers: {
+      //     'Content-Type': contentType,
+      //     'Cache-Control': 'public, max-age=2592000', // Cache for 30 days
+      //     'Content-Length': buffer.length.toString(),
+      //   },
+      // })
+      return new Response('Avatar serving temporarily disabled', { status: 503 })
     } catch (_error) {
       // Error serving avatar - returning error response
       return new Response('Internal server error', { status: 500 })

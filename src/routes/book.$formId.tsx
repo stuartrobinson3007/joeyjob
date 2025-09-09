@@ -3,19 +3,22 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer'
-import { getBookingForm } from '@/features/booking/lib/forms.server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Button } from '@/ui/button'
 import { Form } from '@/ui/form'
 import { toast } from 'sonner'
+
+// Note: Server function will be called dynamically in the loader
+// to avoid bundling server code into client
 
 export const Route = createFileRoute('/book/$formId')({
   component: CustomerBookingPage,
   loader: async ({ params }) => {
     // This is a public route - no auth required for customers
     try {
-      // Get form configuration  
-      const formData = await getBookingForm(params.formId)
+      // Dynamically import and call the server function
+      const { getBookingForm } = await import('@/features/booking/lib/forms.server')
+      const formData = await getBookingForm({ data: { id: params.formId } })
       
       if (!formData || !formData.form.isActive) {
         throw new Error('Booking form not found or inactive')
@@ -121,8 +124,8 @@ function CustomerBookingPage() {
                 {formFields.map((fieldConfig) => (
                   <FormFieldRenderer
                     key={fieldConfig.id}
-                    fieldConfig={fieldConfig}
-                    form={formHook}
+                    field={fieldConfig}
+                    control={formHook.control}
                   />
                 ))}
                 

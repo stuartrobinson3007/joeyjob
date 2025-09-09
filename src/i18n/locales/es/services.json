@@ -1,0 +1,45 @@
+{
+  "title": "Servicios",
+  "description": "Gestiona los servicios que tus clientes pueden reservar",
+  "new": {
+    "title": "Agregar Servicio", 
+    "description": "Crear un nuevo servicio reservable"
+  },
+  "actions": {
+    "addService": "Agregar Servicio",
+    "createService": "Crear Servicio",
+    "editService": "Editar Servicio",
+    "deleteService": "Eliminar Servicio",
+    "activate": "Activar",
+    "deactivate": "Desactivar"
+  },
+  "stats": {
+    "totalServices": "Total de Servicios",
+    "activeServices": "Servicios Activos", 
+    "averagePrice": "Precio Promedio"
+  },
+  "fields": {
+    "name": "Nombre del Servicio",
+    "description": "Descripción",
+    "category": "Categoría",
+    "duration": "Duración",
+    "price": "Precio",
+    "status": "Estado"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo"
+  },
+  "tips": {
+    "clearDurations": "Establece duraciones claras",
+    "clearDurationsDesc": "Incluye el tiempo de viaje en la duración de tu servicio",
+    "useCategories": "Usa categorías",
+    "useCategoriesDesc": "Agrupa servicios similares para facilitar la navegación", 
+    "competitivePricing": "Precios competitivos",
+    "competitivePricingDesc": "Investiga las tarifas locales para mantenerte competitivo"
+  },
+  "empty": {
+    "title": "Sin servicios aún",
+    "description": "Crea tu primer servicio para comenzar a aceptar reservas"
+  }
+}

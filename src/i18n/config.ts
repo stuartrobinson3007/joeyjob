@@ -17,6 +17,10 @@ import enProfile from './locales/en/profile.json'
 import enSettings from './locales/en/settings.json'
 import enInvitations from './locales/en/invitations.json'
 import enEmail from './locales/en/email.json'
+import enBookings from './locales/en/bookings.json'
+import enBooking from './locales/en/booking.json'
+import enServices from './locales/en/services.json'
+import enForms from './locales/en/forms.json'
 import esCommon from './locales/es/common.json'
 import esAuth from './locales/es/auth.json'
 import esTodos from './locales/es/todos.json'
@@ -30,6 +34,10 @@ import esProfile from './locales/es/profile.json'
 import esSettings from './locales/es/settings.json'
 import esInvitations from './locales/es/invitations.json'
 import esEmail from './locales/es/email.json'
+import esBookings from './locales/es/bookings.json'
+import esBooking from './locales/es/booking.json'
+import esServices from './locales/es/services.json'
+import esForms from './locales/es/forms.json'
 
 export const defaultNS = 'common'
 
@@ -48,6 +56,10 @@ export const resources = {
     settings: enSettings,
     invitations: enInvitations,
     email: enEmail,
+    bookings: enBookings,
+    booking: enBooking,
+    services: enServices,
+    forms: enForms,
   },
   es: {
     common: esCommon,
@@ -63,6 +75,10 @@ export const resources = {
     settings: esSettings,
     invitations: esInvitations,
     email: esEmail,
+    bookings: esBookings,
+    booking: esBooking,
+    services: esServices,
+    forms: esForms,
   },
 } as const
 

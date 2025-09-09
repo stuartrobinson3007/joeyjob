@@ -1,13 +1,16 @@
 import { createServerFileRoute } from '@tanstack/react-start/server'
 import { eq } from 'drizzle-orm'
 
-import { createLocalStorageService } from '@/lib/storage/local-storage-service'
+// import { createLocalStorageService } from '@/lib/storage/local-storage-service'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { user } from '@/database/schema'
 
 export const ServerRoute = createServerFileRoute('/api/avatars/delete').methods({
   DELETE: async ({ request }) => {
+    // Temporarily disabled to debug Buffer issue
+    return Response.json({ error: 'Avatar deletion temporarily disabled' }, { status: 503 })
+    
     try {
       // Authenticate user
       const session = await auth.api.getSession({

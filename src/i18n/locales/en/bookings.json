@@ -48,7 +48,26 @@
     "metadata": "Metadata",
     "noFormData": "No form data available",
     "reminderSent": "Reminder sent",
-    "reminderNotSent": "No reminder sent"
+    "reminderNotSent": "No reminder sent",
+    "labels": {
+      "name": "Name:",
+      "email": "Email:",
+      "phone": "Phone:",
+      "date": "Date:",
+      "time": "Time:",
+      "duration": "Duration:",
+      "status": "Status:",
+      "price": "Price:",
+      "service": "Service:",
+      "description": "Description:",
+      "customerNotes": "Customer Notes:",
+      "internalNotes": "Internal Notes:",
+      "source": "Source:",
+      "created": "Created:",
+      "lastUpdated": "Last Updated:",
+      "form": "Form:",
+      "createdBy": "Created By:"
+    }
   },
   "empty": {
     "title": "No bookings found",

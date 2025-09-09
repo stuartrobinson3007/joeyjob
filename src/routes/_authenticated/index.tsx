@@ -45,8 +45,10 @@ function BookingsListPage() {
     setIsCreating(true)
     try {
       const created = await createForm({
-        name: 'Untitled Form',
-        description: '',
+        data: {
+          name: 'Untitled Form',
+          description: '',
+        }
       })
 
       showSuccess('Form created')

@@ -319,7 +319,39 @@ export const getBookingForms = createServerFn({ method: 'GET' })
       )
     }
   })
-export const getBookingForm = async () => ({})
+// Get public booking form (no auth required)
+export const getBookingForm = createServerFn({ method: 'GET' })
+  .validator((data: unknown) => {
+    const schema = z.object({
+      id: z.string(),
+    })
+    return schema.parse(data)
+  })
+  .handler(async ({ data }) => {
+    // This is for the public booking form - no organization middleware needed
+    const form = await db
+      .select()
+      .from(bookingForms)
+      .where(and(
+        eq(bookingForms.id, data.id),
+        eq(bookingForms.isActive, true)
+      ))
+      .limit(1)
+
+    if (!form.length) {
+      throw new AppError(
+        ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        404,
+        undefined,
+        'Booking form not found or inactive'
+      )
+    }
+
+    return {
+      form: form[0],
+      service: null // Legacy compatibility
+    }
+  })
 export const getDefaultFormForService = async () => null
 export const updateBookingForm = async () => ({})
 export const deleteBookingForm = async () => ({ success: true })

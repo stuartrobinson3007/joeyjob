@@ -32,10 +32,12 @@
     "copy": "Copiar",
     "paste": "Pegar",
     "signOut": "Cerrar Sesión",
+    "id": "ID",
     "markComplete": "Marcar como completa",
     "undo": "Deshacer",
     "invite": "Invitar",
-    "done": "Hecho"
+    "done": "Hecho",
+    "reset": "Restablecer"
   },
   "states": {
     "loading": "Cargando...",
@@ -83,7 +85,8 @@
     "required": "Este campo es obligatorio",
     "optional": "Opcional",
     "deleted": "Eliminado exitosamente",
-    "restored": "Restaurado exitosamente"
+    "restored": "Restaurado exitosamente",
+    "emptyValue": "-"
   },
   "pagination": {
     "previous": "Anterior",
@@ -123,7 +126,9 @@
     "somethingWrong": "Algo salió mal",
     "unexpectedError": "Ocurrió un error inesperado. Por favor, intenta actualizar la página.",
     "tryAgain": "Intentar de Nuevo",
-    "notFound": "404 -"
+    "notFound": "404 -",
+    "noOrganization": "No Hay Organización Seleccionada",
+    "noOrganizationDescription": "Por favor selecciona una organización para continuar"
   },
   "organization": {
     "selectWorkspace": "Seleccionar espacio de trabajo",
@@ -179,7 +184,10 @@
     "notAvailable": "N/D",
     "allItemsSelected": "Todos los {{count}} elementos seleccionados",
     "itemsSelected": "{{selected}} de {{total}} elementos seleccionados",
-    "selectAllItems": "Seleccionar todos los {{total}} elementos"
+    "selectAllItems": "Seleccionar todos los {{total}} elementos",
+    "noResults": "Sin resultados.",
+    "resultsFound": "{{count}} resultados encontrados",
+    "results": "{{count}} resultados"
   },
   "app": {
     "title": "JoeyJob",
@@ -198,7 +206,8 @@
   "theme": {
     "light": "Claro",
     "dark": "Oscuro",
-    "system": "Sistema"
+    "system": "Sistema",
+    "title": "Tema"
   },
   "accessibility": {
     "close": "Cerrar",

@@ -3,7 +3,7 @@ import { ChevronLeft, ArrowRight, Clock, MapPin } from 'lucide-react';
 import { Button } from '@/ui/button';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { Form } from '@/ui/form';
-import { cn } from '@/lib/utils';
+import { cn } from '@/taali/lib/utils';
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer';
 import { FormFieldConfig as StandardFormFieldConfig } from '@/features/booking/lib/form-field-types';
 // TODO: Replace with booking-scheduler component

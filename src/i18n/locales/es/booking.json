@@ -1,0 +1,43 @@
+{
+  "title": "Reservas",
+  "dashboard": {
+    "title": "Panel de Reservas",
+    "description": "Gestiona tus citas y reservas"
+  },
+  "new": {
+    "title": "Crear Nueva Reserva",
+    "description": "Completa el proceso de reserva paso a paso"
+  },
+  "details": {
+    "title": "Detalles de la Reserva",
+    "confirmationCode": "Código de Confirmación"
+  },
+  "status": {
+    "pending": "Pendiente",
+    "confirmed": "Confirmado", 
+    "cancelled": "Cancelado",
+    "completed": "Completado",
+    "noShow": "No Presentado"
+  },
+  "actions": {
+    "newBooking": "Nueva Reserva",
+    "editBooking": "Editar Reserva",
+    "cancelBooking": "Cancelar Reserva",
+    "confirmBooking": "Confirmar Reserva",
+    "markComplete": "Marcar como Completo",
+    "viewCalendar": "Vista de Calendario"
+  },
+  "stats": {
+    "totalBookings": "Total de Reservas",
+    "confirmed": "Confirmadas",
+    "pending": "Pendientes",
+    "revenue": "Ingresos",
+    "thisMonth": "Este mes"
+  },
+  "customer": {
+    "information": "Información del Cliente",
+    "name": "Nombre",
+    "email": "Correo electrónico", 
+    "phone": "Teléfono"
+  }
+}

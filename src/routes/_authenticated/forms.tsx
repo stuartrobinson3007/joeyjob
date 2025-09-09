@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Plus, FileText, Edit, Trash2, Copy, Eye } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { getBookingForms, createForm } from '@/features/booking/lib/forms.server'
 import { useErrorHandler } from '@/lib/errors/hooks'
+import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Badge } from '@/ui/badge'
@@ -18,31 +20,28 @@ import { PageHeader } from '@/components/page-header'
 
 export const Route = createFileRoute('/_authenticated/forms')({
   component: FormsPage,
-  loader: async () => {
-    try {
-      const formsData = await getBookingForms({ limit: 50 })
-
-      return {
-        forms: formsData.forms,
-        services: [], // Services will be implemented later
-        pagination: formsData.pagination,
-      }
-    } catch (error) {
-      console.error('Failed to load forms:', error)
-      return {
-        forms: [],
-        services: [],
-        pagination: { limit: 50, offset: 0, total: 0, hasMore: false },
-      }
-    }
-  },
 })
 
 function FormsPage() {
-  const { forms, services } = Route.useLoaderData()
+  const { activeOrganizationId } = useActiveOrganization()
   const navigate = useNavigate()
   const { showError, showSuccess } = useErrorHandler()
   const [isCreating, setIsCreating] = useState(false)
+
+  // Fetch forms data using React Query
+  const { data: formsData, isLoading, refetch } = useQuery({
+    queryKey: ['forms', activeOrganizationId],
+    queryFn: () => getBookingForms({ 
+      data: { 
+        limit: 50,
+        offset: 0 
+      } 
+    }),
+    enabled: !!activeOrganizationId,
+  })
+
+  const forms = formsData?.forms || []
+  const services = [] // Services will be implemented later
 
   const getServiceName = (serviceId: string | null) => {
     if (!serviceId) return 'All Services'
@@ -60,16 +59,31 @@ function FormsPage() {
       }
       console.log('📝 Client calling createForm with:', formData)
 
-      const created = await createForm(formData)
+      const created = await createForm({ data: formData })
 
       showSuccess('Form created')
       console.log('📝 Attempting navigation to:', `/form/${created.id}/edit`)
+      
+      // Refetch forms list after creation
+      refetch()
 
       navigate({ to: '/form/$formId/edit', params: { formId: created.id } })
     } catch (error) {
       showError(error)
       setIsCreating(false)
     }
+  }
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        <PageHeader title="Forms" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      </div>
+    )
   }
 
   return (

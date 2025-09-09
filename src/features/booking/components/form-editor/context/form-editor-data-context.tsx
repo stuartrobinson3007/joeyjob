@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { FlowNode } from '@/features/booking/components/form-editor/form-flow-tree';
 import { FormFieldConfig } from '@/features/booking/lib/form-field-types';
+import { useFormAutosave } from '@/taali/hooks/use-form-autosave';
+import { updateForm } from '@/features/booking/lib/forms.server';
+import { useActiveOrganization } from '@/features/organization/lib/organization-context';
+import { FormErrorBoundary } from '@/taali/components/form/form-error-boundary';
 
 /**
  * BookingFlowData represents the complete serializable form configuration
@@ -155,32 +160,134 @@ function removeNodeFromTree(tree: FlowNode, nodeId: string): FlowNode {
 /**
  * Context to provide form data and dispatch function throughout the component tree.
  * Uses undefined as initial value to enforce provider wrapping.
+ * Now includes auto-save state and functionality.
  */
 const FormEditorDataContext = createContext<{
     data: BookingFlowData;
     dispatch: React.Dispatch<FormEditorDataAction>;
+    // Auto-save state
+    isSaving: boolean;
+    lastSaved: Date | null;
+    isDirty: boolean;
+    errors: string[];
+    saveNow: () => Promise<void>;
 } | undefined>(undefined);
 
 /**
  * Provider component that makes the form data and dispatch function available
  * to any nested components that call the useFormEditorData hook.
+ * Now includes auto-save functionality and error boundary protection.
  */
 export const FormEditorDataProvider: React.FC<{
     children: ReactNode;
     initialData: BookingFlowData;
-}> = ({ children, initialData }) => {
-    const [data, dispatch] = useReducer(formEditorDataReducer, initialData);
+    formId: string;
+}> = ({ children, initialData, formId }) => {
+    const { activeOrganization } = useActiveOrganization();
+    const queryClient = useQueryClient();
+    
+    // Fallback reducer state for dispatch compatibility
+    const [fallbackData, dispatch] = useReducer(formEditorDataReducer, initialData);
+    
+    // Auto-save hook integration
+    const {
+        data,
+        updateData,
+        isSaving,
+        lastSaved,
+        isDirty,
+        errors,
+        saveNow,
+        reset
+    } = useFormAutosave({
+        initialData,
+        onSave: useCallback(async (formData: BookingFlowData) => {
+            if (!activeOrganization?.id) {
+                throw new Error('No active organization selected');
+            }
+            
+            // Convert BookingFlowData to the format expected by updateForm
+            const result = await updateForm({
+                data: {
+                    id: formId,
+                    formConfig: {
+                        id: formData.id,
+                        internalName: formData.internalName,
+                        serviceTree: formData.serviceTree,
+                        baseQuestions: formData.baseQuestions,
+                        theme: formData.theme,
+                        primaryColor: formData.primaryColor
+                    },
+                    theme: formData.theme,
+                    primaryColor: formData.primaryColor
+                }
+            });
+            
+            // Invalidate queries to refresh form data elsewhere
+            await queryClient.invalidateQueries({ 
+                queryKey: ['forms', formId] 
+            });
+            
+            return result?.formConfig || formData;
+        }, [activeOrganization?.id, formId, queryClient]),
+        debounceMs: 2000,
+        enabled: !!activeOrganization?.id && !!formId,
+        validate: (formData: BookingFlowData) => {
+            const errors: string[] = [];
+            
+            if (!formData.internalName?.trim()) {
+                errors.push('Form name is required');
+            }
+            
+            if (!formData.serviceTree) {
+                errors.push('Service tree is required');
+            }
+            
+            return {
+                isValid: errors.length === 0,
+                errors
+            };
+        }
+    });
+    
+    // Enhanced dispatch function that works with auto-save
+    const enhancedDispatch = useCallback((action: FormEditorDataAction) => {
+        const newData = formEditorDataReducer(data, action);
+        updateData(newData);
+        
+        // Also update fallback for any components that might need it
+        dispatch(action);
+    }, [data, updateData]);
+
+    const contextValue = {
+        data,
+        dispatch: enhancedDispatch,
+        isSaving,
+        lastSaved,
+        isDirty,
+        errors,
+        saveNow
+    };
 
     return (
-        <FormEditorDataContext.Provider value={{ data, dispatch }}>
-            {children}
-        </FormEditorDataContext.Provider>
+        <FormErrorBoundary 
+            onError={(error) => {
+                console.error('Form editor error:', error);
+                // Could add additional error reporting here
+            }}
+            showToast={true}
+        >
+            <FormEditorDataContext.Provider value={contextValue}>
+                {children}
+            </FormEditorDataContext.Provider>
+        </FormErrorBoundary>
     );
 };
 
 /**
  * Custom hook to access the form data context.
  * Throws an error if used outside of the FormEditorDataProvider.
+ * Now includes auto-save state and functionality.
  */
 export const useFormEditorData = () => {
     const context = useContext(FormEditorDataContext);

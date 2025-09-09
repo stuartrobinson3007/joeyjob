@@ -36,7 +36,8 @@
     "markComplete": "Mark as complete",
     "undo": "Undo",
     "invite": "Invite",
-    "done": "Done"
+    "done": "Done",
+    "reset": "Reset"
   },
   "states": {
     "loading": "Loading...",
@@ -84,7 +85,8 @@
     "required": "This field is required",
     "optional": "Optional",
     "deleted": "Deleted successfully",
-    "restored": "Restored successfully"
+    "restored": "Restored successfully",
+    "emptyValue": "-"
   },
   "pagination": {
     "previous": "Previous",
@@ -124,7 +126,9 @@
     "somethingWrong": "Something went wrong",
     "unexpectedError": "An unexpected error occurred. Please try refreshing the page.",
     "tryAgain": "Try Again",
-    "notFound": "404 -"
+    "notFound": "404 -",
+    "noOrganization": "No Organization Selected",
+    "noOrganizationDescription": "Please select an organization to continue"
   },
   "organization": {
     "selectWorkspace": "Select workspace",
@@ -178,7 +182,10 @@
     "notAvailable": "N/A",
     "allItemsSelected": "All {{count}} items selected",
     "itemsSelected": "{{selected}} of {{total}} items selected",
-    "selectAllItems": "Select all {{total}} items"
+    "selectAllItems": "Select all {{total}} items",
+    "noResults": "No results.",
+    "resultsFound": "{{count}} results found",
+    "results": "{{count}} results"
   },
   "app": {
     "title": "JoeyJob",
