@@ -202,6 +202,7 @@ export const bookingForms = pgTable('booking_forms', {
     .notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 })
 
 // Availability patterns (recurring availability rules)
@@ -308,4 +309,69 @@ export const bookingStatusHistory = pgTable('booking_status_history', {
   changedBy: text('changed_by')
     .references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// Employee management tables for Simpro integration
+
+// Organization-specific employee selections from Simpro
+export const organizationEmployees = pgTable('organization_employees', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  organizationId: text('organization_id')
+    .references(() => organization.id, { onDelete: 'cascade' })
+    .notNull(),
+  // Simpro employee data
+  simproEmployeeId: integer('simpro_employee_id').notNull(),
+  simproEmployeeName: text('simpro_employee_name').notNull(),
+  simproEmployeeEmail: text('simpro_employee_email'),
+  isActive: boolean('is_active').default(true).notNull(),
+  displayOnSchedule: boolean('display_on_schedule').default(true).notNull(),
+  // Sync metadata
+  lastSyncAt: timestamp('last_sync_at'),
+  syncError: text('sync_error'),
+  createdBy: text('created_by')
+    .references(() => user.id, { onDelete: 'cascade' })
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// Service-specific employee assignments
+export const serviceEmployees = pgTable('service_employees', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  serviceId: text('service_id')
+    .references(() => services.id, { onDelete: 'cascade' })
+    .notNull(),
+  organizationEmployeeId: text('organization_employee_id')
+    .references(() => organizationEmployees.id, { onDelete: 'cascade' })
+    .notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// Booking employee assignments (tracking who is assigned to each booking)
+export const bookingEmployees = pgTable('booking_employees', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  bookingId: text('booking_id')
+    .references(() => bookings.id, { onDelete: 'cascade' })
+    .notNull(),
+  organizationEmployeeId: text('organization_employee_id')
+    .references(() => organizationEmployees.id, { onDelete: 'cascade' })
+    .notNull(),
+  // Simpro integration data
+  simproJobId: integer('simpro_job_id'),
+  simproCustomerId: integer('simpro_customer_id'),
+  simproScheduleId: integer('simpro_schedule_id'),
+  simproSiteId: integer('simpro_site_id'),
+  // Status tracking
+  simproStatus: text('simpro_status'), // pending, scheduled, completed, cancelled
+  simproSyncError: text('simpro_sync_error'),
+  lastSimproSync: timestamp('last_simpro_sync'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

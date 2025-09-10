@@ -1,0 +1,1 @@
+ALTER TABLE "booking_forms" ADD COLUMN "deleted_at" timestamp;

@@ -160,14 +160,6 @@ export function BillingPage() {
   const isPaidPlan = currentPlan !== null
   const isNewUser = !hasSubscriptionData || !hasActiveSubscription || (!hasStripeCustomer && !allSubscriptions?.length)
 
-  // Debug logging
-  console.log('[BILLING PAGE] Full subscription object:', subscription)
-  console.log('[BILLING PAGE] hasSubscriptionData:', hasSubscriptionData)
-  console.log('[BILLING PAGE] subscriptionRecord:', subscriptionRecord)
-  console.log('[BILLING PAGE] periodStart:', subscriptionRecord?.periodStart)
-  console.log('[BILLING PAGE] periodEnd:', subscriptionRecord?.periodEnd)
-  console.log('[BILLING PAGE] cancelAtPeriodEnd:', subscriptionRecord?.cancelAtPeriodEnd)
-  console.log('[BILLING PAGE] isCancelled:', isCancelled)
 
   // Show button if: paid plan, has any subscription history, or has stripe customer
   const showManageButton = isPaidPlan || hasStripeCustomer || allSubscriptions?.length > 0
@@ -223,24 +215,14 @@ export function BillingPage() {
                       )}
                     </div>
 
-                    {/* Debug Info - Remove after fixing */}
-                    <div className="p-2 bg-yellow-100 text-xs text-black">
-                      <p><strong>Debug Info:</strong></p>
-                      <p>hasSubscriptionData: {String(hasSubscriptionData)}</p>
-                      <p>subscriptionRecord exists: {String(!!subscriptionRecord)}</p>
-                      <p>periodStart: {String(subscriptionRecord?.periodStart)}</p>
-                      <p>periodEnd: {String(subscriptionRecord?.periodEnd)}</p>
-                      <p>cancelAtPeriodEnd: {String(subscriptionRecord?.cancelAtPeriodEnd)}</p>
-                      <p>isCancelled: {String(isCancelled)}</p>
-                    </div>
 
                     {/* Subscription Details */}
                     {hasSubscriptionData && subscriptionRecord && (
                       <div className="space-y-1 text-sm text-muted-foreground">
                         {/* Renewal/Expiry Information */}
                         {subscriptionRecord.periodEnd && (
-                          <p>
-                            {isCancelled ? 'Expires' : 'Renews'} on{' '}
+                          <p className={isCancelled ? 'text-destructive' : ''}>
+                            {isCancelled ? 'Will cancel' : 'Renews'} on{' '}
                             {new Date(subscriptionRecord.periodEnd).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
@@ -261,12 +243,6 @@ export function BillingPage() {
                           </p>
                         )}
 
-                        {/* Cancellation Notice */}
-                        {isCancelled && (
-                          <p className="text-warning">
-                            Your subscription will cancel at the end of the current billing period.
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>

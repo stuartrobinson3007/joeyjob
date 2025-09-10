@@ -465,6 +465,8 @@ function SuperAdminUsers() {
           isLoading={isLoading}
           isFetching={isFetching}
           getRowIdProp={row => row.id}
+          resetText={tCommon('actions.reset')}
+          noResultsText={tCommon('messages.noResults')}
         />
       </div>
 

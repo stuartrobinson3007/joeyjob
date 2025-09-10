@@ -54,7 +54,7 @@ export const Route = createFileRoute('/embed/$formId')({
     }
   },
   errorComponent: ({ error }) => (
-    <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
+    <div className="light min-h-screen flex items-center justify-center bg-muted/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <h2 className="text-xl font-semibold text-center">Booking Not Available</h2>
@@ -78,6 +78,9 @@ function EmbedBookingPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   
   const formHook = useForm()
+
+  // Theme from form config
+  const theme = form.theme || 'light'
 
   // Prepare form fields from the form configuration
   const formFields = Array.isArray(form.fields) ? form.fields : []
@@ -170,7 +173,7 @@ function EmbedBookingPage() {
   return (
     <div 
       ref={containerRef}
-      className="min-h-screen bg-background p-4"
+      className={`${theme} min-h-screen bg-background p-4`}
       style={{
         margin: 0,
         boxSizing: 'border-box',

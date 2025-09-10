@@ -31,6 +31,7 @@ import {
 } from '@/taali/components/form'
 import { Button } from '@/ui/button'
 import { Skeleton } from '@/ui/skeleton'
+import { EmployeeManagement } from '@/features/organization/components/employee-management'
 
 export const Route = createFileRoute('/_authenticated/settings')({
   component: OrganizationSettings,
@@ -228,6 +229,9 @@ function OrganizationSettingsForm() {
               />
             </form>
           </Form>
+
+          {/* Employee Management */}
+          <EmployeeManagement />
 
           {/* Danger Zone */}
           <div className="bg-card rounded-lg shadow-sm border border-destructive/30 p-6 mt-8">

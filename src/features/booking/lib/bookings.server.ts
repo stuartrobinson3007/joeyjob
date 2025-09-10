@@ -99,7 +99,9 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
                   bookingDate: bookings.bookingDate,
                   customerName: bookings.customerName,
                   status: bookings.status,
+                  duration: bookings.duration,
                   price: bookings.price,
+                  serviceName: services.name,
                 }
                 const column = columnMap[sort.id]
                 return column ? (sort.desc ? desc(column) : asc(column)) : null

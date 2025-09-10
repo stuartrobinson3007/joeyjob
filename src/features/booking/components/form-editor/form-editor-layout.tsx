@@ -18,7 +18,7 @@ import GroupDetailsView from "./views/group-details-view";
 import { useFormEditorState, NavigationLevel, ServiceDetailView } from "@/features/booking/components/form-editor/hooks/use-form-editor-state";
 import { FormEditorDataProvider } from "@/features/booking/components/form-editor/context/form-editor-data-context";
 import useFormEditorData from "./hooks/use-form-editor-data";
-import { ReactNode, useCallback, useEffect, useState, useRef } from "react";
+import React, { ReactNode, useCallback, useEffect, useState, useRef } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
 
 // BookingState type definition
@@ -95,6 +95,36 @@ function FormEditorLayoutInner({
     const navigate = useNavigate();
     const { data, dispatch } = useFormEditorData();
     const { activeOrganization } = useActiveOrganization();
+
+    // Log when form editor receives data
+    useEffect(() => {
+        console.log('📋 [FormEditorLayout] Received form data:', {
+            id: data.id,
+            internalName: data.internalName,
+            slug: data.slug,
+            theme: data.theme,
+            primaryColor: data.primaryColor,
+            serviceTreeStructure: {
+                id: data.serviceTree?.id,
+                type: data.serviceTree?.type,
+                label: data.serviceTree?.label,
+                childrenCount: data.serviceTree?.children?.length || 0,
+                hasChildren: !!data.serviceTree?.children?.length,
+                children: data.serviceTree?.children?.map(child => ({
+                    id: child.id,
+                    type: child.type,
+                    label: child.label
+                }))
+            },
+            baseQuestionsCount: data.baseQuestions?.length || 0,
+            baseQuestionsDetails: data.baseQuestions?.map(q => ({
+                id: q.id,
+                name: q.name,
+                type: q.type,
+                label: q.label
+            }))
+        });
+    }, [data]);
     
     // TODO: Replace with new API hooks
     // const updateForm = useUpdateForm();
@@ -834,6 +864,8 @@ function FormEditorLayoutInner({
                 const serviceBlockedTimes = child.blockedTimes || [];
                 const serviceUnavailableDates = child.unavailableDates || [];
                 const serviceAdditionalQuestions = child.additionalQuestions || [];
+                const serviceAssignedEmployeeIds = child.assignedEmployeeIds || [];
+                const serviceDefaultEmployeeId = child.defaultEmployeeId;
 
                 // This is a service node
                 return {
@@ -848,7 +880,9 @@ function FormEditorLayoutInner({
                     unavailableDates: serviceUnavailableDates,
                     bufferTime: serviceBufferTime,
                     interval: serviceInterval,
-                    additionalQuestions: serviceAdditionalQuestions
+                    additionalQuestions: serviceAdditionalQuestions,
+                    assignedEmployeeIds: serviceAssignedEmployeeIds,
+                    defaultEmployeeId: serviceDefaultEmployeeId
                 };
             }
             return null;
@@ -1113,6 +1147,7 @@ function FormEditorLayoutInner({
                                     onNavigateBack={actions.navigateBack}
                                     onNavigateToDetail={actions.navigateToServiceDetail}
                                     activeView={state.serviceDetailView}
+                                    onUpdateNode={handleUpdateNode}
                                 />
                             );
                         }
@@ -1128,6 +1163,7 @@ function FormEditorLayoutInner({
                         onNavigateBack={actions.navigateBack}
                         onNavigateToDetail={actions.navigateToServiceDetail}
                         activeView={state.serviceDetailView}
+                        onUpdateNode={handleUpdateNode}
                     />
                 );
             case "service-details-form":
@@ -1273,7 +1309,8 @@ function FormEditorLayoutInner({
 
         return (
             <FormEditorPreview
-                darkMode={data.theme === "dark"}>
+                darkMode={data.theme === "dark"}
+                primaryColor={data.primaryColor}>
                 <BookingFlow
                     id="form-editor-preview"
                     startTitle={bookingFlowTitle}

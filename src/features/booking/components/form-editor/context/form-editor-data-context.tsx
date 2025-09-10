@@ -1,14 +1,22 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { FlowNode } from '@/features/booking/components/form-editor/form-flow-tree';
 import { FormFieldConfig } from '@/features/booking/lib/form-field-types';
-import { FormErrorBoundary } from '@/taali/components/form/form-error-boundary';
+import { FormEditorErrorBoundary } from '../components/FormEditorErrorBoundary';
+import { 
+    nodeOps, 
+    updateNodeInTree, 
+    addNodeToTree, 
+    removeNodeFromTree, 
+    reorderNodesInTree 
+} from '../utils/node-operations';
+import { validation } from '../utils/validation';
 
 /**
  * BookingFlowData represents the complete serializable form configuration
  * that serves as the single source of truth for the form editor.
  * This structure will eventually be saved to the database.
  */
-interface BookingFlowData {
+export interface BookingFlowData {
     id: string;
     internalName: string;              // Admin-only reference name
     slug: string;                      // URL-friendly slug for the form
@@ -36,146 +44,109 @@ export type FormEditorDataAction =
  * All state updates are immutable, creating new state objects rather than modifying existing ones.
  */
 export function formEditorDataReducer(state: BookingFlowData, action: FormEditorDataAction): BookingFlowData {
+    console.log('🔧 [FormEditorDataReducer] Processing action:', {
+        type: action.type,
+        payload: action.payload,
+        currentState: {
+            id: state.id,
+            internalName: state.internalName,
+            serviceTreeChildren: state.serviceTree?.children?.length || 0
+        }
+    });
+
+    let newState: BookingFlowData;
+    
     switch (action.type) {
         case 'UPDATE_FORM_SETTINGS':
-            return {
+            newState = {
                 ...state,
                 ...action.payload
             };
+            break;
         case 'UPDATE_NODE':
-            return {
+            newState = {
                 ...state,
                 serviceTree: updateNodeInTree(state.serviceTree, action.payload.nodeId, action.payload.updates)
             };
+            break;
         case 'ADD_NODE':
-            return {
+            newState = {
                 ...state,
                 serviceTree: addNodeToTree(state.serviceTree, action.payload.parentId, action.payload.node)
             };
+            break;
         case 'REORDER_NODES':
-            return {
+            newState = {
                 ...state,
                 serviceTree: reorderNodesInTree(state.serviceTree, action.payload.parentId, action.payload.newOrder)
             };
+            break;
         case 'UPDATE_BASE_QUESTIONS':
-            return {
+            newState = {
                 ...state,
                 baseQuestions: action.payload
             };
+            break;
         case 'INITIALIZE_DATA':
-            return action.payload;
+            newState = action.payload;
+            break;
         case 'REMOVE_NODE':
-            return {
+            newState = {
                 ...state,
                 serviceTree: removeNodeFromTree(state.serviceTree, action.payload.nodeId)
             };
+            break;
         default:
-            return state;
+            newState = state;
     }
+
+    console.log('🔧 [FormEditorDataReducer] Action result:', {
+        type: action.type,
+        stateChanged: newState !== state,
+        newState: {
+            id: newState.id,
+            internalName: newState.internalName,
+            serviceTreeChildren: newState.serviceTree?.children?.length || 0
+        }
+    });
+
+    return newState;
 }
 
-/**
- * Helper function to recursively update a node in the tree.
- * Traverses the tree to find the target node and applies updates immutably.
- */
-function updateNodeInTree(tree: FlowNode, nodeId: string, updates: Partial<FlowNode>): FlowNode {
-    if (tree.id === nodeId) {
-        return { ...tree, ...updates };
-    }
-
-    if (tree.children) {
-        return {
-            ...tree,
-            children: tree.children.map(child => updateNodeInTree(child, nodeId, updates))
-        };
-    }
-
-    return tree;
-}
+// Note: Tree manipulation functions are now imported from utils/node-operations.ts
 
 /**
- * Helper function to add a new node to the tree.
- * Finds the parent node and appends the new node to its children.
+ * Enhanced context interface with validation and error handling.
+ * Simplified to remove dual provider pattern complexity.
  */
-function addNodeToTree(tree: FlowNode, parentId: string, newNode: FlowNode): FlowNode {
-    if (tree.id === parentId) {
-        return {
-            ...tree,
-            children: [...(tree.children || []), newNode]
-        };
-    }
-
-    if (tree.children) {
-        return {
-            ...tree,
-            children: tree.children.map(child => addNodeToTree(child, parentId, newNode))
-        };
-    }
-
-    return tree;
-}
-
-/**
- * Helper function to reorder nodes within a parent node.
- * Replaces the children array with the newly ordered array.
- */
-function reorderNodesInTree(tree: FlowNode, parentId: string, newOrder: FlowNode[]): FlowNode {
-    if (tree.id === parentId) {
-        return {
-            ...tree,
-            children: newOrder
-        };
-    }
-
-    if (tree.children) {
-        return {
-            ...tree,
-            children: tree.children.map(child => reorderNodesInTree(child, parentId, newOrder))
-        };
-    }
-
-    return tree;
-}
-
-/**
- * Helper function to remove a node from the tree.
- * Filters out the target node and recursively processes children.
- */
-function removeNodeFromTree(tree: FlowNode, nodeId: string): FlowNode {
-    if (tree.children) {
-        return {
-            ...tree,
-            children: tree.children
-                .filter(child => child.id !== nodeId)
-                .map(child => removeNodeFromTree(child, nodeId))
-        };
-    }
-
-    return tree;
-}
-
-/**
- * Context to provide form data and dispatch function throughout the component tree.
- * Uses undefined as initial value to enforce provider wrapping.
- * Now includes auto-save state passed from parent.
- */
-const FormEditorDataContext = createContext<{
+export interface FormEditorContextValue {
     data: BookingFlowData;
     dispatch: React.Dispatch<FormEditorDataAction>;
-    // Auto-save state from parent
+    
+    // Auto-save state
     isSaving: boolean;
     lastSaved: Date | null;
     isDirty: boolean;
+    
+    // Error handling
     errors: string[];
     saveNow: () => Promise<void>;
-} | undefined>(undefined);
+    
+    // Validation utilities
+    validateData: () => boolean;
+    getValidationErrors: () => string[];
+    
+    // Node utilities
+    nodeOps: typeof nodeOps;
+}
+
+const FormEditorDataContext = createContext<FormEditorContextValue | undefined>(undefined);
 
 /**
- * Provider component that makes the form data and dispatch function available
- * to any nested components that call the useFormEditorData hook.
- * Now receives data and dispatch directly from parent (no local state).
+ * Enhanced provider component with built-in validation and utilities.
+ * Simplified interface removes dual provider pattern complexity.
  */
-export const FormEditorDataProvider: React.FC<{
+export interface FormEditorDataProviderProps {
     children: ReactNode;
     data: BookingFlowData;
     dispatch: React.Dispatch<FormEditorDataAction>;
@@ -185,7 +156,9 @@ export const FormEditorDataProvider: React.FC<{
     isDirty?: boolean;
     errors?: string[];
     saveNow?: () => Promise<void>;
-}> = ({ 
+}
+
+export const FormEditorDataProvider: React.FC<FormEditorDataProviderProps> = ({ 
     children, 
     data,
     dispatch,
@@ -196,35 +169,63 @@ export const FormEditorDataProvider: React.FC<{
     errors = [],
     saveNow = async () => {}
 }) => {
-    const contextValue = {
+    // Validation utilities
+    const validateData = React.useCallback((): boolean => {
+        const result = validation.validateFormConfig({
+            internalName: data.internalName,
+            slug: data.slug,
+            serviceTree: data.serviceTree,
+            baseQuestions: data.baseQuestions,
+            theme: data.theme,
+            primaryColor: data.primaryColor
+        });
+        return result.isValid;
+    }, [data]);
+
+    const getValidationErrors = React.useCallback((): string[] => {
+        const result = validation.validateFormConfig({
+            internalName: data.internalName,
+            slug: data.slug,
+            serviceTree: data.serviceTree,
+            baseQuestions: data.baseQuestions,
+            theme: data.theme,
+            primaryColor: data.primaryColor
+        });
+        return result.errors.map(error => error.message);
+    }, [data]);
+
+    const contextValue: FormEditorContextValue = {
         data,
         dispatch,
         isSaving,
         lastSaved,
         isDirty,
         errors,
-        saveNow
+        saveNow,
+        validateData,
+        getValidationErrors,
+        nodeOps
     };
 
     return (
-        <FormErrorBoundary 
+        <FormEditorErrorBoundary 
             onError={(error) => {
                 console.error('Form editor error:', error);
                 // Could add additional error reporting here
             }}
-            showToast={true}
+            showErrorDetails={process.env.NODE_ENV === 'development'}
+            context={`FormEditor-${formId}`}
         >
             <FormEditorDataContext.Provider value={contextValue}>
                 {children}
             </FormEditorDataContext.Provider>
-        </FormErrorBoundary>
+        </FormEditorErrorBoundary>
     );
 };
 
 /**
- * Custom hook to access the form data context.
- * Throws an error if used outside of the FormEditorDataProvider.
- * Now includes auto-save state and functionality.
+ * Enhanced custom hook to access the form data context.
+ * Provides validation utilities and node operations alongside data access.
  */
 export const useFormEditorData = () => {
     const context = useContext(FormEditorDataContext);
@@ -232,4 +233,80 @@ export const useFormEditorData = () => {
         throw new Error('useFormEditorData must be used within a FormEditorDataProvider');
     }
     return context;
+};
+
+/**
+ * Specialized hook for node operations
+ */
+export const useNodeOperations = () => {
+    const { nodeOps: ops, data, dispatch } = useFormEditorData();
+    
+    const findNode = React.useCallback((nodeId: string) => {
+        return ops.findById(data.serviceTree, nodeId);
+    }, [ops, data.serviceTree]);
+    
+    const updateNode = React.useCallback((nodeId: string, updates: Partial<FlowNode>) => {
+        dispatch({
+            type: 'UPDATE_NODE',
+            payload: { nodeId, updates }
+        });
+    }, [dispatch]);
+    
+    const addNode = React.useCallback((parentId: string, node: FlowNode) => {
+        dispatch({
+            type: 'ADD_NODE',
+            payload: { parentId, node }
+        });
+    }, [dispatch]);
+    
+    const removeNode = React.useCallback((nodeId: string) => {
+        dispatch({
+            type: 'REMOVE_NODE',
+            payload: { nodeId }
+        });
+    }, [dispatch]);
+    
+    const reorderNodes = React.useCallback((parentId: string, newOrder: FlowNode[]) => {
+        dispatch({
+            type: 'REORDER_NODES',
+            payload: { parentId, newOrder }
+        });
+    }, [dispatch]);
+    
+    return {
+        nodeOps: ops,
+        findNode,
+        updateNode,
+        addNode,
+        removeNode,
+        reorderNodes
+    };
+};
+
+/**
+ * Hook for form validation operations
+ */
+export const useFormValidation = () => {
+    const { validateData, getValidationErrors, data } = useFormEditorData();
+    
+    const validateTree = React.useCallback(() => {
+        return validation.validateTree(data.serviceTree);
+    }, [data.serviceTree]);
+    
+    const validateQuestions = React.useCallback(() => {
+        return validation.validateQuestions(data.baseQuestions);
+    }, [data.baseQuestions]);
+    
+    const validateSlug = React.useCallback(() => {
+        return validation.validateSlug(data.slug);
+    }, [data.slug]);
+    
+    return {
+        validateData,
+        getValidationErrors,
+        validateTree,
+        validateQuestions,
+        validateSlug,
+        validation
+    };
 };

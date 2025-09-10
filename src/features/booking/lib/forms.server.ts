@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, sql, isNull, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
@@ -143,7 +143,8 @@ export const updateForm = createServerFn({ method: 'POST' })
         .from(bookingForms)
         .where(and(
           eq(bookingForms.id, data.id),
-          eq(bookingForms.organizationId, organizationId)
+          eq(bookingForms.organizationId, organizationId),
+          isNull(bookingForms.deletedAt)
         ))
         .limit(1)
 
@@ -203,7 +204,8 @@ export const getForm = createServerFn({ method: 'GET' })
         .from(bookingForms)
         .where(and(
           eq(bookingForms.id, data.id),
-          eq(bookingForms.organizationId, organizationId)
+          eq(bookingForms.organizationId, organizationId),
+          isNull(bookingForms.deletedAt)
         ))
         .limit(1)
 
@@ -223,8 +225,8 @@ export const getForm = createServerFn({ method: 'GET' })
     }
   })
 
-// Delete form
-export const deleteForm = createServerFn({ method: 'DELETE' })
+// Delete form (soft delete)
+export const deleteForm = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .validator((data: unknown) => deleteFormSchema.parse(data))
   .handler(async ({ data, context }) => {
@@ -237,7 +239,8 @@ export const deleteForm = createServerFn({ method: 'DELETE' })
         .from(bookingForms)
         .where(and(
           eq(bookingForms.id, data.id),
-          eq(bookingForms.organizationId, organizationId)
+          eq(bookingForms.organizationId, organizationId),
+          isNull(bookingForms.deletedAt)
         ))
         .limit(1)
 
@@ -245,9 +248,14 @@ export const deleteForm = createServerFn({ method: 'DELETE' })
         throw AppError.notFound('Form')
       }
 
+      // Soft delete: set deletedAt timestamp instead of hard delete
       await db
-        .delete(bookingForms)
-        .where(eq(bookingForms.id, data.id))
+        .update(bookingForms)
+        .set({
+          deletedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(and(eq(bookingForms.id, data.id), eq(bookingForms.organizationId, organizationId)))
 
       return { success: true }
     } catch (error) {
@@ -257,6 +265,111 @@ export const deleteForm = createServerFn({ method: 'DELETE' })
         500,
         undefined,
         'Failed to delete form'
+      )
+    }
+  })
+
+// Undo delete form (restore from soft delete)
+export const undoDeleteForm = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => deleteFormSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { organizationId, user } = context
+    
+    try {
+      // Check if form exists and is soft-deleted (belongs to organization)
+      const existingForm = await db
+        .select()
+        .from(bookingForms)
+        .where(and(
+          eq(bookingForms.id, data.id),
+          eq(bookingForms.organizationId, organizationId),
+          isNotNull(bookingForms.deletedAt)
+        ))
+        .limit(1)
+
+      if (!existingForm.length) {
+        throw AppError.notFound('Deleted Form')
+      }
+
+      // Restore by clearing deletedAt timestamp
+      const restored = await db
+        .update(bookingForms)
+        .set({
+          deletedAt: null,
+          updatedAt: new Date()
+        })
+        .where(and(eq(bookingForms.id, data.id), eq(bookingForms.organizationId, organizationId)))
+        .returning()
+
+      return restored[0]
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to restore form'
+      )
+    }
+  })
+
+// Duplicate form
+export const duplicateForm = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => deleteFormSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { organizationId, user } = context
+    
+    try {
+      // Check if form exists and belongs to organization
+      const existingForm = await db
+        .select()
+        .from(bookingForms)
+        .where(and(
+          eq(bookingForms.id, data.id),
+          eq(bookingForms.organizationId, organizationId),
+          isNull(bookingForms.deletedAt)
+        ))
+        .limit(1)
+
+      if (!existingForm.length) {
+        throw AppError.notFound('Form')
+      }
+
+      const original = existingForm[0]
+      
+      // Generate new slug for the duplicate
+      const baseSlug = generateSlug(`copy-of-${original.name}`)
+      const slug = baseSlug + '-' + Date.now().toString(36)
+      
+      // Create duplicate with new name and slug
+      const duplicated = await db
+        .insert(bookingForms)
+        .values({
+          organizationId,
+          name: `Copy of ${original.name}`,
+          slug: slug,
+          description: original.description,
+          formConfig: original.formConfig,
+          theme: original.theme,
+          primaryColor: original.primaryColor,
+          fields: original.fields, // Legacy compatibility
+          serviceId: original.serviceId, // Legacy compatibility
+          isActive: false, // Start as inactive
+          isDefault: false, // Never duplicate as default
+          createdBy: user.id,
+        })
+        .returning()
+
+      return duplicated[0]
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        undefined,
+        'Failed to duplicate form'
       )
     }
   })
@@ -284,8 +397,11 @@ export const getBookingForms = createServerFn({ method: 'GET' })
     const { organizationId } = context
     
     try {
-      // Build where conditions
-      const conditions = [eq(bookingForms.organizationId, organizationId)]
+      // Build where conditions - exclude soft-deleted forms
+      const conditions = [
+        eq(bookingForms.organizationId, organizationId),
+        isNull(bookingForms.deletedAt)
+      ]
       
       if (data.isActive !== undefined) {
         conditions.push(eq(bookingForms.isActive, data.isActive))
@@ -352,7 +468,8 @@ export const getBookingForm = createServerFn({ method: 'GET' })
       .from(bookingForms)
       .where(and(
         eq(bookingForms.id, data.id),
-        eq(bookingForms.isActive, true)
+        eq(bookingForms.isActive, true),
+        isNull(bookingForms.deletedAt)
       ))
       .limit(1)
 
@@ -382,6 +499,36 @@ export const getBookingFormBySlug = createServerFn({ method: 'GET' })
   })
   .handler(async ({ data }) => {
     // Join with organization table to get form by slugs
+    // First, let's check if the form exists at all
+    const formCheck = await db
+      .select()
+      .from(bookingForms)
+      .where(eq(bookingForms.slug, data.formSlug))
+      .limit(1)
+    
+    console.log('🔍 Form check:', {
+      formExists: formCheck.length > 0,
+      formSlug: data.formSlug,
+      isActive: formCheck[0]?.isActive,
+      organizationId: formCheck[0]?.organizationId
+    })
+
+    if (formCheck.length > 0) {
+      // Check the organization
+      const orgCheck = await db
+        .select()
+        .from(organization)
+        .where(eq(organization.id, formCheck[0].organizationId))
+        .limit(1)
+      
+      console.log('🔍 Organization check:', {
+        orgExists: orgCheck.length > 0,
+        orgSlug: orgCheck[0]?.slug,
+        expectedOrgSlug: data.orgSlug,
+        orgName: orgCheck[0]?.name
+      })
+    }
+
     const result = await db
       .select({
         form: bookingForms,
@@ -397,7 +544,8 @@ export const getBookingFormBySlug = createServerFn({ method: 'GET' })
       .where(and(
         eq(organization.slug, data.orgSlug),
         eq(bookingForms.slug, data.formSlug),
-        eq(bookingForms.isActive, true)
+        eq(bookingForms.isActive, true),
+        isNull(bookingForms.deletedAt)
       ))
       .limit(1)
 
@@ -417,10 +565,6 @@ export const getBookingFormBySlug = createServerFn({ method: 'GET' })
     }
   })
 
-export const getDefaultFormForService = async () => null
-export const updateBookingForm = async () => ({})
-export const deleteBookingForm = async () => ({ success: true })
-export const duplicateBookingForm = async () => ({})
 export const validateFormFields = async () => ({ 
   isValid: true, 
   errors: [] 

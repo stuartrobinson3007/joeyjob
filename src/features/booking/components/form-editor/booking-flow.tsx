@@ -6,7 +6,7 @@ import { Form } from '@/ui/form';
 import { cn } from '@/taali/lib/utils';
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer';
 import { FormFieldConfig as StandardFormFieldConfig } from '@/features/booking/lib/form-field-types';
-import { parseISO, isSameDay } from 'date-fns';
+import { parseISO, isSameDay, format } from 'date-fns';
 import BookingCalendar, { AvailabilityRule, BlockedTime } from './booking-calendar';
 
 // Unique identifier for items in the booking tree
@@ -77,11 +77,14 @@ export interface BookingFlowProps {
     formMethods?: UseFormReturn<any>;
     // Option change handler 
     onOptionValueChange?: (questionId: string, eventType: 'option-change' | 'value-update', oldValue: string, newValue: string) => void;
+    // Employee data for services
+    getServiceEmployees?: (serviceId: string) => Promise<Employee[]>;
 }
 
 // Data that will be submitted when booking is completed
 export interface BookingSubmitData {
     service: Service;
+    employee: Employee | null;
     date: string;
     time: string;
     formData: Record<string, any>;
@@ -89,13 +92,23 @@ export interface BookingSubmitData {
 }
 
 // Type for booking flow stages
-type BookingStage = 'selection' | 'date-time' | 'customer-info' | 'confirmation';
+type BookingStage = 'selection' | 'employee-selection' | 'date-time' | 'customer-info' | 'confirmation';
+
+// Interface for employee selection
+export interface Employee {
+    id: string;
+    simproEmployeeId: number;
+    name: string;
+    email?: string;
+    isDefault: boolean;
+}
 
 // Type for tracking user's progress and selections
 export interface BookingState {
     stage: BookingStage;
     navigationPath: ItemId[]; // Path of IDs to current position in the tree
     selectedService: Service | null;
+    selectedEmployee: Employee | null;
     selectedDate: Date | null;
     selectedTime: string | null;
     // formData removed as it will be handled by formMethods
@@ -140,7 +153,8 @@ export default function BookingFlow({
     bookingState,
     onBookingStateChange,
     formMethods,
-    onOptionValueChange
+    onOptionValueChange,
+    getServiceEmployees
 }: BookingFlowProps) {
     const primaryForeground = contrastingColor(primaryColor);
     const [totalFileSize, setTotalFileSize] = useState<number>(0);
@@ -267,6 +281,7 @@ export default function BookingFlow({
             if (onBookingSubmit && latestService && bookingState.selectedDate && bookingState.selectedTime) {
                 onBookingSubmit({
                     service: latestService,
+                    employee: bookingState.selectedEmployee,
                     date: bookingState.selectedDate.toISOString(),
                     time: bookingState.selectedTime,
                     formData: data,
@@ -441,12 +456,48 @@ export default function BookingFlow({
                 form.reset(resetData);
             }
 
-            handleBookingStateChange({
-                ...bookingState,
-                stage: 'date-time',
-                selectedService: item,
-                navigationPath: [...bookingState.navigationPath, item.id]
-            });
+            // Check if this service has employees assigned
+            if (getServiceEmployees) {
+                getServiceEmployees(item.id).then((employees) => {
+                    if (employees.length > 0) {
+                        // Service has employees, go to employee selection
+                        handleBookingStateChange({
+                            ...bookingState,
+                            stage: 'employee-selection',
+                            selectedService: item,
+                            navigationPath: [...bookingState.navigationPath, item.id]
+                        });
+                    } else {
+                        // No employees assigned, skip to date-time
+                        handleBookingStateChange({
+                            ...bookingState,
+                            stage: 'date-time',
+                            selectedService: item,
+                            selectedEmployee: null,
+                            navigationPath: [...bookingState.navigationPath, item.id]
+                        });
+                    }
+                }).catch((error) => {
+                    console.error('Error fetching service employees:', error);
+                    // On error, skip to date-time
+                    handleBookingStateChange({
+                        ...bookingState,
+                        stage: 'date-time',
+                        selectedService: item,
+                        selectedEmployee: null,
+                        navigationPath: [...bookingState.navigationPath, item.id]
+                    });
+                });
+            } else {
+                // No employee function provided, skip to date-time
+                handleBookingStateChange({
+                    ...bookingState,
+                    stage: 'date-time',
+                    selectedService: item,
+                    selectedEmployee: null,
+                    navigationPath: [...bookingState.navigationPath, item.id]
+                });
+            }
         } else {
             // If group is selected, navigate into that group
             handleBookingStateChange({
@@ -474,15 +525,24 @@ export default function BookingFlow({
                 ...bookingState,
                 navigationPath: bookingState.navigationPath.slice(0, -1)
             });
-        } else if (bookingState.stage === 'date-time') {
-            // If in date-time stage, go back to selection
+        } else if (bookingState.stage === 'employee-selection') {
+            // If in employee-selection stage, go back to selection
             // But preserve the navigation path except for the last item (the service)
             handleBookingStateChange({
                 ...bookingState,
                 stage: 'selection',
                 selectedService: null,
+                selectedEmployee: null,
                 // Remove the last item from navigation path (the service)
                 navigationPath: bookingState.navigationPath.slice(0, -1)
+            });
+        } else if (bookingState.stage === 'date-time') {
+            // If in date-time stage, go back to employee-selection
+            handleBookingStateChange({
+                ...bookingState,
+                stage: 'employee-selection',
+                selectedDate: null,
+                selectedTime: null
             });
         } else if (bookingState.stage === 'customer-info') {
             // If in customer-info stage, go back to date-time
@@ -540,6 +600,7 @@ export default function BookingFlow({
             stage: 'selection',
             navigationPath: [],
             selectedService: null,
+            selectedEmployee: null,
             selectedDate: null,
             selectedTime: null,
         });
@@ -661,8 +722,8 @@ export default function BookingFlow({
         // Combine base questions with service-specific questions
         const allQuestions = getActiveQuestions();
 
-        // Format date for display
-        const formattedDate = bookingState.selectedDate.toLocaleDateString();
+        // Format date for display with abbreviated month
+        const formattedDate = format(bookingState.selectedDate, 'MMM d, yyyy');
 
         // Get current form state for debugging
         const hasErrors = Object.keys(form.formState.errors).length > 0;
@@ -791,11 +852,155 @@ export default function BookingFlow({
         );
     };
 
+    // Render employee selection stage
+    const renderEmployeeSelectionStage = () => {
+        if (!bookingState.selectedService) {
+            return <p>No service selected</p>;
+        }
+
+        const [serviceEmployees, setServiceEmployees] = React.useState<Employee[]>([]);
+        const [loading, setLoading] = React.useState(true);
+        const [error, setError] = React.useState<string | null>(null);
+
+        // Fetch employees when component mounts
+        React.useEffect(() => {
+            if (getServiceEmployees && bookingState.selectedService) {
+                setLoading(true);
+                setError(null);
+                getServiceEmployees(bookingState.selectedService.id)
+                    .then((employees) => {
+                        setServiceEmployees(employees);
+                        setLoading(false);
+                    })
+                    .catch((err) => {
+                        console.error('Error loading service employees:', err);
+                        setError('Failed to load employees');
+                        setLoading(false);
+                        // If we can't load employees, skip to date-time after a short delay
+                        setTimeout(() => {
+                            handleBookingStateChange({
+                                ...bookingState,
+                                selectedEmployee: null,
+                                stage: 'date-time'
+                            });
+                        }, 2000);
+                    });
+            } else {
+                // No employee function provided, create fallback
+                setServiceEmployees([]);
+                setLoading(false);
+            }
+        }, [bookingState.selectedService?.id]);
+
+        const handleEmployeeSelect = (employee: Employee) => {
+            handleBookingStateChange({
+                ...bookingState,
+                selectedEmployee: employee,
+                stage: 'date-time'
+            });
+        };
+
+        if (loading) {
+            return (
+                <>
+                    <div className="flex items-center mb-6">
+                        <button
+                            onClick={handleBack}
+                            className="mr-4 p-2 hover:bg-gray-100 rounded-full"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <div>
+                            <h2 className="text-2xl font-bold mb-1">Select Employee</h2>
+                            <p className="text-gray-600">Loading available employees...</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                </>
+            );
+        }
+
+        if (error) {
+            return (
+                <>
+                    <div className="flex items-center mb-6">
+                        <button
+                            onClick={handleBack}
+                            className="mr-4 p-2 hover:bg-gray-100 rounded-full"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <div>
+                            <h2 className="text-2xl font-bold mb-1">Employee Selection</h2>
+                            <p className="text-red-600">{error}</p>
+                        </div>
+                    </div>
+                    <div className="text-center py-8">
+                        <p className="text-gray-600 mb-4">Continuing without employee selection...</p>
+                    </div>
+                </>
+            );
+        }
+
+        return (
+            <>
+                <div className="flex items-center mb-6">
+                    <button
+                        onClick={handleBack}
+                        className="mr-4 p-2 hover:bg-gray-100 rounded-full"
+                    >
+                        <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <div>
+                        <h2 className="text-2xl font-bold mb-1">Select Employee</h2>
+                        <p className="text-gray-600">Choose who you'd like to perform your {bookingState.selectedService.title} service</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    {serviceEmployees.map((employee) => (
+                        <div
+                            key={employee.id}
+                            onClick={() => handleEmployeeSelect(employee)}
+                            className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all duration-150"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                        <span className="text-lg font-semibold text-primary">
+                                            {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold">{employee.name}</h3>
+                                        {employee.email && (
+                                            <p className="text-sm text-gray-600">{employee.email}</p>
+                                        )}
+                                        {employee.isDefault && (
+                                            <span className="inline-block px-2 py-1 text-xs bg-primary/10 text-primary rounded-full mt-1">
+                                                Recommended
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <ArrowRight className="h-5 w-5 text-gray-400" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+    };
+
     // Main render function
     const renderCurrentStage = () => {
         switch (bookingState.stage) {
             case 'selection':
                 return renderSelectionStage();
+            case 'employee-selection':
+                return renderEmployeeSelectionStage();
             case 'date-time':
                 return renderDateTimeStage();
             case 'customer-info':

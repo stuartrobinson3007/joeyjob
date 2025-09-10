@@ -27,18 +27,23 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFormsRouteImport } from './routes/_authenticated/forms'
 import { Route as AuthenticatedChoosePlanRouteImport } from './routes/_authenticated/choose-plan'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
-import { Route as OrgSlugFormSlugRouteImport } from './routes/$orgSlug.$formSlug'
 import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
+import { Route as FOrgSlugFormSlugRouteImport } from './routes/f.$orgSlug.$formSlug'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
 import { Route as AuthenticatedTodosIdEditRouteImport } from './routes/_authenticated/todos.$id.edit'
 import { Route as AuthenticatedFormFormIdEditRouteImport } from './routes/_authenticated/form.$formId.edit'
 import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
+import { ServerRoute as ApiEmployeesIndexServerRouteImport } from './routes/api/employees/index'
 import { ServerRoute as ApiStripeWebhookServerRouteImport } from './routes/api/stripe/webhook'
+import { ServerRoute as ApiEmployeesSyncServerRouteImport } from './routes/api/employees/sync'
+import { ServerRoute as ApiBookingsSubmitServerRouteImport } from './routes/api/bookings/submit'
 import { ServerRoute as ApiAvatarsUploadServerRouteImport } from './routes/api/avatars/upload'
 import { ServerRoute as ApiAvatarsDeleteServerRouteImport } from './routes/api/avatars/delete'
 import { ServerRoute as ApiAvatarsSplatServerRouteImport } from './routes/api/avatars/$'
 import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api/auth/$'
+import { ServerRoute as ApiServicesServiceIdEmployeesServerRouteImport } from './routes/api/services/$serviceId/employees'
+import { ServerRoute as ApiPublicServicesServiceIdEmployeesServerRouteImport } from './routes/api/public/services/$serviceId/employees'
 
 const rootServerRouteImport = createServerRootRoute()
 
@@ -123,17 +128,17 @@ const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const OrgSlugFormSlugRoute = OrgSlugFormSlugRouteImport.update({
-  id: '/$orgSlug/$formSlug',
-  path: '/$orgSlug/$formSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedSuperadminIndexRoute =
   AuthenticatedSuperadminIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedSuperadminRoute,
   } as any)
+const FOrgSlugFormSlugRoute = FOrgSlugFormSlugRouteImport.update({
+  id: '/f/$orgSlug/$formSlug',
+  path: '/f/$orgSlug/$formSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSuperadminWorkspacesRoute =
   AuthenticatedSuperadminWorkspacesRouteImport.update({
     id: '/workspaces',
@@ -163,9 +168,24 @@ const ApiHealthServerRoute = ApiHealthServerRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootServerRouteImport,
 } as any)
+const ApiEmployeesIndexServerRoute = ApiEmployeesIndexServerRouteImport.update({
+  id: '/api/employees/',
+  path: '/api/employees/',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
 const ApiStripeWebhookServerRoute = ApiStripeWebhookServerRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
+const ApiEmployeesSyncServerRoute = ApiEmployeesSyncServerRouteImport.update({
+  id: '/api/employees/sync',
+  path: '/api/employees/sync',
+  getParentRoute: () => rootServerRouteImport,
+} as any)
+const ApiBookingsSubmitServerRoute = ApiBookingsSubmitServerRouteImport.update({
+  id: '/api/bookings/submit',
+  path: '/api/bookings/submit',
   getParentRoute: () => rootServerRouteImport,
 } as any)
 const ApiAvatarsUploadServerRoute = ApiAvatarsUploadServerRouteImport.update({
@@ -188,9 +208,20 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootServerRouteImport,
 } as any)
+const ApiServicesServiceIdEmployeesServerRoute =
+  ApiServicesServiceIdEmployeesServerRouteImport.update({
+    id: '/api/services/$serviceId/employees',
+    path: '/api/services/$serviceId/employees',
+    getParentRoute: () => rootServerRouteImport,
+  } as any)
+const ApiPublicServicesServiceIdEmployeesServerRoute =
+  ApiPublicServicesServiceIdEmployeesServerRouteImport.update({
+    id: '/api/public/services/$serviceId/employees',
+    path: '/api/public/services/$serviceId/employees',
+    getParentRoute: () => rootServerRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/$orgSlug/$formSlug': typeof OrgSlugFormSlugRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/choose-plan': typeof AuthenticatedChoosePlanRoute
   '/forms': typeof AuthenticatedFormsRoute
@@ -208,12 +239,12 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
+  '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
   '/superadmin/': typeof AuthenticatedSuperadminIndexRoute
   '/form/$formId/edit': typeof AuthenticatedFormFormIdEditRoute
   '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/$orgSlug/$formSlug': typeof OrgSlugFormSlugRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/choose-plan': typeof AuthenticatedChoosePlanRoute
   '/forms': typeof AuthenticatedFormsRoute
@@ -230,6 +261,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
+  '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
   '/superadmin': typeof AuthenticatedSuperadminIndexRoute
   '/form/$formId/edit': typeof AuthenticatedFormFormIdEditRoute
   '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
@@ -237,7 +269,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/$orgSlug/$formSlug': typeof OrgSlugFormSlugRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/choose-plan': typeof AuthenticatedChoosePlanRoute
   '/_authenticated/forms': typeof AuthenticatedFormsRoute
@@ -255,6 +286,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
+  '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
   '/_authenticated/superadmin/': typeof AuthenticatedSuperadminIndexRoute
   '/_authenticated/form/$formId/edit': typeof AuthenticatedFormFormIdEditRoute
   '/_authenticated/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
@@ -262,7 +294,6 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/$orgSlug/$formSlug'
     | '/billing'
     | '/choose-plan'
     | '/forms'
@@ -280,12 +311,12 @@ export interface FileRouteTypes {
     | '/'
     | '/superadmin/users'
     | '/superadmin/workspaces'
+    | '/f/$orgSlug/$formSlug'
     | '/superadmin/'
     | '/form/$formId/edit'
     | '/todos/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/$orgSlug/$formSlug'
     | '/billing'
     | '/choose-plan'
     | '/forms'
@@ -302,13 +333,13 @@ export interface FileRouteTypes {
     | '/'
     | '/superadmin/users'
     | '/superadmin/workspaces'
+    | '/f/$orgSlug/$formSlug'
     | '/superadmin'
     | '/form/$formId/edit'
     | '/todos/$id/edit'
   id:
     | '__root__'
     | '/_authenticated'
-    | '/$orgSlug/$formSlug'
     | '/_authenticated/billing'
     | '/_authenticated/choose-plan'
     | '/_authenticated/forms'
@@ -326,6 +357,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/superadmin/users'
     | '/_authenticated/superadmin/workspaces'
+    | '/f/$orgSlug/$formSlug'
     | '/_authenticated/superadmin/'
     | '/_authenticated/form/$formId/edit'
     | '/_authenticated/todos/$id/edit'
@@ -333,11 +365,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  OrgSlugFormSlugRoute: typeof OrgSlugFormSlugRoute
   AuthSigninRoute: typeof AuthSigninRoute
   EmbedFormIdRoute: typeof EmbedFormIdRoute
   InviteInvitationIdRoute: typeof InviteInvitationIdRoute
   Oauth2AccessCodeRoute: typeof Oauth2AccessCodeRoute
+  FOrgSlugFormSlugRoute: typeof FOrgSlugFormSlugRoute
 }
 export interface FileServerRoutesByFullPath {
   '/api/health': typeof ApiHealthServerRoute
@@ -345,7 +377,12 @@ export interface FileServerRoutesByFullPath {
   '/api/avatars/$': typeof ApiAvatarsSplatServerRoute
   '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
   '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
+  '/api/bookings/submit': typeof ApiBookingsSubmitServerRoute
+  '/api/employees/sync': typeof ApiEmployeesSyncServerRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
+  '/api/employees': typeof ApiEmployeesIndexServerRoute
+  '/api/services/$serviceId/employees': typeof ApiServicesServiceIdEmployeesServerRoute
+  '/api/public/services/$serviceId/employees': typeof ApiPublicServicesServiceIdEmployeesServerRoute
 }
 export interface FileServerRoutesByTo {
   '/api/health': typeof ApiHealthServerRoute
@@ -353,7 +390,12 @@ export interface FileServerRoutesByTo {
   '/api/avatars/$': typeof ApiAvatarsSplatServerRoute
   '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
   '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
+  '/api/bookings/submit': typeof ApiBookingsSubmitServerRoute
+  '/api/employees/sync': typeof ApiEmployeesSyncServerRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
+  '/api/employees': typeof ApiEmployeesIndexServerRoute
+  '/api/services/$serviceId/employees': typeof ApiServicesServiceIdEmployeesServerRoute
+  '/api/public/services/$serviceId/employees': typeof ApiPublicServicesServiceIdEmployeesServerRoute
 }
 export interface FileServerRoutesById {
   __root__: typeof rootServerRouteImport
@@ -362,7 +404,12 @@ export interface FileServerRoutesById {
   '/api/avatars/$': typeof ApiAvatarsSplatServerRoute
   '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
   '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
+  '/api/bookings/submit': typeof ApiBookingsSubmitServerRoute
+  '/api/employees/sync': typeof ApiEmployeesSyncServerRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
+  '/api/employees/': typeof ApiEmployeesIndexServerRoute
+  '/api/services/$serviceId/employees': typeof ApiServicesServiceIdEmployeesServerRoute
+  '/api/public/services/$serviceId/employees': typeof ApiPublicServicesServiceIdEmployeesServerRoute
 }
 export interface FileServerRouteTypes {
   fileServerRoutesByFullPath: FileServerRoutesByFullPath
@@ -372,7 +419,12 @@ export interface FileServerRouteTypes {
     | '/api/avatars/$'
     | '/api/avatars/delete'
     | '/api/avatars/upload'
+    | '/api/bookings/submit'
+    | '/api/employees/sync'
     | '/api/stripe/webhook'
+    | '/api/employees'
+    | '/api/services/$serviceId/employees'
+    | '/api/public/services/$serviceId/employees'
   fileServerRoutesByTo: FileServerRoutesByTo
   to:
     | '/api/health'
@@ -380,7 +432,12 @@ export interface FileServerRouteTypes {
     | '/api/avatars/$'
     | '/api/avatars/delete'
     | '/api/avatars/upload'
+    | '/api/bookings/submit'
+    | '/api/employees/sync'
     | '/api/stripe/webhook'
+    | '/api/employees'
+    | '/api/services/$serviceId/employees'
+    | '/api/public/services/$serviceId/employees'
   id:
     | '__root__'
     | '/api/health'
@@ -388,7 +445,12 @@ export interface FileServerRouteTypes {
     | '/api/avatars/$'
     | '/api/avatars/delete'
     | '/api/avatars/upload'
+    | '/api/bookings/submit'
+    | '/api/employees/sync'
     | '/api/stripe/webhook'
+    | '/api/employees/'
+    | '/api/services/$serviceId/employees'
+    | '/api/public/services/$serviceId/employees'
   fileServerRoutesById: FileServerRoutesById
 }
 export interface RootServerRouteChildren {
@@ -397,7 +459,12 @@ export interface RootServerRouteChildren {
   ApiAvatarsSplatServerRoute: typeof ApiAvatarsSplatServerRoute
   ApiAvatarsDeleteServerRoute: typeof ApiAvatarsDeleteServerRoute
   ApiAvatarsUploadServerRoute: typeof ApiAvatarsUploadServerRoute
+  ApiBookingsSubmitServerRoute: typeof ApiBookingsSubmitServerRoute
+  ApiEmployeesSyncServerRoute: typeof ApiEmployeesSyncServerRoute
   ApiStripeWebhookServerRoute: typeof ApiStripeWebhookServerRoute
+  ApiEmployeesIndexServerRoute: typeof ApiEmployeesIndexServerRoute
+  ApiServicesServiceIdEmployeesServerRoute: typeof ApiServicesServiceIdEmployeesServerRoute
+  ApiPublicServicesServiceIdEmployeesServerRoute: typeof ApiPublicServicesServiceIdEmployeesServerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -514,19 +581,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/$orgSlug/$formSlug': {
-      id: '/$orgSlug/$formSlug'
-      path: '/$orgSlug/$formSlug'
-      fullPath: '/$orgSlug/$formSlug'
-      preLoaderRoute: typeof OrgSlugFormSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/superadmin/': {
       id: '/_authenticated/superadmin/'
       path: '/'
       fullPath: '/superadmin/'
       preLoaderRoute: typeof AuthenticatedSuperadminIndexRouteImport
       parentRoute: typeof AuthenticatedSuperadminRoute
+    }
+    '/f/$orgSlug/$formSlug': {
+      id: '/f/$orgSlug/$formSlug'
+      path: '/f/$orgSlug/$formSlug'
+      fullPath: '/f/$orgSlug/$formSlug'
+      preLoaderRoute: typeof FOrgSlugFormSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/superadmin/workspaces': {
       id: '/_authenticated/superadmin/workspaces'
@@ -567,11 +634,32 @@ declare module '@tanstack/react-start/server' {
       preLoaderRoute: typeof ApiHealthServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
+    '/api/employees/': {
+      id: '/api/employees/'
+      path: '/api/employees'
+      fullPath: '/api/employees'
+      preLoaderRoute: typeof ApiEmployeesIndexServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
       fullPath: '/api/stripe/webhook'
       preLoaderRoute: typeof ApiStripeWebhookServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/employees/sync': {
+      id: '/api/employees/sync'
+      path: '/api/employees/sync'
+      fullPath: '/api/employees/sync'
+      preLoaderRoute: typeof ApiEmployeesSyncServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/bookings/submit': {
+      id: '/api/bookings/submit'
+      path: '/api/bookings/submit'
+      fullPath: '/api/bookings/submit'
+      preLoaderRoute: typeof ApiBookingsSubmitServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
     '/api/avatars/upload': {
@@ -600,6 +688,20 @@ declare module '@tanstack/react-start/server' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/services/$serviceId/employees': {
+      id: '/api/services/$serviceId/employees'
+      path: '/api/services/$serviceId/employees'
+      fullPath: '/api/services/$serviceId/employees'
+      preLoaderRoute: typeof ApiServicesServiceIdEmployeesServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/public/services/$serviceId/employees': {
+      id: '/api/public/services/$serviceId/employees'
+      path: '/api/public/services/$serviceId/employees'
+      fullPath: '/api/public/services/$serviceId/employees'
+      preLoaderRoute: typeof ApiPublicServicesServiceIdEmployeesServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
   }
@@ -662,11 +764,11 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  OrgSlugFormSlugRoute: OrgSlugFormSlugRoute,
   AuthSigninRoute: AuthSigninRoute,
   EmbedFormIdRoute: EmbedFormIdRoute,
   InviteInvitationIdRoute: InviteInvitationIdRoute,
   Oauth2AccessCodeRoute: Oauth2AccessCodeRoute,
+  FOrgSlugFormSlugRoute: FOrgSlugFormSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
@@ -677,7 +779,14 @@ const rootServerRouteChildren: RootServerRouteChildren = {
   ApiAvatarsSplatServerRoute: ApiAvatarsSplatServerRoute,
   ApiAvatarsDeleteServerRoute: ApiAvatarsDeleteServerRoute,
   ApiAvatarsUploadServerRoute: ApiAvatarsUploadServerRoute,
+  ApiBookingsSubmitServerRoute: ApiBookingsSubmitServerRoute,
+  ApiEmployeesSyncServerRoute: ApiEmployeesSyncServerRoute,
   ApiStripeWebhookServerRoute: ApiStripeWebhookServerRoute,
+  ApiEmployeesIndexServerRoute: ApiEmployeesIndexServerRoute,
+  ApiServicesServiceIdEmployeesServerRoute:
+    ApiServicesServiceIdEmployeesServerRoute,
+  ApiPublicServicesServiceIdEmployeesServerRoute:
+    ApiPublicServicesServiceIdEmployeesServerRoute,
 }
 export const serverRouteTree = rootServerRouteImport
   ._addFileChildren(rootServerRouteChildren)

@@ -1,39 +1,28 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
+import { Card, CardContent, CardHeader } from '@/ui/card'
 import { toast } from 'sonner'
-import { cn } from '@/taali/lib/utils'
 import BookingFlow, { BookingState, BookingSubmitData } from '@/features/booking/components/form-editor/booking-flow'
 
 // Note: Server function will be called dynamically in the loader
 // to avoid bundling server code into client
 
-export const Route = createFileRoute('/$orgSlug/$formSlug')({
+export const Route = createFileRoute('/f/$orgSlug/$formSlug')({
   component: HostedBookingPage,
-  head: ({ loaderData }) => ({
-    title: `${loaderData?.form?.name || 'Book Now'} - ${loaderData?.organization?.name || 'JoeyJob'}`,
-    meta: [
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        name: 'description',
-        content: loaderData?.form?.description || `Book your appointment with ${loaderData?.organization?.name || 'us'}`,
-      },
-      {
-        name: 'robots',
-        content: 'index, follow',
-      },
-    ],
-  }),
   loader: async ({ params }) => {
     // This is a public route - no auth required for customers
+    console.log('🔍 [SSR LOADER] Starting loader for:', params)
     try {
       // Dynamically import and call the server function
+      console.log('🔍 [SSR LOADER] Importing getBookingFormBySlug...')
       const { getBookingFormBySlug } = await import('@/features/booking/lib/forms.server')
+      
+      console.log('🔍 [SSR LOADER] Calling getBookingFormBySlug with:', { 
+        orgSlug: params.orgSlug,
+        formSlug: params.formSlug
+      })
+      
       const formData = await getBookingFormBySlug({ 
         data: { 
           orgSlug: params.orgSlug,
@@ -41,21 +30,43 @@ export const Route = createFileRoute('/$orgSlug/$formSlug')({
         } 
       })
       
+      console.log('🔍 [SSR LOADER] Got form data:', {
+        formExists: !!formData?.form,
+        formName: formData?.form?.name,
+        formTheme: formData?.form?.theme,
+        formActive: formData?.form?.isActive,
+        orgName: formData?.organization?.name
+      })
+      
       if (!formData || !formData.form.isActive) {
+        console.log('❌ [SSR LOADER] Form not found or inactive')
         throw new Error('Booking form not found or inactive')
       }
 
-      return {
+      const result = {
         form: formData.form,
         organization: formData.organization,
         service: formData.service, // Service info embedded in form
       }
+      
+      console.log('✅ [SSR LOADER] Returning data to client:', {
+        formTheme: result.form.theme,
+        formName: result.form.name,
+        orgName: result.organization.name
+      })
+      
+      return result as {
+        form: any
+        organization: any  
+        service: any
+      }
     } catch (error) {
+      console.error('❌ [SSR LOADER] Error:', error)
       throw new Error('Unable to load booking form')
     }
   },
   errorComponent: ({ error }) => (
-    <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
+    <div className="light min-h-screen flex items-center justify-center bg-muted/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <h2 className="text-xl font-semibold text-center">Booking Not Available</h2>
@@ -74,54 +85,95 @@ export const Route = createFileRoute('/$orgSlug/$formSlug')({
 })
 
 function HostedBookingPage() {
-  const { form, organization } = Route.useLoaderData()
+  const loaderData = Route.useLoaderData()
+  const { form, organization } = loaderData
   const containerRef = useRef<HTMLDivElement>(null)
+  
+  // Debug logging
+  console.log('🎨 [CLIENT COMPONENT] Received loader data:', {
+    formExists: !!form,
+    formName: form?.name,
+    formTheme: form?.theme,
+    formActive: form?.isActive,
+    orgName: organization?.name,
+    formConfigExists: !!form?.formConfig,
+    servicesCount: form?.formConfig?.serviceTree?.children?.length || 0,
+    questionsCount: form?.formConfig?.baseQuestions?.length || 0
+  })
   
   // Theme and styling from form config
   const theme = form.theme || 'light'
   const primaryColor = form.primaryColor || '#3B82F6'
+  
+  console.log('🎨 [CLIENT COMPONENT] Applied theme:', theme)
+  console.log('🎨 [CLIENT COMPONENT] Document class should be:', 
+    typeof document !== 'undefined' ? document?.documentElement?.className : 'SSR - no document'
+  )
 
   // Extract services and questions from form config
   const services = form.formConfig?.serviceTree?.children || []
   const baseQuestions = form.formConfig?.baseQuestions || []
+  
+  console.log('🎨 [CLIENT COMPONENT] Services and questions:', {
+    servicesCount: services.length,
+    questionsCount: baseQuestions.length,
+    serviceTree: form.formConfig?.serviceTree
+  })
 
   // BookingFlow state management
   const [bookingState, setBookingState] = useState<BookingState>({
     stage: 'selection',
     navigationPath: [],
     selectedService: null,
+    selectedEmployee: null,
     selectedDate: null,
     selectedTime: null,
   })
 
-  // Apply theme class to document body
-  useEffect(() => {
-    const isDark = theme === 'dark'
-    document.documentElement.classList.toggle('dark', isDark)
-    
-    return () => {
-      // Don't clean up theme on unmount - let it persist
+  // Theme is now applied via head function htmlProps - no manual DOM manipulation needed
+
+  // Function to fetch employees for a service
+  const getServiceEmployees = async (serviceId: string) => {
+    const response = await fetch(`/api/public/services/${serviceId}/employees`)
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to fetch employees')
     }
-  }, [theme])
+    return response.json()
+  }
 
   const handleBookingSubmit = async (data: BookingSubmitData) => {
     try {
-      // TODO: Submit booking data to server
-      console.log('Booking submission:', data)
+      console.log('Submitting booking:', data)
       
-      // Simulate submission
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      const response = await fetch('/api/bookings/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId: organization.id,
+          bookingData: data
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit booking')
+      }
+
       toast.success('Booking Request Submitted!', {
-        description: 'We will contact you shortly to confirm your appointment.',
-        duration: 10000,
+        description: `Your booking has been submitted successfully. Confirmation code: ${result.confirmationCode}`,
+        duration: 15000,
       })
       
     } catch (error) {
       console.error('Booking submission error:', error)
       
       toast.error('Submission Failed', {
-        description: 'An unexpected error occurred. Please try again.',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
+        duration: 10000,
       })
     }
   }
@@ -129,10 +181,7 @@ function HostedBookingPage() {
   return (
     <div 
       ref={containerRef}
-      className={cn(
-        "min-h-screen bg-background text-foreground transition-colors duration-200",
-        theme === 'dark' ? 'dark' : ''
-      )}
+      className={`${theme} min-h-screen bg-background text-foreground`}
       style={{
         '--primary': primaryColor,
         '--primary-foreground': theme === 'dark' ? '#ffffff' : '#ffffff',
@@ -173,6 +222,7 @@ function HostedBookingPage() {
           bookingState={bookingState}
           onBookingStateChange={setBookingState}
           onBookingSubmit={handleBookingSubmit}
+          getServiceEmployees={getServiceEmployees}
           className="bg-transparent"
         />
       </main>

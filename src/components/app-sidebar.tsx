@@ -19,6 +19,7 @@ import {
   SidebarGroupContent,
 } from '@/components/ui/sidebar'
 import { UserTile } from '@/components/user-tile'
+import { Logo } from '@/components/logo'
 import { OrganizationSwitcher } from '@/features/organization/components/organization-switcher'
 import { BillingStatusDisplay } from '@/components/billing-status-display'
 import { authClient } from '@/lib/auth/auth-client'
@@ -109,7 +110,7 @@ export function AppSidebar() {
     },
     {
       title: t('navigation.billing'),
-      url: '/billing', 
+      url: '/billing',
       icon: CreditCard,
       requiresPermission: 'billing',
     },
@@ -180,7 +181,9 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="px-2 py-2">
-          <h2 className="text-lg font-semibold mb-2">{t('sidebar.app')}</h2>
+          <div className="mb-4">
+            <Logo />
+          </div>
           <div className='space-y-2'>
             <OrganizationSwitcher />
             <BillingStatusDisplay />

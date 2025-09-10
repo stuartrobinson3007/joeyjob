@@ -83,6 +83,9 @@ export interface FlowNode {
     }>;
     unavailableDates?: any[]; // Using any[] for now
     additionalQuestions?: FormFieldConfig[];
+    // Employee assignment fields
+    assignedEmployeeIds?: string[];
+    defaultEmployeeId?: string;
 }
 
 // TreeNode props

@@ -56,46 +56,11 @@ export const getSubscription = createServerFn({ method: 'GET' })
     let allSubscriptions: BetterAuthSubscription[] = []
 
     try {
-      // First, let's try to query the database directly to see what's there
+      // Query the database directly for complete subscription data
       const directDbQuery = await db.select().from(schema.subscription).where(eq(schema.subscription.referenceId, orgId))
-      console.log('[BILLING SERVER] Database query result:', directDbQuery)
 
-      const subscriptions = await auth.api.listActiveSubscriptions({
-        query: {
-          referenceId: orgId,
-        },
-        headers: context.headers,
-      })
-
-
-      // Also try without referenceId to see if we get any subscriptions at all
-      try {
-        await auth.api.listActiveSubscriptions({
-          query: {},
-          headers: context.headers,
-        })
-      } catch (_testError) {
-        // Silently continue - this is just a test query
-      }
-
-      // If BetterAuth returns subscriptions, use them
-      if (subscriptions && subscriptions.length > 0) {
-        // Cast subscriptions to our interface type - Better-auth returns compatible objects
-        allSubscriptions = subscriptions.map(sub => ({
-          id: sub.id,
-          status: sub.status,
-          plan: sub.plan,
-          stripeCustomerId: sub.stripeCustomerId,
-          stripeSubscriptionId: sub.stripeSubscriptionId,
-          limits: sub.limits,
-          seats: sub.seats,
-          referenceId: sub.referenceId,
-        })) as BetterAuthSubscription[]
-
-      }
-      // If BetterAuth returns empty but we have subscriptions in DB, use DB results
-      else if (directDbQuery && directDbQuery.length > 0) {
-
+      // Use our database results directly - they have all the fields we need
+      if (directDbQuery && directDbQuery.length > 0) {
         // Map DB results to match BetterAuthSubscription interface
         allSubscriptions = directDbQuery.map(sub => ({
           id: sub.id,
@@ -110,8 +75,6 @@ export const getSubscription = createServerFn({ method: 'GET' })
           periodEnd: sub.periodEnd,
           cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
         })) as BetterAuthSubscription[]
-        
-        console.log('[BILLING SERVER] Mapped allSubscriptions:', allSubscriptions)
       }
 
       // Find the most relevant subscription (including past_due, incomplete, etc.)
@@ -148,8 +111,6 @@ export const getSubscription = createServerFn({ method: 'GET' })
         allSubscriptions.length > 0,
     }
 
-    console.log('[BILLING SERVER] Final result being returned:', result)
-    console.log('[BILLING SERVER] activeSubscription details:', activeSubscription)
 
     return result
   })

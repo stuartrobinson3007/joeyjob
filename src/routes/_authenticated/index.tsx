@@ -66,7 +66,7 @@ function BookingsPage() {
   const { t } = useTranslation('bookings')
   const { t: tCommon } = useTranslation('common')
   const { language } = useLanguage()
-  
+
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [currentFilters, setCurrentFilters] = React.useState<ServerQueryParams>({})
@@ -84,7 +84,7 @@ function BookingsPage() {
 
   // Query for selected booking details
   const { data: selectedBooking, isLoading: isLoadingDetail } = useQuery({
-    queryKey: selectedBookingId && activeOrganizationId 
+    queryKey: selectedBookingId && activeOrganizationId
       ? bookingKeys.detail(activeOrganizationId, selectedBookingId)
       : [],
     queryFn: () => selectedBookingId ? getBooking({ data: { id: selectedBookingId } }) : null,
@@ -104,10 +104,10 @@ function BookingsPage() {
       cancelled: { variant: 'outline', className: 'border-gray-200 bg-gray-50 text-gray-700' },
       'no-show': { variant: 'outline', className: 'border-red-200 bg-red-50 text-red-700' },
     }
-    
+
     const config = variants[status] || { variant: 'outline' as const, className: '' }
     const label = status === 'no-show' ? t('status.noShow') : t(`status.${status}`)
-    
+
     return (
       <Badge variant={config.variant} className={config.className}>
         {label}
@@ -147,10 +147,10 @@ function BookingsPage() {
         return (
           <div className="flex flex-col">
             <span className="font-medium">
-              {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
+              {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
               }).format(new Date(booking.bookingDate))}
             </span>
             <span className="text-sm text-muted-foreground">
@@ -193,17 +193,26 @@ function BookingsPage() {
     },
     {
       accessorKey: 'customerPhone',
-      header: t('fields.phone'),
+      header: ({ column }) => (
+        <DataTableHeader column={column}>
+          {t('fields.phone')}
+        </DataTableHeader>
+      ),
       cell: ({ row }) => row.original.customerPhone || tCommon('messages.emptyValue'),
       enableColumnFilter: false,
+      enableSorting: false,
       size: 120,
     },
     {
       accessorKey: 'serviceName',
-      header: t('fields.service'),
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          {t('fields.service')}
+        </DataTableHeader>
+      ),
       cell: ({ row }) => row.original.serviceName || tCommon('messages.emptyValue'),
       enableColumnFilter: true,
-      enableSorting: false,
+      enableSorting: true,
       size: 150,
     },
     {
@@ -236,9 +245,14 @@ function BookingsPage() {
     },
     {
       accessorKey: 'duration',
-      header: t('fields.duration'),
+      header: ({ column }) => (
+        <DataTableHeader column={column} sortable>
+          {t('fields.duration')}
+        </DataTableHeader>
+      ),
       cell: ({ row }) => formatDuration(row.original.duration),
       enableColumnFilter: false,
+      enableSorting: true,
       size: 100,
     },
     {
@@ -303,14 +317,16 @@ function BookingsPage() {
           currentFilters={currentFilters}
           onRowClick={handleRowClick}
           getRowIdProp={row => row.id}
+          resetText={tCommon('actions.reset')}
+          noResultsText={tCommon('messages.noResults')}
           className="h-[600px]"
         />
       </div>
 
       {/* Booking Detail Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl">
-          <SheetHeader>
+        <SheetContent className="w-full sm:max-w-xl flex flex-col gap-0">
+          <SheetHeader className="border-b">
             <SheetTitle>{t('details.title')}</SheetTitle>
             <SheetDescription>
               {selectedBooking?.confirmationCode && (
@@ -324,15 +340,15 @@ function BookingsPage() {
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : selectedBooking ? (
-            <ScrollArea className="mt-6 h-[calc(100vh-150px)]">
-              <div className="space-y-6 pr-4">
+            <ScrollArea className="flex-1 h-0">
+              <div className="grid auto-rows-min gap-6 p-6">
                 {/* Customer Information */}
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <div className="grid gap-3">
+                  <h3 className="font-semibold flex items-center gap-2">
                     <User className="h-4 w-4" />
                     {t('details.customerInfo')}
                   </h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="grid gap-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.name')}</span>
                       <span className="font-medium">{selectedBooking.customerName}</span>
@@ -353,18 +369,18 @@ function BookingsPage() {
                 <Separator />
 
                 {/* Booking Information */}
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <div className="grid gap-3">
+                  <h3 className="font-semibold flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     {t('details.bookingInfo')}
                   </h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="grid gap-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.date')}</span>
                       <span className="font-medium">
                         {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
                           month: 'long',
-                          day: 'numeric', 
+                          day: 'numeric',
                           year: 'numeric'
                         }).format(new Date(selectedBooking.bookingDate))}
                       </span>
@@ -395,20 +411,20 @@ function BookingsPage() {
                 {/* Service Information */}
                 {selectedBooking.service && (
                   <>
-                    <div>
-                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <div className="grid gap-3">
+                      <h3 className="font-semibold flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         {t('details.serviceInfo')}
                       </h3>
-                      <div className="space-y-2 text-sm">
+                      <div className="grid gap-3">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('details.labels.service')}</span>
                           <span className="font-medium">{selectedBooking.service.name}</span>
                         </div>
                         {selectedBooking.service.description && (
-                          <div className="mt-2">
-                            <span className="text-muted-foreground">{t('details.labels.description')}</span>
-                            <p className="mt-1 text-sm">{selectedBooking.service.description}</p>
+                          <div className="grid gap-1">
+                            <span className="text-muted-foreground text-sm">{t('details.labels.description')}</span>
+                            <p className="text-sm">{selectedBooking.service.description}</p>
                           </div>
                         )}
                       </div>
@@ -420,20 +436,22 @@ function BookingsPage() {
                 {/* Notes */}
                 {(selectedBooking.notes || selectedBooking.internalNotes) && (
                   <>
-                    <div>
-                      <h3 className="font-semibold mb-3">{t('fields.notes')}</h3>
-                      {selectedBooking.notes && (
-                        <div className="mb-3">
-                          <span className="text-sm text-muted-foreground">{t('details.labels.customerNotes')}</span>
-                          <p className="mt-1 text-sm">{selectedBooking.notes}</p>
-                        </div>
-                      )}
-                      {selectedBooking.internalNotes && (
-                        <div>
-                          <span className="text-sm text-muted-foreground">{t('details.labels.internalNotes')}</span>
-                          <p className="mt-1 text-sm">{selectedBooking.internalNotes}</p>
-                        </div>
-                      )}
+                    <div className="grid gap-3">
+                      <h3 className="font-semibold">{t('fields.notes')}</h3>
+                      <div className="grid gap-3">
+                        {selectedBooking.notes && (
+                          <div className="grid gap-1">
+                            <span className="text-muted-foreground text-sm">{t('details.labels.customerNotes')}</span>
+                            <p className="text-sm">{selectedBooking.notes}</p>
+                          </div>
+                        )}
+                        {selectedBooking.internalNotes && (
+                          <div className="grid gap-1">
+                            <span className="text-muted-foreground text-sm">{t('details.labels.internalNotes')}</span>
+                            <p className="text-sm">{selectedBooking.internalNotes}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <Separator />
                   </>
@@ -442,8 +460,8 @@ function BookingsPage() {
                 {/* Form Data */}
                 {selectedBooking.formData && (
                   <>
-                    <div>
-                      <h3 className="font-semibold mb-3">{t('details.formData')}</h3>
+                    <div className="grid gap-3">
+                      <h3 className="font-semibold">{t('details.formData')}</h3>
                       <div className="bg-muted/50 rounded-lg p-3">
                         <pre className="text-xs overflow-x-auto">
                           {JSON.stringify(selectedBooking.formData, null, 2)}
@@ -455,12 +473,12 @@ function BookingsPage() {
                 )}
 
                 {/* Metadata */}
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <div className="grid gap-3">
+                  <h3 className="font-semibold flex items-center gap-2">
                     <Hash className="h-4 w-4" />
                     {t('details.metadata')}
                   </h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="grid gap-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.source')}</span>
                       <span className="font-medium capitalize">{selectedBooking.source}</span>

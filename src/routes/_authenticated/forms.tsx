@@ -3,9 +3,11 @@ import { Plus, FileText, Edit, Trash2, Copy, Eye, Code } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import { getBookingForms, createForm } from '@/features/booking/lib/forms.server'
+import { getBookingForms, createForm, deleteForm, duplicateForm, undoDeleteForm } from '@/features/booking/lib/forms.server'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { useLoadingItems } from '@/taali/hooks/use-loading-state'
+import { useConfirm } from '@/ui/confirm-dialog'
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Badge } from '@/ui/badge'
@@ -27,6 +29,7 @@ function FormsPage() {
   const { activeOrganizationId, activeOrganization } = useActiveOrganization()
   const navigate = useNavigate()
   const { showError, showSuccess } = useErrorHandler()
+  const confirm = useConfirm()
   const [isCreating, setIsCreating] = useState(false)
   const [embedDialog, setEmbedDialog] = useState<{ open: boolean; formId: string; formName: string; formSlug?: string }>({
     open: false,
@@ -34,6 +37,14 @@ function FormsPage() {
     formName: '',
     formSlug: ''
   })
+
+  // Loading states for individual form actions
+  const {
+    isLoading: isLoadingForm,
+    startLoading: startFormLoading,
+    stopLoading: stopFormLoading,
+    loadingItems: loadingForms,
+  } = useLoadingItems<string>()
 
   // Fetch forms data using React Query
   const { data: formsData, isLoading, refetch } = useQuery({
@@ -58,6 +69,58 @@ function FormsPage() {
 
   const handleEmbedForm = (formId: string, formName: string, formSlug?: string) => {
     setEmbedDialog({ open: true, formId, formName, formSlug })
+  }
+
+  const handleDelete = async (formId: string, formName: string) => {
+    const confirmed = await confirm({
+      title: 'Delete Form',
+      description: `Are you sure you want to delete "${formName}"? This action can be undone.`,
+      confirmText: 'Delete',
+      variant: 'destructive'
+    })
+    if (!confirmed) return
+
+    startFormLoading(formId)
+    try {
+      await deleteForm({ data: { id: formId } })
+      refetch()
+
+      // Show success toast with undo action
+      showSuccess('Form deleted successfully', {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await undoDeleteForm({ data: { id: formId } })
+              refetch()
+              showSuccess('Form restored successfully')
+            } catch (error) {
+              showError(error)
+            }
+          }
+        }
+      })
+    } catch (error) {
+      showError(error)
+    } finally {
+      stopFormLoading(formId)
+    }
+  }
+
+  const handleDuplicate = async (formId: string, formName: string) => {
+    startFormLoading(formId)
+    try {
+      const duplicated = await duplicateForm({ data: { id: formId } })
+      refetch()
+      showSuccess('Form duplicated successfully')
+      
+      // Navigate to edit the duplicated form
+      navigate({ to: '/form/$formId/edit', params: { formId: duplicated.id } })
+    } catch (error) {
+      showError(error)
+    } finally {
+      stopFormLoading(formId)
+    }
   }
 
   // Handle immediate form creation (like createTodo pattern)
@@ -111,8 +174,10 @@ function FormsPage() {
       <div className="flex-1 p-6">
         {forms.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {forms.map(({ form }) => (
-              <Card key={form.id} className="group hover:shadow-md transition-shadow">
+            {forms.map(({ form }) => {
+              const isLoading = isLoadingForm(form.id)
+              return (
+              <Card key={form.id} className={`group hover:shadow-md transition-shadow ${isLoading ? 'opacity-60' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
@@ -130,7 +195,8 @@ function FormsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+                          className="ml-2"
+                          disabled={isLoading}
                         >
                           <svg
                             className="h-4 w-4"
@@ -163,16 +229,16 @@ function FormsPage() {
                             Edit
                           </DropdownMenuItem>
                         </Link>
-                        <DropdownMenuItem onClick={() => handleEmbedForm(form.id, form.name, form.slug)}>
+                        <DropdownMenuItem onClick={() => handleEmbedForm(form.id, form.name, form.slug)} disabled={isLoading}>
                           <Code className="h-4 w-4 mr-2" />
                           Embed
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(form.id, form.name)} disabled={isLoading}>
                           <Copy className="h-4 w-4 mr-2" />
                           Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(form.id, form.name)} disabled={isLoading}>
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
@@ -211,8 +277,8 @@ function FormsPage() {
                       <div className="text-xs">
                         <span className="font-medium text-foreground">Hosted at:</span>{' '}
                         <span className="font-mono text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${activeOrganization.slug}/${form.slug}`)}>
-                          /{activeOrganization.slug}/{form.slug}
+                              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/f/${activeOrganization.slug}/${form.slug}`)}>
+                          /f/{activeOrganization.slug}/{form.slug}
                         </span>
                       </div>
                     )}
@@ -241,7 +307,8 @@ function FormsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24">

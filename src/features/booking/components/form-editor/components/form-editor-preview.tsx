@@ -5,6 +5,7 @@ import { PortalContainerProvider } from "@/components/portal-container";
 interface FormEditorPreviewProps {
     children: ReactNode;
     darkMode?: boolean;
+    primaryColor?: string;
 }
 
 /**
@@ -14,7 +15,8 @@ interface FormEditorPreviewProps {
  */
 export function FormEditorPreview({
     children,
-    darkMode
+    darkMode,
+    primaryColor
 }: FormEditorPreviewProps) {
     const portalContainerRef = useRef<HTMLDivElement>(null);
     const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
@@ -24,13 +26,19 @@ export function FormEditorPreview({
         setPortalContainer(portalContainerRef.current);
     }, []);
 
+    // Create style object to override primary color if provided
+    const primaryColorStyle = primaryColor ? { '--primary': primaryColor } as React.CSSProperties : {};
+
     return (
         <div className="flex-1 pr-6 lg:pr-8 pb-6 lg:pb-8">
-            {/* Theme isolation container - applies explicit theme class to override inheritance */}
-            <div className={cn(
-                "relative overflow-auto bg-muted rounded-3xl h-full text-muted-foreground flex flex-col",
-                darkMode ? "dark" : "light"
-            )}>
+            {/* Theme isolation container - applies explicit theme class and primary color override */}
+            <div 
+                className={cn(
+                    "relative overflow-auto bg-muted rounded-3xl h-full text-muted-foreground flex flex-col",
+                    darkMode ? "dark" : "light"
+                )}
+                style={primaryColorStyle}
+            >
                 <div className="sticky z-10 bg-muted top-0 left-0 right-0 text-xs text-muted-foreground/80 border-b pt-3 pb-2.5 text-center">
                     <p>This is a preview of how your booking form will appear.</p>
                 </div>

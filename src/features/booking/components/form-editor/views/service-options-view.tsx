@@ -9,6 +9,7 @@ import BackButton from "@/features/booking/components/form-editor/back-button";
 import type { ServiceDetailView } from "../hooks/use-form-editor-state";
 import type { FlowNode } from "../form-flow-tree";
 import useFormEditorData from "../hooks/use-form-editor-data";
+import ServiceEmployeeAssignmentView from "./service-employee-assignment-view";
 
 interface ServiceOptionsViewProps {
     node: FlowNode;
@@ -24,13 +25,26 @@ export function ServiceOptionsView({
     node,
     onNavigateBack,
     onNavigateToDetail,
-    activeView = "details"
+    activeView = "details",
+    onUpdateNode
 }: ServiceOptionsViewProps) {
     // Access form data context - not actively used in this view but available for future enhancements
     const { data } = useFormEditorData();
 
     if (!node) return null;
 
+    // If activeView is "employees", render the employee assignment view
+    if (activeView === "employees") {
+        return (
+            <ServiceEmployeeAssignmentView
+                node={node}
+                onNavigateBack={onNavigateBack}
+                onUpdateNode={onUpdateNode || (() => {})}
+            />
+        );
+    }
+
+    // Otherwise render the main service options menu
     return (
         <>
             <BackButton
