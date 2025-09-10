@@ -19,12 +19,12 @@ import {
     GripVerticalIcon,
     ListChecksIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/taali/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/ui/dropdown-menu";
+import { Button } from "@/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/tooltip";
+import { Switch } from "@/ui/switch";
+import { Input } from "@/ui/input";
 import {
     FormFieldConfig,
     SimpleFieldConfig,

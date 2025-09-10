@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import BackButton from "@/features/booking/components/form-editor/back-button";
-import type { FlowNode } from "@/components/FormFlowTree";
+import type { FlowNode } from "../form-flow-tree";
 
 interface GroupDetailsViewProps {
     node: FlowNode;

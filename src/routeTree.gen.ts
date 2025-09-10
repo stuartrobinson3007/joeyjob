@@ -15,17 +15,19 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as Oauth2AccessCodeRouteImport } from './routes/oauth2/accessCode'
 import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
-import { Route as BookFormIdRouteImport } from './routes/book.$formId'
+import { Route as EmbedFormIdRouteImport } from './routes/embed.$formId'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSelectOrganizationRouteImport } from './routes/_authenticated/select-organization'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedPaymentErrorRouteImport } from './routes/_authenticated/payment-error'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedFormsRouteImport } from './routes/_authenticated/forms'
-import { Route as AuthenticatedBookingsRouteImport } from './routes/_authenticated/bookings'
+import { Route as AuthenticatedChoosePlanRouteImport } from './routes/_authenticated/choose-plan'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as OrgSlugFormSlugRouteImport } from './routes/$orgSlug.$formSlug'
 import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
@@ -59,9 +61,9 @@ const InviteInvitationIdRoute = InviteInvitationIdRouteImport.update({
   path: '/invite/$invitationId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BookFormIdRoute = BookFormIdRouteImport.update({
-  id: '/book/$formId',
-  path: '/book/$formId',
+const EmbedFormIdRoute = EmbedFormIdRouteImport.update({
+  id: '/embed/$formId',
+  path: '/embed/$formId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSigninRoute = AuthSigninRouteImport.update({
@@ -95,6 +97,12 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPaymentErrorRoute =
+  AuthenticatedPaymentErrorRouteImport.update({
+    id: '/payment-error',
+    path: '/payment-error',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -105,15 +113,20 @@ const AuthenticatedFormsRoute = AuthenticatedFormsRouteImport.update({
   path: '/forms',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedBookingsRoute = AuthenticatedBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
+const AuthenticatedChoosePlanRoute = AuthenticatedChoosePlanRouteImport.update({
+  id: '/choose-plan',
+  path: '/choose-plan',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const OrgSlugFormSlugRoute = OrgSlugFormSlugRouteImport.update({
+  id: '/$orgSlug/$formSlug',
+  path: '/$orgSlug/$formSlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSuperadminIndexRoute =
   AuthenticatedSuperadminIndexRouteImport.update({
@@ -177,17 +190,19 @@ const ApiAuthSplatServerRoute = ApiAuthSplatServerRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/$orgSlug/$formSlug': typeof OrgSlugFormSlugRoute
   '/billing': typeof AuthenticatedBillingRoute
-  '/bookings': typeof AuthenticatedBookingsRoute
+  '/choose-plan': typeof AuthenticatedChoosePlanRoute
   '/forms': typeof AuthenticatedFormsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/payment-error': typeof AuthenticatedPaymentErrorRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
-  '/book/$formId': typeof BookFormIdRoute
+  '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/': typeof AuthenticatedIndexRoute
@@ -198,16 +213,18 @@ export interface FileRoutesByFullPath {
   '/todos/$id/edit': typeof AuthenticatedTodosIdEditRoute
 }
 export interface FileRoutesByTo {
+  '/$orgSlug/$formSlug': typeof OrgSlugFormSlugRoute
   '/billing': typeof AuthenticatedBillingRoute
-  '/bookings': typeof AuthenticatedBookingsRoute
+  '/choose-plan': typeof AuthenticatedChoosePlanRoute
   '/forms': typeof AuthenticatedFormsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/payment-error': typeof AuthenticatedPaymentErrorRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
-  '/book/$formId': typeof BookFormIdRoute
+  '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/': typeof AuthenticatedIndexRoute
@@ -220,17 +237,19 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/$orgSlug/$formSlug': typeof OrgSlugFormSlugRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
-  '/_authenticated/bookings': typeof AuthenticatedBookingsRoute
+  '/_authenticated/choose-plan': typeof AuthenticatedChoosePlanRoute
   '/_authenticated/forms': typeof AuthenticatedFormsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/payment-error': typeof AuthenticatedPaymentErrorRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/auth/signin': typeof AuthSigninRoute
-  '/book/$formId': typeof BookFormIdRoute
+  '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -243,17 +262,19 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/$orgSlug/$formSlug'
     | '/billing'
-    | '/bookings'
+    | '/choose-plan'
     | '/forms'
     | '/onboarding'
+    | '/payment-error'
     | '/profile'
     | '/select-organization'
     | '/settings'
     | '/superadmin'
     | '/team'
     | '/auth/signin'
-    | '/book/$formId'
+    | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/'
@@ -264,16 +285,18 @@ export interface FileRouteTypes {
     | '/todos/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/$orgSlug/$formSlug'
     | '/billing'
-    | '/bookings'
+    | '/choose-plan'
     | '/forms'
     | '/onboarding'
+    | '/payment-error'
     | '/profile'
     | '/select-organization'
     | '/settings'
     | '/team'
     | '/auth/signin'
-    | '/book/$formId'
+    | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/'
@@ -285,17 +308,19 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/$orgSlug/$formSlug'
     | '/_authenticated/billing'
-    | '/_authenticated/bookings'
+    | '/_authenticated/choose-plan'
     | '/_authenticated/forms'
     | '/_authenticated/onboarding'
+    | '/_authenticated/payment-error'
     | '/_authenticated/profile'
     | '/_authenticated/select-organization'
     | '/_authenticated/settings'
     | '/_authenticated/superadmin'
     | '/_authenticated/team'
     | '/auth/signin'
-    | '/book/$formId'
+    | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/_authenticated/'
@@ -308,8 +333,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  OrgSlugFormSlugRoute: typeof OrgSlugFormSlugRoute
   AuthSigninRoute: typeof AuthSigninRoute
-  BookFormIdRoute: typeof BookFormIdRoute
+  EmbedFormIdRoute: typeof EmbedFormIdRoute
   InviteInvitationIdRoute: typeof InviteInvitationIdRoute
   Oauth2AccessCodeRoute: typeof Oauth2AccessCodeRoute
 }
@@ -404,11 +430,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteInvitationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/book/$formId': {
-      id: '/book/$formId'
-      path: '/book/$formId'
-      fullPath: '/book/$formId'
-      preLoaderRoute: typeof BookFormIdRouteImport
+    '/embed/$formId': {
+      id: '/embed/$formId'
+      path: '/embed/$formId'
+      fullPath: '/embed/$formId'
+      preLoaderRoute: typeof EmbedFormIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/signin': {
@@ -453,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/payment-error': {
+      id: '/_authenticated/payment-error'
+      path: '/payment-error'
+      fullPath: '/payment-error'
+      preLoaderRoute: typeof AuthenticatedPaymentErrorRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -467,11 +500,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFormsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/bookings': {
-      id: '/_authenticated/bookings'
-      path: '/bookings'
-      fullPath: '/bookings'
-      preLoaderRoute: typeof AuthenticatedBookingsRouteImport
+    '/_authenticated/choose-plan': {
+      id: '/_authenticated/choose-plan'
+      path: '/choose-plan'
+      fullPath: '/choose-plan'
+      preLoaderRoute: typeof AuthenticatedChoosePlanRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/billing': {
@@ -480,6 +513,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/billing'
       preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/$orgSlug/$formSlug': {
+      id: '/$orgSlug/$formSlug'
+      path: '/$orgSlug/$formSlug'
+      fullPath: '/$orgSlug/$formSlug'
+      preLoaderRoute: typeof OrgSlugFormSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/superadmin/': {
       id: '/_authenticated/superadmin/'
@@ -586,9 +626,10 @@ const AuthenticatedSuperadminRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
-  AuthenticatedBookingsRoute: typeof AuthenticatedBookingsRoute
+  AuthenticatedChoosePlanRoute: typeof AuthenticatedChoosePlanRoute
   AuthenticatedFormsRoute: typeof AuthenticatedFormsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPaymentErrorRoute: typeof AuthenticatedPaymentErrorRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSelectOrganizationRoute: typeof AuthenticatedSelectOrganizationRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -601,9 +642,10 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
-  AuthenticatedBookingsRoute: AuthenticatedBookingsRoute,
+  AuthenticatedChoosePlanRoute: AuthenticatedChoosePlanRoute,
   AuthenticatedFormsRoute: AuthenticatedFormsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPaymentErrorRoute: AuthenticatedPaymentErrorRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSelectOrganizationRoute: AuthenticatedSelectOrganizationRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
@@ -620,8 +662,9 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  OrgSlugFormSlugRoute: OrgSlugFormSlugRoute,
   AuthSigninRoute: AuthSigninRoute,
-  BookFormIdRoute: BookFormIdRoute,
+  EmbedFormIdRoute: EmbedFormIdRoute,
   InviteInvitationIdRoute: InviteInvitationIdRoute,
   Oauth2AccessCodeRoute: Oauth2AccessCodeRoute,
 }

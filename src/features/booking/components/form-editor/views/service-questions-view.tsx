@@ -1,8 +1,8 @@
 import React, { useCallback } from "react";
 import BackButton from "@/features/booking/components/form-editor/back-button";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
-import { QuestionList } from "@/components/question-list";
-import type { FlowNode } from "@/components/FormFlowTree";
+import { QuestionList } from "../question-list";
+import type { FlowNode } from "../form-flow-tree";
 
 interface ServiceQuestionsViewProps {
     node: FlowNode;

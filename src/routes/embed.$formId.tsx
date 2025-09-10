@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer'
@@ -11,8 +11,29 @@ import { toast } from 'sonner'
 // Note: Server function will be called dynamically in the loader
 // to avoid bundling server code into client
 
-export const Route = createFileRoute('/book/$formId')({
-  component: CustomerBookingPage,
+export const Route = createFileRoute('/embed/$formId')({
+  head: () => ({
+    meta: [
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1',
+      },
+      {
+        name: 'robots',
+        content: 'noindex, nofollow',
+      },
+      // Security headers via meta tags (limited effectiveness, ideally set at server level)
+      {
+        'http-equiv': 'X-Frame-Options',
+        content: 'ALLOWALL', // Allow embedding in iframes
+      },
+      {
+        'http-equiv': 'X-Content-Type-Options',
+        content: 'nosniff',
+      },
+    ],
+  }),
+  component: EmbedBookingPage,
   loader: async ({ params }) => {
     // This is a public route - no auth required for customers
     try {
@@ -33,7 +54,7 @@ export const Route = createFileRoute('/book/$formId')({
     }
   },
   errorComponent: ({ error }) => (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50">
+    <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <h2 className="text-xl font-semibold text-center">Booking Not Available</h2>
@@ -51,14 +72,48 @@ export const Route = createFileRoute('/book/$formId')({
   ),
 })
 
-function CustomerBookingPage() {
+function EmbedBookingPage() {
   const { form, service } = Route.useLoaderData()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   
   const formHook = useForm()
 
   // Prepare form fields from the form configuration
   const formFields = Array.isArray(form.fields) ? form.fields : []
+
+  // Auto-resize functionality for iframe
+  useEffect(() => {
+    const resizeIframe = () => {
+      if (containerRef.current && window.parent !== window) {
+        const height = containerRef.current.scrollHeight
+        window.parent.postMessage({
+          type: 'iframeResize',
+          payload: { height: height + 20 } // Add small buffer for padding
+        }, '*')
+      }
+    }
+
+    // Initial resize
+    resizeIframe()
+
+    // Set up ResizeObserver to watch for content changes
+    const resizeObserver = new ResizeObserver(() => {
+      resizeIframe()
+    })
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
+
+    // Also listen for form changes that might affect height
+    const timer = setInterval(resizeIframe, 100)
+
+    return () => {
+      clearInterval(timer)
+      resizeObserver.disconnect()
+    }
+  }, [])
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true)
@@ -69,6 +124,18 @@ function CustomerBookingPage() {
       // Simulate submission
       await new Promise(resolve => setTimeout(resolve, 1000))
       
+      // Notify parent window of successful submission
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'bookingSubmitted',
+          payload: { 
+            formId: form.id,
+            data: data,
+            success: true 
+          }
+        }, '*')
+      }
+      
       toast.success('Booking Request Submitted!', {
         description: 'We will contact you shortly to confirm your appointment.',
         duration: 10000,
@@ -78,6 +145,20 @@ function CustomerBookingPage() {
       formHook.reset()
     } catch (error) {
       console.error('Booking submission error:', error)
+      
+      // Notify parent window of submission error
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'bookingSubmitted',
+          payload: { 
+            formId: form.id,
+            data: data,
+            success: false,
+            error: error instanceof Error ? error.message : 'Submission failed'
+          }
+        }, '*')
+      }
+      
       toast.error('Submission Failed', {
         description: 'An unexpected error occurred. Please try again.',
       })
@@ -87,31 +168,35 @@ function CustomerBookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-background p-4"
+      style={{
+        margin: 0,
+        boxSizing: 'border-box',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}
+    >
       {/* Header */}
-      <header className="bg-background border-b">
-        <div className="container max-w-4xl mx-auto py-4">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold">{form.name}</h1>
-            {form.description && (
-              <p className="text-muted-foreground mt-1">{form.description}</p>
-            )}
-            {service && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Book your {service.name} appointment
-              </p>
-            )}
-          </div>
-        </div>
-      </header>
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold text-foreground mb-2">{form.name}</h1>
+        {form.description && (
+          <p className="text-muted-foreground">{form.description}</p>
+        )}
+        {service && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Book your {service.name} appointment
+          </p>
+        )}
+      </div>
 
       {/* Booking Form */}
-      <div className="container max-w-2xl mx-auto py-8">
-        <Card className="bg-background shadow-sm">
-          <CardHeader>
-            <CardTitle>Complete Your Information</CardTitle>
+      <div className="max-w-2xl mx-auto">
+        <Card className="shadow-sm border">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Complete Your Information</CardTitle>
             {service && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground space-y-1">
                 <p><strong>Service:</strong> {service.name}</p>
                 <p><strong>Duration:</strong> {service.duration} minutes</p>
                 <p><strong>Price:</strong> ${service.price}</p>
@@ -129,8 +214,13 @@ function CustomerBookingPage() {
                   />
                 ))}
                 
-                <div className="flex justify-center pt-6">
-                  <Button type="submit" disabled={isSubmitting} className="min-w-[200px]">
+                <div className="flex justify-center pt-4">
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className="min-w-[200px]"
+                    size="lg"
+                  >
                     {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
                   </Button>
                 </div>
@@ -141,12 +231,10 @@ function CustomerBookingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t bg-background/50">
-        <div className="container max-w-4xl mx-auto py-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Powered by JoeyJob - Online Booking Platform
-          </p>
-        </div>
+      <footer className="mt-8 text-center">
+        <p className="text-xs text-muted-foreground">
+          Powered by JoeyJob
+        </p>
       </footer>
     </div>
   )

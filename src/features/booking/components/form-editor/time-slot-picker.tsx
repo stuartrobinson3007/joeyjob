@@ -2,7 +2,7 @@ import React from 'react'
 import { Button } from '@/ui/button'
 import { ScrollArea } from '@/ui/scroll-area'
 import { Clock4 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/taali/lib/utils'
 
 export interface TimeSlotPickerProps {
   availableSlots: string[]

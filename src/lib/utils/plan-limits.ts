@@ -5,7 +5,7 @@ import { db } from '@/lib/db/db'
 import { member, todos, invitation, organization } from '@/database/schema'
 import { BILLING_PLANS } from '@/features/billing/lib/plans.config'
 
-export type PlanLimitResource = 'todos' | 'members' | 'storage'
+export type PlanLimitResource = 'todos' | 'members' | 'storage' | 'connectedEmployees'
 export type PlanLimitAction = 'create' | 'update'
 
 export interface PlanLimitResult {
@@ -29,7 +29,7 @@ export async function checkPlanLimitUtil(
   headers?: HeadersInit
 ): Promise<PlanLimitResult> {
   // Get active subscriptions for the organization using Better Auth
-  let limits = BILLING_PLANS.free.limits // Default to free plan
+  let limits = BILLING_PLANS.pro.limits // Default to pro plan since free no longer exists
   
   try {
     const subscriptions = await auth.api.listActiveSubscriptions({
@@ -42,8 +42,8 @@ export async function checkPlanLimitUtil(
       sub => sub.status === 'active' || sub.status === 'trialing'
     )
 
-    // Get limits from subscription or fall back to free plan
-    limits = (activeSubscription?.limits || BILLING_PLANS.free.limits) as typeof BILLING_PLANS.free.limits
+    // Get limits from subscription or fall back to pro plan  
+    limits = (activeSubscription?.limits || BILLING_PLANS.pro.limits) as typeof BILLING_PLANS.pro.limits
   } catch (_error) {
     // If there's an error fetching subscriptions, try to use organization's currentPlan
     try {
@@ -102,6 +102,11 @@ export async function checkPlanLimitUtil(
         // For now, we don't track storage usage - return allowed
         return { allowed: true }
       }
+      case 'connectedEmployees': {
+        // For now, we don't have connected employees data - return 0 usage but still check limits
+        currentUsage = 0
+        break
+      }
     }
   } catch (_error) {
     // On error counting usage, deny the action for safety
@@ -133,7 +138,7 @@ export async function checkPlanLimitUtil(
  */
 export async function getOrganizationUsage(organizationId: string, headers?: HeadersInit) {
   // Get limits from Better Auth subscription API
-  let limits = BILLING_PLANS.free.limits // Default to free plan
+  let limits = BILLING_PLANS.pro.limits // Default to pro plan since free no longer exists
   
   try {
     // Get active subscriptions for the organization using Better Auth
@@ -147,63 +152,26 @@ export async function getOrganizationUsage(organizationId: string, headers?: Hea
       sub => sub.status === 'active' || sub.status === 'trialing'
     )
 
-    // Get limits from subscription or fall back to free plan
-    limits = (activeSubscription?.limits || BILLING_PLANS.free.limits) as typeof BILLING_PLANS.free.limits
+    // Get limits from subscription or fall back to pro plan  
+    limits = (activeSubscription?.limits || BILLING_PLANS.pro.limits) as typeof BILLING_PLANS.pro.limits
   } catch (_error) {
     // Use free plan limits as fallback
   }
 
   try {
-    // Get current usage
-    const [todoResult, memberResult, invitationResult] = await Promise.all([
-      db
-        .select({ count: count(todos.id) })
-        .from(todos)
-        .where(and(eq(todos.organizationId, organizationId), isNull(todos.deletedAt))),
-      db
-        .select({ count: count(member.id) })
-        .from(member)
-        .where(eq(member.organizationId, organizationId)),
-      db
-        .select({ count: count(invitation.id) })
-        .from(invitation)
-        .where(and(eq(invitation.organizationId, organizationId), eq(invitation.status, 'pending')))
-    ])
-
-    const todoCount = todoResult[0]?.count || 0
-    const activeMembers = memberResult[0]?.count || 0
-    const pendingInvitations = invitationResult[0]?.count || 0
-    const memberCount = activeMembers + pendingInvitations
+    // For now, we only track connected employees (not implemented yet)
 
     return {
-      todos: {
-        used: todoCount,
-        limit: limits.todos as number,
-        percentage:
-          (limits.todos as number) === -1
-            ? 0
-            : Math.round((todoCount / Math.max(limits.todos as number, 1)) * 100),
-      },
-      members: {
-        used: memberCount,
-        limit: limits.members as number,
-        percentage:
-          (limits.members as number) === -1
-            ? 0
-            : Math.round((memberCount / Math.max(limits.members as number, 1)) * 100),
-      },
-      storage: {
-        used: 0, // Not implemented yet
-        limit: limits.storage as number,
+      connectedEmployees: {
+        used: 0, // Not connected to data source yet
+        limit: limits.connectedEmployees as number,
         percentage: 0,
       },
     }
   } catch (_error) {
     // Return zeros with limits on error
     return {
-      todos: { used: 0, limit: limits.todos as number, percentage: 0 },
-      members: { used: 0, limit: limits.members as number, percentage: 0 },
-      storage: { used: 0, limit: limits.storage as number, percentage: 0 },
+      connectedEmployees: { used: 0, limit: limits.connectedEmployees as number, percentage: 0 },
     }
   }
 }

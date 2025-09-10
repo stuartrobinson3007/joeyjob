@@ -14,6 +14,9 @@ interface BetterAuthSubscription {
   limits?: Record<string, number>
   seats?: number
   referenceId?: string
+  periodStart?: Date | string
+  periodEnd?: Date | string
+  cancelAtPeriodEnd?: boolean
 }
 
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
@@ -55,6 +58,7 @@ export const getSubscription = createServerFn({ method: 'GET' })
     try {
       // First, let's try to query the database directly to see what's there
       const directDbQuery = await db.select().from(schema.subscription).where(eq(schema.subscription.referenceId, orgId))
+      console.log('[BILLING SERVER] Database query result:', directDbQuery)
 
       const subscriptions = await auth.api.listActiveSubscriptions({
         query: {
@@ -102,7 +106,12 @@ export const getSubscription = createServerFn({ method: 'GET' })
           limits: undefined, // Limits are now fetched from BILLING_PLANS config, not stored in DB
           seats: sub.seats || undefined,
           referenceId: sub.referenceId,
+          periodStart: sub.periodStart,
+          periodEnd: sub.periodEnd,
+          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
         })) as BetterAuthSubscription[]
+        
+        console.log('[BILLING SERVER] Mapped allSubscriptions:', allSubscriptions)
       }
 
       // Find the most relevant subscription (including past_due, incomplete, etc.)
@@ -132,13 +141,15 @@ export const getSubscription = createServerFn({ method: 'GET' })
       allSubscriptions,
       currentPlan,
       features: safeEnumAccess(BILLING_PLANS, currentPlan)?.features,
-      limits: activeSubscription?.limits || safeEnumAccess(BILLING_PLANS, currentPlan)?.limits || BILLING_PLANS.free.limits,
+      limits: activeSubscription?.limits || safeEnumAccess(BILLING_PLANS, currentPlan)?.limits || BILLING_PLANS.pro.limits,
       hasStripeCustomer:
         !!org.stripeCustomerId ||
         !!activeSubscription?.stripeCustomerId ||
         allSubscriptions.length > 0,
     }
 
+    console.log('[BILLING SERVER] Final result being returned:', result)
+    console.log('[BILLING SERVER] activeSubscription details:', activeSubscription)
 
     return result
   })

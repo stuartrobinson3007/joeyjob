@@ -6,9 +6,8 @@ import { Form } from '@/ui/form';
 import { cn } from '@/taali/lib/utils';
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer';
 import { FormFieldConfig as StandardFormFieldConfig } from '@/features/booking/lib/form-field-types';
-// TODO: Replace with booking-scheduler component
-// import BookingCalendar, { AvailabilityRule, BlockedTime } from '@/components/BookingCalendar';
 import { parseISO, isSameDay } from 'date-fns';
+import BookingCalendar, { AvailabilityRule, BlockedTime } from './booking-calendar';
 
 // Unique identifier for items in the booking tree
 type ItemId = string;
@@ -556,14 +555,16 @@ export default function BookingFlow({
             <>
                 <div className="@xl:grid @3xl:grid-cols-2 gap-4 @xl:items-start">
                     <div className="@xl:sticky @xl:top-8">
-                        <Button
-                            variant="ghost"
-                            className={`flex items-center mb-2 text-muted-foreground p-0! hover:bg-transparent! hover:text-foreground! justify-start`}
-                            onClick={handleBack}
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                            Back
-                        </Button>
+                        {bookingState.navigationPath.length > 0 && (
+                            <Button
+                                variant="ghost"
+                                className={`flex items-center mb-2 text-muted-foreground p-0! hover:bg-transparent! hover:text-foreground! justify-start`}
+                                onClick={handleBack}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Back
+                            </Button>
+                        )}
                         <h1 className="text-3xl font-bold mb-2">
                             {lastItemInPath ? lastItemInPath.title : startTitle}
                         </h1>
@@ -620,26 +621,7 @@ export default function BookingFlow({
 
         return (
             <>
-                {/* TODO: Replace with new BookingScheduler component */}
-                <div className="text-center p-8">
-                    <h2 className="text-2xl font-bold mb-4">Calendar Integration Coming Soon</h2>
-                    <p className="text-muted-foreground mb-6">
-                        The booking calendar for "{latestService.title}" will be integrated here.
-                    </p>
-                    <div className="space-y-4">
-                        <div className="text-sm text-muted-foreground">
-                            <p>Duration: {latestService.duration} minutes</p>
-                            <p>Buffer Time: {latestService.bufferTime || 15} minutes</p>
-                            <p>Interval: {latestService.interval || 30} minutes</p>
-                        </div>
-                        <Button onClick={handleBack} variant="outline">
-                            Back to Service Selection
-                        </Button>
-                    </div>
-                </div>
-                {/* 
-                TODO: Replace the above placeholder with:
-                <BookingScheduler
+                <BookingCalendar
                     title="Select an available time"
                     serviceName={latestService.title}
                     timezone="America/New_York"
@@ -651,10 +633,17 @@ export default function BookingFlow({
                     interval={latestService.interval || 30}
                     primaryColor={primaryColor}
                     darkMode={darkMode}
-                    onSelectDateTime={handleSelectDateTime}
+                    onSelectDateTime={(date, time) => {
+                        const newState = {
+                            ...bookingState,
+                            selectedDate: date,
+                            selectedTime: time,
+                            stage: 'customer-info' as BookingStage
+                        };
+                        handleBookingStateChange(newState);
+                    }}
                     onBackClicked={handleBack}
                 />
-                */}
             </>
         );
     };

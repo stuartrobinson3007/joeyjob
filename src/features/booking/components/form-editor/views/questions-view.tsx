@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import BackButton from "@/features/booking/components/form-editor/back-button";
-import useFormEditorData from "../hooks/useFormEditorData";
+import useFormEditorData from "../hooks/use-form-editor-data";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
-import { QuestionList } from "@/components/question-list";
+import { QuestionList } from "../question-list";
 
 interface QuestionsViewProps {
     onNavigateBack: () => void;

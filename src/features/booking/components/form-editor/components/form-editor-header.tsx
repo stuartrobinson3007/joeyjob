@@ -9,6 +9,7 @@ import {
 import { Button } from "@/ui/button";
 import { Switch } from "@/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui/dropdown-menu";
+import { SaveStatusIndicator } from "@/components/save-status-indicator";
 
 interface FormEditorHeaderProps {
     formName: string;
@@ -19,6 +20,12 @@ interface FormEditorHeaderProps {
     onOpenPreview: () => void;
     onEmbed: () => void;
     onDelete: () => void;
+    // Auto-save state
+    isSaving?: boolean;
+    lastSaved?: Date | null;
+    isDirty?: boolean;
+    errors?: string[];
+    onSaveNow?: () => Promise<void>;
 }
 
 /**
@@ -32,7 +39,12 @@ export function FormEditorHeader({
     onExit,
     onOpenPreview,
     onEmbed,
-    onDelete
+    onDelete,
+    isSaving = false,
+    lastSaved = null,
+    isDirty = false,
+    errors = [],
+    onSaveNow = async () => {}
 }: FormEditorHeaderProps) {
     return (
         <div className="flex items-center justify-between p-4 md:px-6 lg:px-8 border-b md:pb-6 md:border-none">
@@ -44,6 +56,15 @@ export function FormEditorHeader({
                     </Button>
 
                     <div className="flex items-center gap-3">
+                        {/* Save Status Indicator */}
+                        <SaveStatusIndicator
+                            isSaving={isSaving}
+                            lastSaved={lastSaved}
+                            isDirty={isDirty}
+                            errors={errors}
+                            className="text-sm"
+                        />
+                        
                         <div className="text-sm flex items-center">
                             Enabled:
                             <Switch
@@ -93,6 +114,15 @@ export function FormEditorHeader({
                     </div>
 
                     <div className="flex items-center gap-4">
+                        {/* Save Status Indicator */}
+                        <SaveStatusIndicator
+                            isSaving={isSaving}
+                            lastSaved={lastSaved}
+                            isDirty={isDirty}
+                            errors={errors}
+                            className="text-sm"
+                        />
+                        
                         <div className="flex items-center">
                             <span className="mr-2">Enabled:</span>
                             <Switch

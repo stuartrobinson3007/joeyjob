@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
-import { organization } from '@/database/schema'
+import { organization, member, user } from '@/database/schema'
 import { BILLING_PLANS } from '@/features/billing/lib/plans.config'
 
 export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods({
@@ -41,11 +41,16 @@ export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods(
       }
       
       // Handle our custom logic
+      console.log(`[WEBHOOK] Processing event: ${event.type}`)
+      console.log(`[WEBHOOK] Event data:`, JSON.stringify(event.data.object, null, 2))
+      
       switch (event.type) {
         case 'customer.created': {
           const customer = event.data.object
-          const orgId = customer.metadata?.organizationId
+          console.log(`[WEBHOOK] Customer metadata:`, customer.metadata)
+          const orgId = customer.metadata?.organizationId || customer.metadata?.referenceId
           
+          console.log(`[WEBHOOK] Found orgId: ${orgId} from customer ${customer.id}`)
           if (orgId && customer.id) {
             try {
               await db
@@ -55,10 +60,14 @@ export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods(
                   updatedAt: new Date(),
                 })
                 .where(eq(organization.id, orgId))
+              
+              console.log(`[WEBHOOK] Successfully updated organization ${orgId} with customer ID ${customer.id}`)
             } catch (dbError) {
               console.error(`[WEBHOOK] Failed to update organization ${orgId}:`, dbError)
               throw dbError
             }
+          } else {
+            console.log(`[WEBHOOK] No orgId found in customer metadata or missing customer ID`)
           }
           break
         }
@@ -66,28 +75,38 @@ export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods(
         case 'customer.subscription.created':
         case 'customer.subscription.updated': {
           const subscription = event.data.object
-          const orgId = subscription.metadata?.organizationId
+          console.log(`[WEBHOOK] Subscription metadata:`, subscription.metadata)
+          const orgId = subscription.metadata?.organizationId || subscription.metadata?.referenceId
           
+          console.log(`[WEBHOOK] Found orgId: ${orgId} for subscription ${subscription.id}`)
           if (orgId) {
             // Only update if subscription is active or trialing
             if (subscription.status === 'active' || subscription.status === 'trialing') {
               // Determine plan from price ID
-              let planName = 'free'
+              let planName = 'pro' // Default to pro since free no longer exists
               const priceId = subscription.items?.data?.[0]?.price?.id
+              
+              console.log(`[WEBHOOK] Subscription price ID: ${priceId}`)
+              console.log(`[WEBHOOK] Available plans:`, Object.keys(BILLING_PLANS))
               
               // Check each plan's price IDs
               for (const [key, plan] of Object.entries(BILLING_PLANS)) {
+                console.log(`[WEBHOOK] Checking plan ${key}:`, plan.stripePriceId)
                 if (plan.stripePriceId && typeof plan.stripePriceId === 'object') {
                   if (plan.stripePriceId.monthly === priceId) {
                     planName = key
+                    console.log(`[WEBHOOK] Matched monthly plan: ${key}`)
                     break
                   }
                   if (plan.stripePriceId.annual === priceId) {
                     planName = key
+                    console.log(`[WEBHOOK] Matched annual plan: ${key}`)
                     break
                   }
                 }
               }
+              
+              console.log(`[WEBHOOK] Final plan name: ${planName}`)
               
               // Extract Stripe customer ID from subscription
               const stripeCustomerId = subscription.customer
@@ -103,36 +122,82 @@ export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods(
                   updateData.stripeCustomerId = stripeCustomerId
                 }
                 
+                console.log(`[WEBHOOK] Updating organization ${orgId} with data:`, updateData)
+                
                 await db
                   .update(organization)
                   .set(updateData)
                   .where(eq(organization.id, orgId))
+
+                console.log(`[WEBHOOK] Successfully updated organization ${orgId} with plan ${planName}`)
+
+                // Mark onboarding as complete for the organization owner when they get their first paid plan
+                if (planName === 'pro' || planName === 'business') {
+                  console.log(`[WEBHOOK] Marking onboarding complete for paid plan ${planName}`)
+                  try {
+                    // Find the organization owner (admin role in member table)
+                    const orgMembers = await db
+                      .select({ userId: member.userId })
+                      .from(member)
+                      .where(eq(member.organizationId, orgId))
+                    
+                    console.log(`[WEBHOOK] Found ${orgMembers.length} members for org ${orgId}`)
+                    
+                    // Mark all members' onboarding as complete (for MVP, there's only one user per org anyway)
+                    for (const orgMember of orgMembers) {
+                      await db
+                        .update(user)
+                        .set({ 
+                          onboardingCompleted: true,
+                          updatedAt: new Date() 
+                        })
+                        .where(eq(user.id, orgMember.userId))
+                      console.log(`[WEBHOOK] Marked onboarding complete for user ${orgMember.userId}`)
+                    }
+                  } catch (onboardingError) {
+                    console.error(`[WEBHOOK] Failed to update onboarding status for org ${orgId}:`, onboardingError)
+                    // Don't throw - this is not critical for the subscription to work
+                  }
+                } else {
+                  console.log(`[WEBHOOK] Not marking onboarding complete - plan is ${planName}`)
+                }
+
               } catch (dbError) {
                 console.error(`[WEBHOOK] Failed to update organization ${orgId} plan:`, dbError)
                 throw dbError
               }
+            } else {
+              console.log(`[WEBHOOK] Subscription status is ${subscription.status}, not updating organization`)
             }
+          } else {
+            console.log(`[WEBHOOK] No orgId found in subscription metadata`)
           }
           break
         }
         
         case 'customer.subscription.deleted': {
           const subscription = event.data.object
-          const orgId = subscription.metadata?.organizationId
+          console.log(`[WEBHOOK] Subscription deleted metadata:`, subscription.metadata)
+          const orgId = subscription.metadata?.organizationId || subscription.metadata?.referenceId
           
+          console.log(`[WEBHOOK] Found orgId: ${orgId} for deleted subscription ${subscription.id}`)
           if (orgId) {
             try {
               await db
                 .update(organization)
                 .set({
-                  currentPlan: 'free',
+                  currentPlan: 'pro', // Keep as pro but subscription will be inactive
                   updatedAt: new Date(),
                 })
                 .where(eq(organization.id, orgId))
+              
+              console.log(`[WEBHOOK] Successfully updated organization ${orgId} after subscription deletion`)
             } catch (dbError) {
               console.error(`[WEBHOOK] Failed to downgrade organization ${orgId}:`, dbError)
               throw dbError
             }
+          } else {
+            console.log(`[WEBHOOK] No orgId found for deleted subscription`)
           }
           break
         }

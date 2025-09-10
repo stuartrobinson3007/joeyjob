@@ -62,6 +62,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          value={{ light: "light", dark: "dark" }}
         >
           {children}
           <TanstackDevtools

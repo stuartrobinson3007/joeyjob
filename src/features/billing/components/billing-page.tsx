@@ -147,33 +147,31 @@ export function BillingPage() {
     return <ErrorState error={parseError(subscriptionError)} onRetry={refetchSubscription} />
   }
 
-  const currentPlan = hasSubscriptionData ? (subscription as SubscriptionResponse).currentPlan : 'free'
+  const currentPlan = hasSubscriptionData ? (subscription as SubscriptionResponse).currentPlan : 'pro'
   const subscriptionData = hasSubscriptionData ? (subscription as SubscriptionResponse) : null
   const subscriptionRecord = subscriptionData?.subscription
   const allSubscriptions = subscriptionData?.allSubscriptions || []
-  const hasActiveSubscription = subscriptionRecord?.status === 'active'
-  const isCancelled = subscriptionRecord && 'stripeCancelAtPeriodEnd' in subscriptionRecord
-    ? Boolean(subscriptionRecord.stripeCancelAtPeriodEnd)
+  const hasActiveSubscription = subscriptionRecord?.status === 'active' || subscriptionRecord?.status === 'trialing'
+  const isCancelled = subscriptionRecord && 'cancelAtPeriodEnd' in subscriptionRecord
+    ? Boolean(subscriptionRecord.cancelAtPeriodEnd)
     : false
   const subscriptionStatus = subscriptionRecord?.status
   const hasStripeCustomer = hasSubscriptionData && (subscription as SubscriptionResponse)?.hasStripeCustomer
-  const isPaidPlan = currentPlan !== 'free'
+  const isPaidPlan = currentPlan !== null
+  const isNewUser = !hasSubscriptionData || !hasActiveSubscription || (!hasStripeCustomer && !allSubscriptions?.length)
+
+  // Debug logging
+  console.log('[BILLING PAGE] Full subscription object:', subscription)
+  console.log('[BILLING PAGE] hasSubscriptionData:', hasSubscriptionData)
+  console.log('[BILLING PAGE] subscriptionRecord:', subscriptionRecord)
+  console.log('[BILLING PAGE] periodStart:', subscriptionRecord?.periodStart)
+  console.log('[BILLING PAGE] periodEnd:', subscriptionRecord?.periodEnd)
+  console.log('[BILLING PAGE] cancelAtPeriodEnd:', subscriptionRecord?.cancelAtPeriodEnd)
+  console.log('[BILLING PAGE] isCancelled:', isCancelled)
 
   // Show button if: paid plan, has any subscription history, or has stripe customer
   const showManageButton = isPaidPlan || hasStripeCustomer || allSubscriptions?.length > 0
 
-  // Check if subscription needs attention (past_due, incomplete, etc.)
-  const hasSubscriptionIssue = subscriptionStatus === 'past_due' || subscriptionStatus === 'incomplete'
-
-  // Determine button text based on state
-  const getManageButtonText = () => {
-    if (hasActiveSubscription) return t('subscription.manage')
-    // If subscription has issues (past_due, incomplete), show manage to let them fix it
-    if (hasSubscriptionIssue) return t('subscription.manage')
-    if (subscriptionRecord && !hasActiveSubscription) return t('subscription.viewHistory')
-    if (hasStripeCustomer && !subscriptionRecord) return t('payment.update')
-    return t('subscription.manage')
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -185,107 +183,142 @@ export function BillingPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              {t('subscription.current')}
+              Current Plan
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold capitalize">{currentPlan}</p>
-                    {subscriptionStatus && subscriptionStatus !== 'active' && (
-                      <Badge
-                        variant={
-                          subscriptionStatus === 'canceled'
-                            ? 'destructive'
-                            : subscriptionStatus === 'past_due'
-                              ? 'warning'
-                              : subscriptionStatus === 'incomplete'
+            <div className="space-y-6">
+              {/* Plan Information */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-2xl font-bold">
+                        {currentPlan ? BILLING_PLANS[currentPlan as keyof typeof BILLING_PLANS]?.name || currentPlan : 'No Plan'}
+                      </h3>
+                      {subscriptionStatus && subscriptionStatus !== 'active' && (
+                        <Badge
+                          variant={
+                            subscriptionStatus === 'canceled'
+                              ? 'destructive'
+                              : subscriptionStatus === 'past_due'
                                 ? 'warning'
+                                : subscriptionStatus === 'incomplete'
+                                  ? 'warning'
+                                  : subscriptionStatus === 'trialing'
+                                    ? 'info'
+                                    : 'muted'
+                          }
+                        >
+                          {subscriptionStatus === 'canceled'
+                            ? 'Cancelled'
+                            : subscriptionStatus === 'past_due'
+                              ? 'Past Due'
+                              : subscriptionStatus === 'incomplete'
+                                ? 'Incomplete'
                                 : subscriptionStatus === 'trialing'
-                                  ? 'info'
-                                  : 'muted'
-                        }
-                        appearance="soft"
-                      >
-                        {subscriptionStatus === 'canceled'
-                          ? 'Cancelled'
-                          : subscriptionStatus === 'past_due'
-                            ? t('subscription.status.pastDue')
-                            : subscriptionStatus === 'incomplete'
-                              ? 'Incomplete'
-                              : subscriptionStatus === 'trialing'
-                                ? 'Trial'
-                                : subscriptionStatus}
-                      </Badge>
+                                  ? 'Trial'
+                                  : subscriptionStatus}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Debug Info - Remove after fixing */}
+                    <div className="p-2 bg-yellow-100 text-xs text-black">
+                      <p><strong>Debug Info:</strong></p>
+                      <p>hasSubscriptionData: {String(hasSubscriptionData)}</p>
+                      <p>subscriptionRecord exists: {String(!!subscriptionRecord)}</p>
+                      <p>periodStart: {String(subscriptionRecord?.periodStart)}</p>
+                      <p>periodEnd: {String(subscriptionRecord?.periodEnd)}</p>
+                      <p>cancelAtPeriodEnd: {String(subscriptionRecord?.cancelAtPeriodEnd)}</p>
+                      <p>isCancelled: {String(isCancelled)}</p>
+                    </div>
+
+                    {/* Subscription Details */}
+                    {hasSubscriptionData && subscriptionRecord && (
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        {/* Renewal/Expiry Information */}
+                        {subscriptionRecord.periodEnd && (
+                          <p>
+                            {isCancelled ? 'Expires' : 'Renews'} on{' '}
+                            {new Date(subscriptionRecord.periodEnd).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        )}
+                        
+                        {/* Billing Interval */}
+                        {subscriptionRecord.periodStart && subscriptionRecord.periodEnd && (
+                          <p>
+                            Billing cycle: {(() => {
+                              const start = new Date(subscriptionRecord.periodStart)
+                              const end = new Date(subscriptionRecord.periodEnd)
+                              const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
+                              return diffMonths >= 12 ? 'Annual' : 'Monthly'
+                            })()}
+                          </p>
+                        )}
+
+                        {/* Cancellation Notice */}
+                        {isCancelled && (
+                          <p className="text-warning">
+                            Your subscription will cancel at the end of the current billing period.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {hasSubscriptionData &&
-                    subscriptionRecord && 'stripeCurrentPeriodEnd' in subscriptionRecord &&
-                    (subscriptionRecord.stripeCurrentPeriodEnd as string) && (
-                      <p className="text-muted-foreground">
-                        {isCancelled ? t('subscription.expires') : t('subscription.renews')}{' '}
-                        {t('subscription.on')}{' '}
-                        {(() => {
-                          const periodEnd = 'stripeCurrentPeriodEnd' in subscriptionRecord
-                            ? subscriptionRecord.stripeCurrentPeriodEnd as string
-                            : null
-                          if (!periodEnd) return 'N/A'
-                          return new Date(periodEnd).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })
-                        })()}
-                      </p>
-                    )}
-                  {isCancelled && (
-                    <Alert className="mt-2">
-                      <AlertCircle />
-                      <AlertDescription>{t('alerts.cancelled')}</AlertDescription>
-                    </Alert>
-                  )}
-                  {subscriptionStatus === 'past_due' && (
-                    <Alert className="mt-2" variant="destructive">
-                      <AlertCircle />
-                      <AlertDescription>{t('alerts.pastDue')}</AlertDescription>
-                    </Alert>
-                  )}
-                  {subscriptionStatus === 'incomplete' && (
-                    <Alert className="mt-2" variant="destructive">
-                      <AlertCircle />
-                      <AlertDescription>{t('alerts.incomplete')}</AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-                <div className="flex gap-2">
+
+                  {/* Billing Portal Button */}
                   {showManageButton && (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() => createPortalMutation.mutate()}
-                        disabled={!canManageBilling}
-                        loading={createPortalMutation.isPending}
-                        title={t('subscription.manageTitle')}
-                      >
-                        <Settings />
-                        {getManageButtonText()}
-                      </Button>
-                    </>
-                  )}
-                  {!hasActiveSubscription && currentPlan === 'free' && !showManageButton && (
                     <Button
-                      variant="default"
-                      onClick={() => {
-                        const element = document.getElementById('pricing-plans')
-                        element?.scrollIntoView({ behavior: 'smooth' })
-                      }}
+                      onClick={() => createPortalMutation.mutate()}
+                      disabled={!canManageBilling}
+                      loading={createPortalMutation.isPending}
+                      className="shrink-0"
                     >
-                      {t('subscription.upgrade')}
+                      <Settings className="mr-2 h-4 w-4" />
+                      Billing Portal
                     </Button>
                   )}
                 </div>
+
+                {/* Billing Portal Description */}
+                {showManageButton && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      Use your Billing Portal to upgrade plans, change billing settings, view invoices, and cancel your subscription.
+                    </p>
+                  </div>
+                )}
+
+                {/* Status Alerts */}
+                {isCancelled && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Your subscription is scheduled to cancel at the end of the current billing period.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {subscriptionStatus === 'past_due' && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Your payment is past due. Please update your payment method to continue service.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {subscriptionStatus === 'incomplete' && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Your payment could not be processed. Please complete your payment to continue service.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </div>
           </CardContent>
@@ -307,140 +340,87 @@ export function BillingPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Todos Usage */}
+                {/* Connected Employees Usage */}
                 <UsageBar
-                  label={t('usage.todos')}
-                  used={usage.usage.todos.used ?? 0}
-                  limit={usage.usage.todos.limit ?? 0}
-                  percentage={usage.usage.todos.percentage ?? 0}
-                />
-
-                {/* Members Usage */}
-                <UsageBar
-                  label={t('usage.teamMembers')}
-                  used={usage.usage.members.used ?? 0}
-                  limit={usage.usage.members.limit ?? 0}
-                  percentage={usage.usage.members.percentage ?? 0}
-                />
-
-                {/* Storage Usage */}
-                <UsageBar
-                  label={t('usage.storage')}
-                  used={usage.usage.storage.used ?? 0}
-                  limit={usage.usage.storage.limit ?? 0}
-                  percentage={usage.usage.storage.percentage ?? 0}
+                  label="Connected employees"
+                  used={usage.usage.connectedEmployees.used ?? 0}
+                  limit={usage.usage.connectedEmployees.limit ?? 0}
+                  percentage={usage.usage.connectedEmployees.percentage ?? 0}
                 />
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Billing Toggle */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex rounded-lg border p-1">
-            <button
-              className={`px-4 py-2 rounded-md transition-colors ${billingInterval === 'monthly'
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-muted'
-                }`}
-              onClick={() => setBillingInterval('monthly')}
-            >
-              Monthly
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md transition-colors ${billingInterval === 'annual'
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-muted'
-                }`}
-              onClick={() => setBillingInterval('annual')}
-            >
-              Annual (Save 20%)
-            </button>
-          </div>
-        </div>
+        {/* Show pricing cards for new users only */}
+        {isNewUser && (
+          <>
+            {/* Billing Toggle */}
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex rounded-lg border p-1">
+                <button
+                  className={`px-4 py-2 rounded-md transition-colors ${billingInterval === 'monthly'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-muted'
+                    }`}
+                  onClick={() => setBillingInterval('monthly')}
+                >
+                  Monthly
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-md transition-colors ${billingInterval === 'annual'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-muted'
+                    }`}
+                  onClick={() => setBillingInterval('annual')}
+                >
+                  Annual (Save 20%)
+                </button>
+              </div>
+            </div>
 
-        {/* Pricing Cards */}
-        <div id="pricing-plans" className="grid md:grid-cols-3 gap-6">
-          {(Object.entries(BILLING_PLANS) as [keyof typeof BILLING_PLANS, typeof BILLING_PLANS[keyof typeof BILLING_PLANS]][]).map(([planKey, plan]) => {
-            const isCurrentPlan = currentPlan === planKey
-            const price =
-              planKey === 'free'
-                ? 0
-                : planKey === 'pro'
-                  ? billingInterval === 'monthly'
-                    ? 29
-                    : 290
-                  : billingInterval === 'monthly'
-                    ? 99
-                    : 990
+            {/* Pricing Cards for new users */}
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {(Object.entries(BILLING_PLANS) as [keyof typeof BILLING_PLANS, typeof BILLING_PLANS[keyof typeof BILLING_PLANS]][]).map(([planKey, plan]) => {
+                const price = planKey === 'pro'
+                  ? billingInterval === 'monthly' ? 29 : 290
+                  : billingInterval === 'monthly' ? 99 : 990
 
-            return (
-              <Card key={planKey} className={planKey === 'pro' ? 'border-primary shadow-lg' : ''}>
-                {planKey === 'pro' && (
-                  <div className="bg-primary text-primary-foreground text-center py-1 text-sm">
-                    {t('labels.mostPopular')}
-                  </div>
-                )}
-                <CardHeader>
-                  <CardTitle>{plan.name}</CardTitle>
-                  <div className="text-3xl font-bold">
-                    ${price}
-                    {planKey !== 'free' && (
-                      <span className="text-base font-normal text-muted-foreground">
-                        /{billingInterval === 'monthly' ? 'month' : 'year'}
-                      </span>
+                return (
+                  <Card key={planKey} className={planKey === 'pro' ? 'border-primary shadow-lg' : ''}>
+                    {planKey === 'pro' && (
+                      <div className="bg-primary text-primary-foreground text-center py-1 text-sm">
+                        Most Popular
+                      </div>
                     )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 mb-6">
-                    <PlanFeature
-                      text={t('features.todosLimit', {
-                        limit: plan.limits.todos === -1 ? t('unlimited') : plan.limits.todos,
-                      })}
-                    />
-                    <PlanFeature
-                      text={t('features.membersLimit', {
-                        limit: plan.limits.members === -1 ? t('unlimited') : plan.limits.members,
-                      })}
-                    />
-                    <PlanFeature
-                      text={t('features.storageLimit', {
-                        limit:
-                          plan.limits.storage === -1 ? t('unlimited') : `${plan.limits.storage} MB`,
-                      })}
-                    />
-                    {plan.features.customFields && (
-                      <PlanFeature text={t('features.customFields')} />
-                    )}
-                    {plan.features.apiAccess && <PlanFeature text={t('features.apiAccess')} />}
-                    {plan.features.prioritySupport && (
-                      <PlanFeature text={t('features.prioritySupport')} />
-                    )}
-                  </ul>
+                    <CardHeader>
+                      <CardTitle>{plan.name}</CardTitle>
+                      <div className="text-3xl font-bold">
+                        ${price}
+                        <span className="text-base font-normal text-muted-foreground">
+                          /{billingInterval === 'monthly' ? 'month' : 'year'}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 mb-6">
+                        <PlanFeature
+                          text={`${plan.limits.connectedEmployees} Connected employees`}
+                        />
+                        <PlanFeature
+                          text={`${plan.limits.members === -1 ? 'Unlimited' : plan.limits.members} Team members`}
+                        />
+                        <PlanFeature
+                          text={`${plan.limits.todos === -1 ? 'Unlimited' : plan.limits.todos} Todos`}
+                        />
+                        <PlanFeature
+                          text={`${plan.limits.storage === -1 ? 'Unlimited' : `${plan.limits.storage} MB`} Storage`}
+                        />
+                        {plan.features.customFields && <PlanFeature text="Custom fields" />}
+                        {plan.features.apiAccess && <PlanFeature text="API access" />}
+                        {plan.features.prioritySupport && <PlanFeature text="Priority support" />}
+                      </ul>
 
-                  {isCurrentPlan && !isCancelled ? (
-                    <Button className="w-full" disabled>
-                      {t('subscription.currentPlan')}
-                    </Button>
-                  ) : isCurrentPlan && isCancelled ? (
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => createPortalMutation.mutate()}
-                      disabled={!canManageBilling}
-                      loading={createPortalMutation.isPending}
-                    >
-                      {t('subscription.reactivate')}
-                    </Button>
-                  ) : planKey === 'free' ? (
-                    <Button className="w-full" variant="outline" disabled={!hasActiveSubscription}>
-                      {hasActiveSubscription
-                        ? tCommon('actions.download')
-                        : t('subscription.currentPlan')}
-                    </Button>
-                  ) : (
-                    <div>
                       <Button
                         className="w-full"
                         onClick={() => {
@@ -467,47 +447,20 @@ export function BillingPage() {
                         }
                         loading={itemsLoading(planKey)}
                       >
-                        {(() => {
-                          // Define plan hierarchy for comparison
-                          const planHierarchy: Record<string, number> = {
-                            'free': 0,
-                            'pro': 1,
-                            'business': 2
-                          }
-
-                          const currentPlanLevel = planHierarchy[currentPlan] ?? 0
-                          const targetPlanLevel = planHierarchy[planKey] ?? 0
-
-                          // If target plan is higher level, show upgrade
-                          if (targetPlanLevel > currentPlanLevel) {
-                            return t('subscription.upgrade')
-                          }
-
-                          // If target plan is lower level, show downgrade
-                          if (targetPlanLevel < currentPlanLevel) {
-                            return t('subscription.downgrade') || 'Downgrade'
-                          }
-
-                          // If same level but has active subscription, show cancel
-                          if (hasActiveSubscription) {
-                            return tCommon('actions.cancel')
-                          }
-
-                          return t('subscription.upgrade')
-                        })()}
+                        Get Started
                       </Button>
                       {!canManageBilling && (
                         <p className="text-xs text-muted-foreground mt-1">
                           {t('messages.contactAdmin')}
                         </p>
                       )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

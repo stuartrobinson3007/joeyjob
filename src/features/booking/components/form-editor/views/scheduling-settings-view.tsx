@@ -7,8 +7,8 @@ import {
     SelectValue,
 } from "@/ui/select";
 import BackButton from "@/features/booking/components/form-editor/back-button";
-import type { FlowNode } from "@/components/FormFlowTree";
-import useFormEditorData from "../hooks/useFormEditorData";
+import type { FlowNode } from "../form-flow-tree";
+import useFormEditorData from "../hooks/use-form-editor-data";
 import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
 import { Label } from "@/ui/label";
 import { DatePicker } from "@/ui/date-picker";

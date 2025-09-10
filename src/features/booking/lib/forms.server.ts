@@ -4,9 +4,21 @@ import { z } from 'zod'
 
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { db } from '@/lib/db/db'
-import { bookingForms } from '@/database/schema'
+import { bookingForms, organization } from '@/database/schema'
 import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
+
+// Utility function to generate slugs
+function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    || 'form' // Fallback if empty
+}
 
 // Validation schemas
 const createFormSchema = z.object({
@@ -20,6 +32,7 @@ const createFormSchema = z.object({
 const updateFormSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
+  slug: z.string().optional(),
   description: z.string().optional(),
   formConfig: z.any().optional(), // Form editor configuration JSON
   theme: z.enum(['light', 'dark']).optional(),
@@ -81,12 +94,16 @@ export const createForm = createServerFn({ method: 'POST' })
         primaryColor: '#3B82F6'
       }
 
-      console.log('📝 Inserting form into database...')
+      console.log('📝 Generating slug and inserting form into database...')
+      const baseSlug = generateSlug(data.name)
+      const slug = baseSlug + '-' + Date.now().toString(36) // Add timestamp to ensure uniqueness
+      
       const form = await db
         .insert(bookingForms)
         .values({
           organizationId,
           name: data.name,
+          slug: slug,
           description: data.description || null,
           formConfig: defaultConfig,
           theme: 'light',
@@ -111,7 +128,7 @@ export const createForm = createServerFn({ method: 'POST' })
   })
 
 // Update form (auto-save pattern)
-export const updateForm = createServerFn({ method: 'PUT' })
+export const updateForm = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .validator((data: unknown) => updateFormSchema.parse(data))
   .handler(async ({ data, context }) => {
@@ -137,6 +154,7 @@ export const updateForm = createServerFn({ method: 'PUT' })
       // Prepare update data
       const updateData: any = { updatedAt: new Date() }
       if (data.name !== undefined) updateData.name = data.name
+      if (data.slug !== undefined) updateData.slug = data.slug
       if (data.description !== undefined) updateData.description = data.description
       if (data.formConfig !== undefined) updateData.formConfig = data.formConfig
       if (data.theme !== undefined) updateData.theme = data.theme
@@ -148,7 +166,7 @@ export const updateForm = createServerFn({ method: 'PUT' })
         .set(updateData)
         .where(eq(bookingForms.id, data.id))
         .returning()
-
+      
       return updatedForm[0]
     } catch (error) {
       if (error instanceof AppError) throw error
@@ -352,6 +370,53 @@ export const getBookingForm = createServerFn({ method: 'GET' })
       service: null // Legacy compatibility
     }
   })
+
+// Get public booking form by organization slug and form slug (no auth required)
+export const getBookingFormBySlug = createServerFn({ method: 'GET' })
+  .validator((data: unknown) => {
+    const schema = z.object({
+      orgSlug: z.string(),
+      formSlug: z.string(),
+    })
+    return schema.parse(data)
+  })
+  .handler(async ({ data }) => {
+    // Join with organization table to get form by slugs
+    const result = await db
+      .select({
+        form: bookingForms,
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          logo: organization.logo
+        }
+      })
+      .from(bookingForms)
+      .innerJoin(organization, eq(bookingForms.organizationId, organization.id))
+      .where(and(
+        eq(organization.slug, data.orgSlug),
+        eq(bookingForms.slug, data.formSlug),
+        eq(bookingForms.isActive, true)
+      ))
+      .limit(1)
+
+    if (!result.length) {
+      throw new AppError(
+        ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        404,
+        undefined,
+        'Booking form not found or inactive'
+      )
+    }
+
+    return {
+      form: result[0].form,
+      organization: result[0].organization,
+      service: null // Legacy compatibility
+    }
+  })
+
 export const getDefaultFormForService = async () => null
 export const updateBookingForm = async () => ({})
 export const deleteBookingForm = async () => ({ success: true })

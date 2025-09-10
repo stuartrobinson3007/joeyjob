@@ -1,6 +1,6 @@
 import React from "react";
 import BackButton from "@/features/booking/components/form-editor/back-button";
-import useFormEditorData from "../hooks/useFormEditorData";
+import useFormEditorData from "../hooks/use-form-editor-data";
 import { Button } from "@/ui/button";
 import { PlusIcon, CalendarIcon, Users } from "lucide-react";
 

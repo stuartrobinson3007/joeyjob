@@ -32,13 +32,13 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       )
     }
 
-    // Update user profile
+    // Update user profile (but don't mark onboarding complete yet - that happens after payment)
     await auth.api.updateUser({
       headers: request.headers,
       body: {
         firstName: data.firstName,
         lastName: data.lastName,
-        onboardingCompleted: true,
+        onboardingCompleted: false, // Will be set to true after successful payment
         name: `${data.firstName} ${data.lastName}`.trim(),
       },
     })

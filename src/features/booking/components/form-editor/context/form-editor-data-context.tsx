@@ -1,10 +1,6 @@
-import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { FlowNode } from '@/features/booking/components/form-editor/form-flow-tree';
 import { FormFieldConfig } from '@/features/booking/lib/form-field-types';
-import { useFormAutosave } from '@/taali/hooks/use-form-autosave';
-import { updateForm } from '@/features/booking/lib/forms.server';
-import { useActiveOrganization } from '@/features/organization/lib/organization-context';
 import { FormErrorBoundary } from '@/taali/components/form/form-error-boundary';
 
 /**
@@ -15,6 +11,7 @@ import { FormErrorBoundary } from '@/taali/components/form/form-error-boundary';
 interface BookingFlowData {
     id: string;
     internalName: string;              // Admin-only reference name
+    slug: string;                      // URL-friendly slug for the form
     serviceTree: FlowNode;             // Root node with full tree structure
     baseQuestions: FormFieldConfig[];  // Questions asked for all services
     theme: 'light' | 'dark';           // Form appearance theme
@@ -25,8 +22,8 @@ interface BookingFlowData {
  * Union type defining all possible actions that can modify the form data.
  * Each action has a specific type and payload structure.
  */
-type FormEditorDataAction =
-    | { type: 'UPDATE_FORM_SETTINGS'; payload: { internalName?: string; theme?: 'light' | 'dark'; primaryColor?: string } }
+export type FormEditorDataAction =
+    | { type: 'UPDATE_FORM_SETTINGS'; payload: { internalName?: string; slug?: string; theme?: 'light' | 'dark'; primaryColor?: string } }
     | { type: 'UPDATE_NODE'; payload: { nodeId: string; updates: Partial<FlowNode> } }
     | { type: 'ADD_NODE'; payload: { parentId: string; node: FlowNode } }
     | { type: 'REORDER_NODES'; payload: { parentId: string; newOrder: FlowNode[] } }
@@ -38,7 +35,7 @@ type FormEditorDataAction =
  * Reducer function for handling state updates based on dispatched actions.
  * All state updates are immutable, creating new state objects rather than modifying existing ones.
  */
-function formEditorDataReducer(state: BookingFlowData, action: FormEditorDataAction): BookingFlowData {
+export function formEditorDataReducer(state: BookingFlowData, action: FormEditorDataAction): BookingFlowData {
     switch (action.type) {
         case 'UPDATE_FORM_SETTINGS':
             return {
@@ -160,12 +157,12 @@ function removeNodeFromTree(tree: FlowNode, nodeId: string): FlowNode {
 /**
  * Context to provide form data and dispatch function throughout the component tree.
  * Uses undefined as initial value to enforce provider wrapping.
- * Now includes auto-save state and functionality.
+ * Now includes auto-save state passed from parent.
  */
 const FormEditorDataContext = createContext<{
     data: BookingFlowData;
     dispatch: React.Dispatch<FormEditorDataAction>;
-    // Auto-save state
+    // Auto-save state from parent
     isSaving: boolean;
     lastSaved: Date | null;
     isDirty: boolean;
@@ -176,92 +173,32 @@ const FormEditorDataContext = createContext<{
 /**
  * Provider component that makes the form data and dispatch function available
  * to any nested components that call the useFormEditorData hook.
- * Now includes auto-save functionality and error boundary protection.
+ * Now receives data and dispatch directly from parent (no local state).
  */
 export const FormEditorDataProvider: React.FC<{
     children: ReactNode;
-    initialData: BookingFlowData;
+    data: BookingFlowData;
+    dispatch: React.Dispatch<FormEditorDataAction>;
     formId: string;
-}> = ({ children, initialData, formId }) => {
-    const { activeOrganization } = useActiveOrganization();
-    const queryClient = useQueryClient();
-    
-    // Fallback reducer state for dispatch compatibility
-    const [fallbackData, dispatch] = useReducer(formEditorDataReducer, initialData);
-    
-    // Auto-save hook integration
-    const {
-        data,
-        updateData,
-        isSaving,
-        lastSaved,
-        isDirty,
-        errors,
-        saveNow,
-        reset
-    } = useFormAutosave({
-        initialData,
-        onSave: useCallback(async (formData: BookingFlowData) => {
-            if (!activeOrganization?.id) {
-                throw new Error('No active organization selected');
-            }
-            
-            // Convert BookingFlowData to the format expected by updateForm
-            const result = await updateForm({
-                data: {
-                    id: formId,
-                    formConfig: {
-                        id: formData.id,
-                        internalName: formData.internalName,
-                        serviceTree: formData.serviceTree,
-                        baseQuestions: formData.baseQuestions,
-                        theme: formData.theme,
-                        primaryColor: formData.primaryColor
-                    },
-                    theme: formData.theme,
-                    primaryColor: formData.primaryColor
-                }
-            });
-            
-            // Invalidate queries to refresh form data elsewhere
-            await queryClient.invalidateQueries({ 
-                queryKey: ['forms', formId] 
-            });
-            
-            return result?.formConfig || formData;
-        }, [activeOrganization?.id, formId, queryClient]),
-        debounceMs: 2000,
-        enabled: !!activeOrganization?.id && !!formId,
-        validate: (formData: BookingFlowData) => {
-            const errors: string[] = [];
-            
-            if (!formData.internalName?.trim()) {
-                errors.push('Form name is required');
-            }
-            
-            if (!formData.serviceTree) {
-                errors.push('Service tree is required');
-            }
-            
-            return {
-                isValid: errors.length === 0,
-                errors
-            };
-        }
-    });
-    
-    // Enhanced dispatch function that works with auto-save
-    const enhancedDispatch = useCallback((action: FormEditorDataAction) => {
-        const newData = formEditorDataReducer(data, action);
-        updateData(newData);
-        
-        // Also update fallback for any components that might need it
-        dispatch(action);
-    }, [data, updateData]);
-
+    isSaving?: boolean;
+    lastSaved?: Date | null;
+    isDirty?: boolean;
+    errors?: string[];
+    saveNow?: () => Promise<void>;
+}> = ({ 
+    children, 
+    data,
+    dispatch,
+    formId,
+    isSaving = false,
+    lastSaved = null,
+    isDirty = false,
+    errors = [],
+    saveNow = async () => {}
+}) => {
     const contextValue = {
         data,
-        dispatch: enhancedDispatch,
+        dispatch,
         isSaving,
         lastSaved,
         isDirty,

@@ -33,9 +33,9 @@ import {
     verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormFieldConfig } from "@/features/booking/lib/form-field-types";
+import { cn } from "@/taali/lib/utils";
 
 // Create a context to track global dragging state
 type DragContextType = {

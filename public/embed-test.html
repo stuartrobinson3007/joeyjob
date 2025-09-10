@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JoeyJob Embed Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        .test-section h2 {
+            margin: 0 0 20px 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-section h2::before {
+            content: "🧪";
+            font-size: 1.2rem;
+        }
+
+        .iframe-container {
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8fafc;
+        }
+
+        .iframe-wrapper {
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        iframe {
+            width: 100%;
+            border: none;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #475569;
+            min-width: 60px;
+        }
+
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:active {
+            background: #1d4ed8;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .messages {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+
+        .message .timestamp {
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .message .type {
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-item {
+            padding: 15px;
+            background: #f0f9ff;
+            border: 1px solid #e0f2fe;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .feature-item::before {
+            content: "✅";
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        .instructions {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .instructions h3 {
+            margin: 0 0 15px 0;
+            color: #d97706;
+        }
+
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>JoeyJob Embed Test</h1>
+            <p>Test iframe embedding functionality for booking forms</p>
+        </div>
+
+        <!-- Embed Test Section -->
+        <div class="test-section">
+            <h2>Iframe Embedding Test</h2>
+            
+            <div class="instructions">
+                <h3>📋 How to Test:</h3>
+                <ol>
+                    <li>Enter a valid Form ID from your JoeyJob dashboard</li>
+                    <li>Adjust iframe dimensions if needed</li>
+                    <li>Click "Load Form" to embed the booking form</li>
+                    <li>Test the form functionality and auto-resize behavior</li>
+                    <li>Monitor messages for iframe communication</li>
+                </ol>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="formId">Form ID:</label>
+                    <input type="text" id="formId" placeholder="Enter form ID..." value="">
+                </div>
+                <div class="control-group">
+                    <label for="width">Width:</label>
+                    <input type="text" id="width" value="100%" style="width: 100px;">
+                </div>
+                <div class="control-group">
+                    <label for="height">Height:</label>
+                    <input type="text" id="height" value="600px" style="width: 100px;">
+                </div>
+                <button onclick="loadForm()">Load Form</button>
+                <button onclick="clearMessages()">Clear Messages</button>
+            </div>
+
+            <div id="status" class="status info">
+                Ready to test. Enter a form ID and click "Load Form".
+            </div>
+
+            <div class="iframe-container">
+                <div class="iframe-wrapper" id="iframeWrapper" style="display: none;">
+                    <iframe id="bookingIframe" title="JoeyJob Booking Form"></iframe>
+                </div>
+                <div id="placeholder" style="text-align: center; padding: 60px; color: #6b7280;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                    <p>Booking form will appear here after loading</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Section -->
+        <div class="test-section">
+            <h2>PostMessage Communication Log</h2>
+            <p style="color: #6b7280; margin-bottom: 20px;">
+                This section shows all messages received from the embedded iframe:
+            </p>
+            
+            <div class="feature-list">
+                <div class="feature-item">Auto-resize detection</div>
+                <div class="feature-item">Booking submission events</div>
+                <div class="feature-item">Error handling</div>
+                <div class="feature-item">Cross-origin security</div>
+            </div>
+
+            <div class="messages" id="messages">
+                <div class="message">
+                    <span class="timestamp">[Ready]</span> 
+                    <span class="type">INFO:</span> 
+                    Listening for messages from iframe...
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Embed Code -->
+        <div class="test-section">
+            <h2>Sample Embed Code</h2>
+            <p style="color: #6b7280; margin-bottom: 20px;">
+                Here's how you would embed a JoeyJob form on your website:
+            </p>
+            <div class="code-block" id="embedCode">
+&lt;iframe
+  src="<span id="currentOrigin">https://yoursite.com</span>/embed/YOUR_FORM_ID"
+  width="100%"
+  height="600px"
+  frameborder="0"
+  scrolling="no"
+  style="border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"
+  title="Booking Form"
+&gt;&lt;/iframe&gt;</div>
+        </div>
+    </div>
+
+    <script>
+        // Set current origin
+        document.getElementById('currentOrigin').textContent = window.location.origin;
+
+        const messagesDiv = document.getElementById('messages');
+        const statusDiv = document.getElementById('status');
+        const iframeElement = document.getElementById('bookingIframe');
+        const iframeWrapper = document.getElementById('iframeWrapper');
+        const placeholder = document.getElementById('placeholder');
+
+        // Message handling
+        let messageCount = 0;
+
+        function addMessage(type, data, extra = '') {
+            messageCount++;
+            const timestamp = new Date().toLocaleTimeString();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            let dataString = 'No data';
+            try {
+                if (typeof data === 'object') {
+                    dataString = JSON.stringify(data, null, 2);
+                } else {
+                    dataString = String(data);
+                }
+            } catch (e) {
+                dataString = '[Cannot stringify data]';
+            }
+
+            messageDiv.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span> 
+                <span class="type">${type}:</span> 
+                ${dataString} ${extra}
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Limit message history
+            const messages = messagesDiv.children;
+            if (messages.length > 50) {
+                messagesDiv.removeChild(messages[1]); // Keep the first "Ready" message
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Load form function
+        function loadForm() {
+            const formId = document.getElementById('formId').value.trim();
+            const width = document.getElementById('width').value;
+            const height = document.getElementById('height').value;
+
+            if (!formId) {
+                updateStatus('Please enter a valid Form ID', 'error');
+                return;
+            }
+
+            const embedUrl = `${window.location.origin}/embed/${formId}`;
+            
+            updateStatus('Loading form...', 'info');
+            addMessage('LOAD', `Loading form: ${formId}`, `URL: ${embedUrl}`);
+
+            // Configure iframe
+            iframeElement.src = embedUrl;
+            iframeElement.style.width = width;
+            iframeElement.style.height = height;
+
+            // Show iframe, hide placeholder
+            placeholder.style.display = 'none';
+            iframeWrapper.style.display = 'block';
+
+            // Handle iframe load events
+            iframeElement.onload = function() {
+                updateStatus('Form loaded successfully', 'success');
+                addMessage('LOADED', 'Iframe content loaded successfully');
+            };
+
+            iframeElement.onerror = function() {
+                updateStatus('Failed to load form. Check the Form ID.', 'error');
+                addMessage('ERROR', 'Failed to load iframe content');
+                placeholder.style.display = 'block';
+                iframeWrapper.style.display = 'none';
+            };
+        }
+
+        // Clear messages function
+        function clearMessages() {
+            messagesDiv.innerHTML = `
+                <div class="message">
+                    <span class="timestamp">[Ready]</span> 
+                    <span class="type">INFO:</span> 
+                    Listening for messages from iframe...
+                </div>
+            `;
+            messageCount = 0;
+        }
+
+        // Listen for postMessage events
+        window.addEventListener('message', function(event) {
+            // Log all messages for debugging (in production, check origin)
+            console.log('Message received:', event);
+            
+            if (event.data && event.data.type) {
+                switch (event.data.type) {
+                    case 'iframeResize':
+                        if (event.data.payload && typeof event.data.payload.height === 'number') {
+                            const newHeight = event.data.payload.height;
+                            iframeElement.style.height = newHeight + 'px';
+                            addMessage('RESIZE', `Height adjusted to ${newHeight}px`);
+                            updateStatus(`Form active - Height: ${newHeight}px`, 'success');
+                        }
+                        break;
+                        
+                    case 'bookingSubmitted':
+                        const success = event.data.payload?.success;
+                        if (success) {
+                            addMessage('SUBMIT_SUCCESS', 'Booking submitted successfully!', 
+                                `Form: ${event.data.payload.formId || 'unknown'}`);
+                            updateStatus('Booking submission successful!', 'success');
+                        } else {
+                            addMessage('SUBMIT_ERROR', 'Booking submission failed', 
+                                `Error: ${event.data.payload?.error || 'unknown'}`);
+                            updateStatus('Booking submission failed', 'error');
+                        }
+                        break;
+                        
+                    default:
+                        addMessage('UNKNOWN', event.data, `Type: ${event.data.type}`);
+                }
+            } else {
+                addMessage('RAW_MESSAGE', event.data || '[Empty message]');
+            }
+        });
+
+        // Auto-populate form ID from URL hash if present
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            if (hash && hash.length > 1) {
+                const formId = hash.substring(1);
+                document.getElementById('formId').value = formId;
+                updateStatus(`Form ID loaded from URL: ${formId}`, 'info');
+            }
+        });
+
+        console.log('JoeyJob Embed Test Page loaded. Ready for testing.');
+    </script>
+</body>
+</html>

@@ -23,9 +23,10 @@ import { getFieldValidation, shouldShowFieldError } from "@/features/booking/lib
 import { Control } from "react-hook-form";
 import { format } from "date-fns";
 import { CalendarIcon, CloudUpload, Upload, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/taali/lib/utils";
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
+import { usePortalContainer } from "@/components/portal-container";
 
 // Input max length constants
 const MAX_LENGTH = {
@@ -68,6 +69,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
     onOptionValueChange,
     darkMode = false
 }) => {
+    const portalContainer = usePortalContainer();
     // To detect field type changes, use a ref to store the current field type
     const previousFieldTypeRef = React.useRef<string | null>(null);
 
@@ -295,7 +297,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
                                             </Button>
                                         </FormControl>
                                     </PopoverTrigger>
-                                    <PopoverContent className={cn("w-auto p-0", darkMode && "dark")} align="start">
+                                    <PopoverContent className="w-auto p-0" align="start" container={portalContainer}>
                                         <Calendar
                                             mode="single"
                                             selected={formField.value ? new Date(formField.value) : undefined}
@@ -518,7 +520,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
                                             <SelectValue placeholder={getFieldPlaceholder(field)} />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className={cn(darkMode && "dark")}>
+                                    <SelectContent container={portalContainer}>
                                         {/* Filter out duplicate options and empty values */}
                                         {(() => {
                                             const uniqueValues = new Set<string>();

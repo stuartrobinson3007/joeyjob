@@ -75,8 +75,8 @@ function OnboardingFormInner({ invitationId, organizationName }: OnboardingFormP
         await refetchSession()
         await refetchOrganizations()
 
-        // Navigate to home
-        await navigate({ to: '/' })
+        // Navigate to plan selection page
+        await navigate({ to: '/choose-plan' })
       }
     } catch (error) {
       showError(error)

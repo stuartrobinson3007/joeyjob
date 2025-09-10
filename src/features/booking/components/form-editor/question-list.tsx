@@ -21,7 +21,6 @@ import {
     verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui/dropdown-menu";
 import { Button } from "@/ui/button";
 import { TooltipProvider, TooltipTrigger, TooltipContent, Tooltip } from "@/ui/tooltip";
@@ -30,6 +29,7 @@ import {
     createFieldConfigFromFormFieldType,
     FormFieldType
 } from "@/features/booking/lib/form-field-types";
+import { cn } from "@/taali/lib/utils";
 
 // Define unique field types that can only be added once
 export const uniqueFieldTypes: FormFieldType[] = [

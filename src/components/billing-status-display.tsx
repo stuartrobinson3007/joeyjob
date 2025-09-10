@@ -19,14 +19,14 @@ export function BillingStatusDisplay() {
     return null
   }
 
-  const currentPlan = subscription.currentPlan || 'free'
+  const currentPlan = subscription.currentPlan || 'pro'
   const subscriptionRecord = subscription.subscription
   const subscriptionStatus = subscriptionRecord?.status
-  const isPaidPlan = currentPlan !== 'free'
+  const isPaidPlan = currentPlan !== null
   const hasBillingError = subscriptionStatus === 'past_due' || subscriptionStatus === 'incomplete'
 
-  // Don't show anything for free plan without billing errors
-  if (!isPaidPlan && !hasBillingError) {
+  // Don't show anything without billing errors (since all plans are paid now)
+  if (!hasBillingError) {
     return null
   }
 

@@ -6,9 +6,9 @@ import {
     MessageCircleQuestionIcon
 } from "lucide-react";
 import BackButton from "@/features/booking/components/form-editor/back-button";
-import type { ServiceDetailView } from "../hooks/useFormEditorState";
-import type { FlowNode } from "@/components/FormFlowTree";
-import useFormEditorData from "../hooks/useFormEditorData";
+import type { ServiceDetailView } from "../hooks/use-form-editor-state";
+import type { FlowNode } from "../form-flow-tree";
+import useFormEditorData from "../hooks/use-form-editor-data";
 
 interface ServiceOptionsViewProps {
     node: FlowNode;

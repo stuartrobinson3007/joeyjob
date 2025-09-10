@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Plus, FileText, Edit, Trash2, Copy, Eye } from 'lucide-react'
+import { Plus, FileText, Edit, Trash2, Copy, Eye, Code } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
@@ -17,16 +17,23 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/dropdown-menu'
 import { PageHeader } from '@/components/page-header'
+import { EmbedDialog } from '@/features/booking/components/embed-dialog'
 
 export const Route = createFileRoute('/_authenticated/forms')({
   component: FormsPage,
 })
 
 function FormsPage() {
-  const { activeOrganizationId } = useActiveOrganization()
+  const { activeOrganizationId, activeOrganization } = useActiveOrganization()
   const navigate = useNavigate()
   const { showError, showSuccess } = useErrorHandler()
   const [isCreating, setIsCreating] = useState(false)
+  const [embedDialog, setEmbedDialog] = useState<{ open: boolean; formId: string; formName: string; formSlug?: string }>({
+    open: false,
+    formId: '',
+    formName: '',
+    formSlug: ''
+  })
 
   // Fetch forms data using React Query
   const { data: formsData, isLoading, refetch } = useQuery({
@@ -47,6 +54,10 @@ function FormsPage() {
     if (!serviceId) return 'All Services'
     const service = services.find(s => s.id === serviceId)
     return service?.name || 'Unknown Service'
+  }
+
+  const handleEmbedForm = (formId: string, formName: string, formSlug?: string) => {
+    setEmbedDialog({ open: true, formId, formName, formSlug })
   }
 
   // Handle immediate form creation (like createTodo pattern)
@@ -137,18 +148,25 @@ function FormsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <Link to="/book/$formId" params={{ formId: form.id }}>
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Preview
-                          </DropdownMenuItem>
-                        </Link>
+                        <DropdownMenuItem onClick={() => {
+                          const hostedUrl = activeOrganization?.slug && form.slug 
+                            ? `/${activeOrganization.slug}/${form.slug}`
+                            : `/book/${form.id}`
+                          window.open(hostedUrl, '_blank')
+                        }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview
+                        </DropdownMenuItem>
                         <Link to="/form/$formId/edit" params={{ formId: form.id }}>
                           <DropdownMenuItem>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
                         </Link>
+                        <DropdownMenuItem onClick={() => handleEmbedForm(form.id, form.name, form.slug)}>
+                          <Code className="h-4 w-4 mr-2" />
+                          Embed
+                        </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Copy className="h-4 w-4 mr-2" />
                           Duplicate
@@ -188,6 +206,17 @@ function FormsPage() {
                       Updated {new Date(form.updatedAt).toLocaleDateString()}
                     </div>
 
+                    {/* Hosted URL */}
+                    {activeOrganization?.slug && form.slug && (
+                      <div className="text-xs">
+                        <span className="font-medium text-foreground">Hosted at:</span>{' '}
+                        <span className="font-mono text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${activeOrganization.slug}/${form.slug}`)}>
+                          /{activeOrganization.slug}/{form.slug}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Quick Actions */}
                     <div className="flex gap-2 pt-2">
                       <Link to="/form/$formId/edit" params={{ formId: form.id }} className="flex-1">
@@ -196,11 +225,18 @@ function FormsPage() {
                           Edit
                         </Button>
                       </Link>
-                      <Link to="/book/$formId" params={{ formId: form.id }}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const hostedUrl = activeOrganization?.slug && form.slug 
+                            ? `/${activeOrganization.slug}/${form.slug}`
+                            : `/book/${form.id}`
+                          window.open(hostedUrl, '_blank')
+                        }}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -221,6 +257,16 @@ function FormsPage() {
           </div>
         )}
       </div>
+
+      {/* Embed Dialog */}
+      <EmbedDialog
+        open={embedDialog.open}
+        onOpenChange={(open) => setEmbedDialog(prev => ({ ...prev, open }))}
+        formId={embedDialog.formId}
+        formName={embedDialog.formName}
+        orgSlug={activeOrganization?.slug}
+        formSlug={embedDialog.formSlug}
+      />
     </div>
   )
 }

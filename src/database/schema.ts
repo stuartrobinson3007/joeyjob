@@ -74,7 +74,7 @@ export const organization = pgTable('organization', {
   logo: text('logo'),
 
   // Billing fields
-  currentPlan: text('current_plan').default('free').notNull(), // Cached from Stripe for quick access
+  currentPlan: text('current_plan').default('pro').notNull(), // Cached from Stripe for quick access
   stripeCustomerId: text('stripe_customer_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -185,6 +185,7 @@ export const bookingForms = pgTable('booking_forms', {
     .references(() => organization.id, { onDelete: 'cascade' })
     .notNull(),
   name: text('name').notNull(),
+  slug: text('slug').notNull(),
   description: text('description'),
   // Form editor configuration
   formConfig: json('form_config'), // Full form editor state: serviceTree, baseQuestions, etc.

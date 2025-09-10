@@ -4,11 +4,13 @@ import {
     MessageCircleQuestionIcon,
     PaintbrushIcon,
 } from "lucide-react";
-import type { NavigationLevel } from "../hooks/useFormEditorState";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface RootViewProps {
     formName: string;
+    formSlug: string;
     onFormNameChange?: (name: string) => void;
+    onFormSlugChange?: (slug: string) => void;
     onNavigate: (level: NavigationLevel) => void;
 }
 
@@ -17,12 +19,20 @@ interface RootViewProps {
  */
 export function RootView({
     formName,
+    formSlug,
     onFormNameChange,
+    onFormSlugChange,
     onNavigate
 }: RootViewProps) {
     const handleFormNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (onFormNameChange) {
             onFormNameChange(e.target.value);
+        }
+    };
+
+    const handleFormSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (onFormSlugChange) {
+            onFormSlugChange(e.target.value);
         }
     };
 
@@ -39,6 +49,21 @@ export function RootView({
                     />
                     <p className="text-sm text-muted-foreground mt-1">
                         Customers do not see this name. This is for your internal reference only.
+                    </p>
+                </div>
+
+                <div>
+                    <h3 className="text-base font-medium mb-1">Form URL Slug</h3>
+                    <input
+                        type="text"
+                        className="w-full p-2 border rounded-md font-mono text-sm"
+                        defaultValue={formSlug}
+                        onChange={handleFormSlugChange}
+                        placeholder="my-booking-form"
+                        pattern="[a-z0-9-]+"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                        This creates your hosted page URL: <span className="font-mono">yourorg.com/your-org-slug/{formSlug}</span>
                     </p>
                 </div>
 

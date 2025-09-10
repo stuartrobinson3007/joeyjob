@@ -97,7 +97,7 @@ export function AppSidebar() {
   const navigationItems = [
     {
       title: 'Bookings',
-      url: '/bookings',
+      url: '/',
       icon: Calendar,
       requiresPermission: null, // Everyone can access
     },

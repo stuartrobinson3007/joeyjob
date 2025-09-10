@@ -1,20 +1,4 @@
 export const BILLING_PLANS = {
-  free: {
-    name: 'Free',
-    stripePriceId: null,
-    features: {
-      todos: 10,
-      members: 2,
-      customFields: false,
-      apiAccess: false,
-      prioritySupport: false,
-    },
-    limits: {
-      todos: 10,
-      members: 2,
-      storage: 100, // MB
-    },
-  },
   pro: {
     name: 'Pro',
     stripePriceId: {
@@ -24,6 +8,7 @@ export const BILLING_PLANS = {
     features: {
       todos: -1, // Unlimited
       members: 10,
+      connectedEmployees: 10,
       customFields: true,
       apiAccess: true,
       prioritySupport: false,
@@ -31,6 +16,7 @@ export const BILLING_PLANS = {
     limits: {
       todos: -1,
       members: 10,
+      connectedEmployees: 10,
       storage: 5000, // MB
     },
     seats: 10, // For Better Auth Stripe plugin
@@ -44,6 +30,7 @@ export const BILLING_PLANS = {
     features: {
       todos: -1,
       members: -1,
+      connectedEmployees: 20,
       customFields: true,
       apiAccess: true,
       prioritySupport: true,
@@ -51,6 +38,7 @@ export const BILLING_PLANS = {
     limits: {
       todos: -1,
       members: -1,
+      connectedEmployees: 20,
       storage: -1, // Unlimited
     },
     seats: 50,

@@ -18,6 +18,7 @@ import { useSession, useListOrganizations } from '@/lib/auth/auth-hooks'
 import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout'
 import { authClient } from '@/lib/auth/auth-client'
 import { getActiveOrganizationId } from '@/features/organization/lib/organization-utils'
+import { useSubscription } from '@/features/billing/hooks/use-subscription'
 
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout,
@@ -28,6 +29,10 @@ function AuthenticatedLayout() {
   // Only fetch organizations if user is authenticated
   const { data: organizations, isPending: orgsPending } = useListOrganizations({
     enabled: !!session && !sessionPending
+  })
+  // Only fetch subscription if user has completed onboarding
+  const { data: subscription, isPending: subscriptionPending } = useSubscription({
+    enabled: !!session?.user?.onboardingCompleted && !sessionPending
   })
   const navigate = useNavigate()
   const matches = useMatches()
@@ -57,7 +62,7 @@ function AuthenticatedLayout() {
     // For authenticated users, wait for both session and organizations
     if (!sessionPending && session && !orgsPending) {
 
-      // Don't redirect to onboarding if we're already on the onboarding page
+      // Redirect incomplete onboarding users to onboarding (but not if already there)
       if (!session.user.onboardingCompleted && currentPath !== '/onboarding') {
         navigate({ to: '/onboarding' })
         return
@@ -65,7 +70,7 @@ function AuthenticatedLayout() {
 
       // Check if user needs to select an organization
       // Skip this check for certain pages
-      const skipOrgCheckPaths = ['/onboarding', '/select-organization', '/superadmin']
+      const skipOrgCheckPaths = ['/onboarding', '/select-organization', '/superadmin', '/payment-error', '/billing', '/choose-plan']
       const shouldSkipOrgCheck = skipOrgCheckPaths.some(path => currentPath.startsWith(path))
       
       if (!shouldSkipOrgCheck && session.user.onboardingCompleted) {
@@ -76,9 +81,41 @@ function AuthenticatedLayout() {
           navigate({ to: '/select-organization' })
           return
         }
+
+        // Check subscription status after onboarding is complete and org is selected
+        if (!subscriptionPending) {
+          const skipPaymentCheckPaths = ['/payment-error', '/billing', '/choose-plan']
+          const shouldSkipPaymentCheck = skipPaymentCheckPaths.some(path => currentPath.startsWith(path))
+
+          if (!shouldSkipPaymentCheck) {
+            // Block access if no subscription data at all - redirect to plan selection
+            if (!subscription) {
+              navigate({ to: '/choose-plan' })
+              return
+            }
+
+            const subscriptionStatus = subscription.subscription?.status
+            const currentPlan = subscription.currentPlan
+            
+            // Block access if no active subscription
+            // Allow access ONLY if subscription status is 'active' or 'trialing'
+            const hasActiveSubscription = subscriptionStatus === 'active' || subscriptionStatus === 'trialing'
+            
+            if (!hasActiveSubscription || !currentPlan) {
+              // If they have subscription data but it's inactive, send to payment error
+              // If they have no subscription, send to choose plan
+              if (subscription.subscription) {
+                navigate({ to: '/payment-error' })
+              } else {
+                navigate({ to: '/choose-plan' })
+              }
+              return
+            }
+          }
+        }
       }
     }
-  }, [session, organizations, sessionPending, orgsPending, navigate, currentPath])
+  }, [session, organizations, subscription, sessionPending, orgsPending, subscriptionPending, navigate, currentPath])
 
   // End impersonation when navigating to superadmin routes
   useEffect(() => {
@@ -98,7 +135,7 @@ function AuthenticatedLayout() {
     }
   }, [isSuperAdminRoute, session, sessionPending])
 
-  if (sessionPending || orgsPending) {
+  if (sessionPending || orgsPending || (session?.user?.onboardingCompleted && subscriptionPending)) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="size-6 animate-spin" />

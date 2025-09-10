@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ScrollArea } from "@/ui/scroll-area";
+import { EmbedDialog } from '@/features/booking/components/embed-dialog';
+import { useActiveOrganization } from '@/features/organization/lib/organization-context';
 import { FlowNode, NodeType, FormFlowTree } from "@/features/booking/components/form-editor/form-flow-tree";
 import BookingFlow from "./booking-flow";
 import FormEditorHeader from "./components/form-editor-header";
@@ -17,8 +19,16 @@ import { useFormEditorState, NavigationLevel, ServiceDetailView } from "@/featur
 import { FormEditorDataProvider } from "@/features/booking/components/form-editor/context/form-editor-data-context";
 import useFormEditorData from "./hooks/use-form-editor-data";
 import { ReactNode, useCallback, useEffect, useState, useRef } from "react";
-// TODO: Import BookingState from the new booking-flow component\n// import { BookingState } from "./booking-flow";
 import { useForm, UseFormReturn } from "react-hook-form";
+
+// BookingState type definition
+interface BookingState {
+    stage: 'selection' | 'questions' | 'scheduling' | 'confirmation';
+    navigationPath: string[];
+    selectedService: any | null;
+    selectedDate: Date | null;
+    selectedTime: string | null;
+}
 import {
     FormFieldConfig,
     ContactInfoFieldConfig,
@@ -47,51 +57,14 @@ interface FormEditorLayoutProps {
     onNodeSelect?: (id: string) => void; // Prop to handle node selection
     // TODO: Add proper type for currentForm
     currentForm?: any; // The current form being edited
+    // Auto-save state from parent
+    isSaving?: boolean;
+    lastSaved?: Date | null;
+    isDirty?: boolean;
+    saveErrors?: string[];
+    onSaveNow?: () => Promise<void>;
 }
 
-/**
- * Generates the initial form data state structure.
- * This serves as the central source of truth for the form configuration.
- * @param formName The name of the form
- * @param flowNodes The initial tree structure (if provided)
- * @returns A complete BookingFlowData object with defaults for all required fields
- */
-const generateInitialFormData = (formName: string, flowNodes: FlowNode | undefined) => {
-    // Create the default contact-info field with proper typing
-    const contactInfoField: ContactInfoFieldConfig = {
-        id: 'contact-info-field',
-        name: 'contact_info',
-        label: 'Contact Information',
-        type: 'contact-info',
-        fieldConfig: createDefaultContactInfoConfig()
-    };
-
-    // Create the default address field with proper typing
-    const addressField: AddressFieldConfig = {
-        id: 'address-field',
-        name: 'address',
-        label: 'Address',
-        type: 'address',
-        fieldConfig: createDefaultAddressConfig()
-    };
-
-    return {
-        id: `form-${Date.now()}`,
-        internalName: formName,
-        serviceTree: flowNodes || {
-            id: 'root',
-            type: 'start',
-            label: 'Start',
-            children: []
-        },
-        baseQuestions: [
-            contactInfoField,
-            addressField
-        ],
-        theme: 'light' as const,
-        primaryColor: '#3B82F6'
-    };
-};
 
 /**
  * FormEditorLayoutInner is the main component that integrates:
@@ -112,10 +85,16 @@ function FormEditorLayoutInner({
     flowNodes,
     selectedNodeId,
     onNodeSelect,
-    currentForm
+    currentForm,
+    isSaving = false,
+    lastSaved = null,
+    isDirty = false,
+    saveErrors = [],
+    onSaveNow = async () => {}
 }: FormEditorLayoutProps) {
     const navigate = useNavigate();
     const { data, dispatch } = useFormEditorData();
+    const { activeOrganization } = useActiveOrganization();
     
     // TODO: Replace with new API hooks
     // const updateForm = useUpdateForm();
@@ -418,6 +397,9 @@ function FormEditorLayoutInner({
 
     // State to store the services data for the booking flow preview
     const [servicesData, setServicesData] = useState<any[]>([]);
+
+    // Embed dialog state
+    const [isEmbedDialogOpen, setIsEmbedDialogOpen] = useState(false);
 
     // Create the form methods at the FormEditorLayout level
     const formMethods = useForm({
@@ -928,7 +910,7 @@ function FormEditorLayoutInner({
     };
 
     const handleEmbed = () => {
-        // Show embed code - to be implemented
+        setIsEmbedDialogOpen(true);
     };
 
     const handleDelete = () => {
@@ -1010,7 +992,9 @@ function FormEditorLayoutInner({
                 return (
                     <RootView
                         formName={data.internalName}
+                        formSlug={data.slug}
                         onFormNameChange={(name) => handleFormSettingsUpdate({ internalName: name })}
+                        onFormSlugChange={(slug) => handleFormSettingsUpdate({ slug })}
                         onNavigate={actions.navigateToLevel}
                     />
                 );
@@ -1253,7 +1237,9 @@ function FormEditorLayoutInner({
                 return (
                     <RootView
                         formName={data.internalName}
+                        formSlug={data.slug}
                         onFormNameChange={(name) => handleFormSettingsUpdate({ internalName: name })}
+                        onFormSlugChange={(slug) => handleFormSettingsUpdate({ slug })}
                         onNavigate={actions.navigateToLevel}
                     />
                 );
@@ -1387,6 +1373,11 @@ function FormEditorLayoutInner({
                 onEmbed={handleEmbed}
                 onDelete={handleDelete}
                 isMobile={state.isMobile}
+                isSaving={isSaving}
+                lastSaved={lastSaved}
+                isDirty={isDirty}
+                errors={saveErrors}
+                onSaveNow={onSaveNow}
             />
 
             {/* Main content - left panel and preview */}
@@ -1403,25 +1394,27 @@ function FormEditorLayoutInner({
                 {/* Right panel - Preview (only shown on desktop) */}
                 {!state.isMobile && renderPreview()}
             </div>
+
+            {/* Embed Dialog */}
+            <EmbedDialog
+                open={isEmbedDialogOpen}
+                onOpenChange={setIsEmbedDialogOpen}
+                formId={data.id}
+                formName={data.internalName || 'Untitled Form'}
+                orgSlug={activeOrganization?.slug}
+                formSlug={data.slug}
+            />
         </div>
     );
 }
 
 /**
- * Main layout component that establishes the form data context and connects it with UI state.
+ * Main layout component that connects with the form data context and UI state.
  * The architecture:
- * - FormEditorDataProvider: Provides global form data state
- * - FormEditorLayoutInner: Connects form data with UI state and renders appropriate views
+ * - FormEditorDataProvider: Now managed by parent component (form.$formId.edit.tsx)
+ * - FormEditorLayout: Connects form data with UI state and renders appropriate views
  * - Each view component: Uses both data sources to render and update specific parts of the form
  */
 
-// Main export component that wraps with provider
-export function FormEditorLayout(props: FormEditorLayoutProps) {
-    const initialFormData = generateInitialFormData(props.formName, props.flowNodes);
-
-    return (
-        <FormEditorDataProvider initialData={initialFormData}>
-            <FormEditorLayoutInner {...props} />
-        </FormEditorDataProvider>
-    );
-}
+// Export the inner component directly since provider is now managed by parent
+export const FormEditorLayout = FormEditorLayoutInner;
