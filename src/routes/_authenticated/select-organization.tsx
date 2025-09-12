@@ -26,6 +26,10 @@ export const Route = createFileRoute('/_authenticated/select-organization')({
   staticData: {
     sidebar: false,
   },
+  beforeLoad: () => {
+    console.log('🔄 [DEBUG] Select organization beforeLoad - no special requirements')
+    // No additional requirements - just inherits authentication from /_authenticated
+  },
   component: SelectOrganizationPage,
 })
 
@@ -36,16 +40,16 @@ function SelectOrganizationPage() {
   const { showError, showSuccess } = useErrorHandler()
 
   console.log('[SelectOrganizationPage] Component rendering')
-  
+
   const { data: organizations, isPending: isLoading, refetch: refetchOrganizations, error } = useListOrganizations()
-  
+
   console.log('[SelectOrganizationPage] Organizations query state:', {
     organizations,
     isLoading,
     error,
     organizationsCount: organizations?.length
   })
-  
+
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -58,14 +62,13 @@ function SelectOrganizationPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   // Handle auto-selection if only one organization
-  useEffect(() => {
-    if (!isLoading && organizations?.length === 1 && !hasAutoSelected && !isSelecting) {
-      console.log('[SelectOrganizationPage] Auto-selecting single organization:', organizations[0].id)
-      setHasAutoSelected(true)
-      setActiveOrganizationId(organizations[0].id)
-      navigate({ to: '/' })
-    }
-  }, [isLoading, organizations, navigate, isSelecting, hasAutoSelected])
+  // useEffect(() => {
+  //   if (!isLoading && organizations?.length === 1 && !hasAutoSelected && !isSelecting) {
+  //     console.log('[SelectOrganizationPage] Auto-selecting single organization:', organizations[0].id)
+  //     setHasAutoSelected(true)
+  //     handleSelectOrganization(organizations[0].id)
+  //   }
+  // }, [isLoading, organizations, navigate, isSelecting, hasAutoSelected])
 
   useEffect(() => {
     console.log('[SelectOrganizationPage] useEffect - Component mounted/updated', {
@@ -84,6 +87,9 @@ function SelectOrganizationPage() {
 
       await new Promise(resolve => setTimeout(resolve, 300))
 
+      // Check if the selected organization needs onboarding
+      // For now, we'll let the authenticated layout handle the redirect
+      // This keeps the logic centralized
       navigate({ to: '/' })
     } catch (error) {
       showError(error)
@@ -158,7 +164,7 @@ function SelectOrganizationPage() {
       </div>
     )
   }
-  
+
   console.log('[SelectOrganizationPage] Rendering main content with organizations:', organizations)
 
   return (

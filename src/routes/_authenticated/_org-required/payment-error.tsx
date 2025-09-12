@@ -11,7 +11,7 @@ import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 
-export const Route = createFileRoute('/_authenticated/payment-error')({
+export const Route = createFileRoute('/_authenticated/_org-required/payment-error')({
   staticData: {
     sidebar: false,
   },

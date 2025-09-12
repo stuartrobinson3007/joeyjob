@@ -51,7 +51,7 @@ import {
   BreadcrumbSeparator,
 } from '@/ui/breadcrumb'
 
-export const Route = createFileRoute('/_authenticated/todos/$id/edit')({
+export const Route = createFileRoute('/_authenticated/_org-required/todos/$id/edit')({
   component: EditTodoPage,
 })
 

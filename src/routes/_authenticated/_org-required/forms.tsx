@@ -21,7 +21,7 @@ import {
 import { PageHeader } from '@/components/page-header'
 import { EmbedDialog } from '@/features/booking/components/embed-dialog'
 
-export const Route = createFileRoute('/_authenticated/forms')({
+export const Route = createFileRoute('/_authenticated/_org-required/forms')({
   component: FormsPage,
 })
 

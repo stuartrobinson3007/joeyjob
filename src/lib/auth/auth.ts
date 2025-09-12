@@ -4,6 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { organization, magicLink, admin, emailOTP, genericOAuth } from 'better-auth/plugins'
 import { stripe as stripePlugin } from '@better-auth/stripe'
 import { createAccessControl } from 'better-auth/plugins/access'
+import { createAuthMiddleware } from 'better-auth/api'
 import Stripe from 'stripe'
 import { defaultStatements } from 'better-auth/plugins/organization/access'
 import { reactStartCookies } from 'better-auth/react-start'
@@ -63,6 +64,60 @@ const getAuthConfig = serverOnly(() =>
       provider: 'pg',
       schema: schema,
     }),
+
+    databaseHooks: {
+      account: {
+        create: {
+          after: async (account) => {
+            console.log('🔄 [DEBUG] Account created hook triggered!')
+            console.log('🔄 [DEBUG] Account data:', {
+              userId: account.userId,
+              providerId: account.providerId,
+              hasAccessToken: !!account.accessToken,
+              hasRefreshToken: !!account.refreshToken
+            })
+            
+            // Set up organizations for new Simpro OAuth users
+            if (account.providerId === 'simpro' && account.accessToken && account.refreshToken) {
+              try {
+                console.log(`🚀 [DEBUG] Starting organization setup for Simpro user ${account.userId}`)
+                
+                const buildConfig = {
+                  buildName: 'joeyjob',
+                  domain: 'simprosuite.com',
+                  baseUrl: 'https://joeyjob.simprosuite.com'
+                }
+                
+                console.log('🔄 [DEBUG] Build config:', buildConfig)
+
+                const { setupUserOrganizations } = await import('@/lib/providers/oauth-organization-setup')
+                
+                const result = await setupUserOrganizations(
+                  account.userId,
+                  {
+                    accessToken: account.accessToken,
+                    refreshToken: account.refreshToken
+                  },
+                  buildConfig,
+                  'simpro'
+                )
+                
+                console.log(`✅ [DEBUG] Organizations set up successfully for user ${account.userId}:`, result)
+              } catch (error) {
+                console.error(`❌ [DEBUG] Failed to set up organizations for user ${account.userId}:`, error)
+                console.error('❌ [DEBUG] Error details:', {
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined
+                })
+                // Don't throw - allow account creation to complete
+              }
+            } else {
+              console.log('⏭️ [DEBUG] Skipping organization setup - not a Simpro account or missing tokens')
+            }
+          }
+        }
+      }
+    },
 
     user: {
       additionalFields: {
@@ -158,9 +213,6 @@ const getAuthConfig = serverOnly(() =>
                 name: simproUser.Name,
                 email: placeholderEmail,
                 emailVerified: false, // SimPro doesn't provide email verification
-                simproBuildName: buildConfig.buildName,
-                simproDomain: buildConfig.domain,
-                simproCompanyId: simproUser.CompanyID,
               }
             },
             
@@ -168,10 +220,6 @@ const getAuthConfig = serverOnly(() =>
               return {
                 name: profile.name,
                 email: profile.email,
-                simproId: profile.id,
-                simproBuildName: profile.simproBuildName,
-                simproDomain: profile.simproDomain,
-                simproCompanyId: profile.simproCompanyId,
               }
             },
           },
@@ -200,13 +248,47 @@ const getAuthConfig = serverOnly(() =>
         createCustomerOnSignUp: false, // We'll create on org creation
         // Add metadata when creating Stripe customers
         getCustomerCreateParams: async (data, _ctx) => {
-          // Note: At customer creation time, we don't have the organizationId yet
-          // It will be added when the subscription is created
-          return {
+          // Get the user's organization to use organization email for Stripe customer
+          const userMembership = await db
+            .select({
+              organizationId: schema.member.organizationId,
+            })
+            .from(schema.member)
+            .where(eq(schema.member.userId, data.user.id))
+            .limit(1)
+
+          let organizationEmail: string | undefined
+          let organizationId: string | undefined
+
+          if (userMembership.length > 0) {
+            organizationId = userMembership[0].organizationId
+            
+            // Get organization email
+            const org = await db
+              .select({
+                email: schema.organization.email,
+              })
+              .from(schema.organization)
+              .where(eq(schema.organization.id, organizationId))
+              .limit(1)
+
+            if (org.length > 0 && org[0].email) {
+              organizationEmail = org[0].email
+            }
+          }
+
+          const params: any = {
             metadata: {
               userId: data.user.id,
+              organizationId: organizationId || '',
             },
           }
+
+          if (organizationEmail) {
+            params.email = organizationEmail
+          }
+
+          return params
         },
         successUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:5722'}/billing?success=true`,
         cancelUrl: `${process.env.BETTER_AUTH_URL || 'http://localhost:5722'}/billing`,

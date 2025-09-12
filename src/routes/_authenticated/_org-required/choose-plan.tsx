@@ -16,7 +16,7 @@ import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 import { SubscriptionResponse } from '@/lib/auth/auth-types'
 
-export const Route = createFileRoute('/_authenticated/choose-plan')({
+export const Route = createFileRoute('/_authenticated/_org-required/choose-plan')({
   staticData: {
     sidebar: false,
   },

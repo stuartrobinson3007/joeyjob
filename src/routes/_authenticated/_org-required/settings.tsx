@@ -45,7 +45,7 @@ import { Button } from '@/ui/button'
 import { Skeleton } from '@/ui/skeleton'
 import { EmployeeManagement } from '@/features/organization/components/employee-management'
 
-export const Route = createFileRoute('/_authenticated/settings')({
+export const Route = createFileRoute('/_authenticated/_org-required/settings')({
   component: OrganizationSettings,
 })
 

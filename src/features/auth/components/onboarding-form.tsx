@@ -62,21 +62,38 @@ function OnboardingFormInner({ invitationId, organizationName }: OnboardingFormP
       })
 
       if (result.success) {
-        // Set the active organization using utility function
-        setActiveOrganizationId(result.organizationId)
+        // Set the active organization for regular/invite users (not OAuth users)
+        if (!result.isOAuthUser && result.organizationId !== 'oauth-user') {
+          setActiveOrganizationId(result.organizationId)
+        }
 
-        showSuccess(
-          result.isInvite
-            ? t('welcome.organizationInvite', { organizationName })
-            : t('welcome.workspaceCreated')
-        )
+        // Show appropriate success message based on user type
+        let successMessage
+        if (result.isInvite) {
+          successMessage = t('welcome.organizationInvite', { organizationName })
+        } else if (result.isOAuthUser) {
+          successMessage = result.userType === 'simpro' 
+            ? 'Profile completed! Ready to select your company.'
+            : 'Profile completed! Ready to select your organization.'
+        } else {
+          successMessage = t('welcome.workspaceCreated')
+        }
+        
+        showSuccess(successMessage)
 
         // Refetch session to get updated user data
         await refetchSession()
         await refetchOrganizations()
 
-        // Navigate to plan selection page
-        await navigate({ to: '/choose-plan' })
+        // Navigate based on user type
+        if (result.isInvite) {
+          // Invitation users go directly to plan selection
+          await navigate({ to: '/choose-plan' })
+        } else {
+          // For new users, go to organization selection first
+          // The authenticated layout will handle redirecting to company sync if needed
+          await navigate({ to: '/select-organization' })
+        }
       }
     } catch (error) {
       showError(error)

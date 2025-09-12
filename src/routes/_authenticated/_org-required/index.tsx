@@ -57,7 +57,7 @@ interface Booking {
   formName: string | null
 }
 
-export const Route = createFileRoute('/_authenticated/')({
+export const Route = createFileRoute('/_authenticated/_org-required/')({
   component: BookingsPage,
 })
 

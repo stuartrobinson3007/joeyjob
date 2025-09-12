@@ -134,6 +134,22 @@ export interface BookingState {
 const MAX_TOTAL_FILE_SIZE = 80 * 1024 * 1024;
 
 /**
+ * Find the first available date from availability data
+ */
+function findFirstAvailableDate(availabilityData: { [date: string]: string[] }): Date | null {
+    if (!availabilityData || Object.keys(availabilityData).length === 0) {
+        return null;
+    }
+    
+    // Get all dates with available slots, sorted chronologically
+    const availableDates = Object.keys(availabilityData)
+        .filter(dateKey => availabilityData[dateKey].length > 0)
+        .sort();
+    
+    return availableDates.length > 0 ? new Date(availableDates[0]) : null;
+}
+
+/**
  * Calculate a contrasting color (black or white) based on the background color
  */
 function contrastingColor(hex: string, factorAlpha = false): string {
@@ -286,6 +302,28 @@ export default function BookingFlow({
             });
         }
     }, [bookingState.selectedService?.id, bookingState.stage, currentYear, currentMonth, queryClient]);
+
+    // Auto-select first available date when calendar opens for a service
+    useEffect(() => {
+        // Only run when:
+        // 1. We're on date-time stage
+        // 2. No date is currently selected  
+        // 3. Availability data is loaded
+        // 4. We have availability data
+        if (bookingState.stage === 'date-time' && 
+            !bookingState.selectedDate && 
+            !availabilityLoading &&
+            Object.keys(availabilityData).length > 0) {
+            
+            const firstDate = findFirstAvailableDate(availabilityData);
+            if (firstDate) {
+                handleBookingStateChange({
+                    ...bookingState,
+                    selectedDate: firstDate
+                });
+            }
+        }
+    }, [bookingState.stage, bookingState.selectedDate, availabilityLoading, availabilityData, handleBookingStateChange]);
 
     const customStyleVars = {
         '--primary': primaryColor,
@@ -606,7 +644,7 @@ export default function BookingFlow({
                 stage: 'date-time',
                 selectedService: item,
                 selectedEmployee: null, // Will be assigned automatically when booking is submitted
-                selectedDate: addDays(new Date(), 1), // Default to tomorrow
+                selectedDate: null, // Will be auto-selected from availability data
                 selectedTime: null,
                 navigationPath: [...bookingState.navigationPath, item.id]
             });

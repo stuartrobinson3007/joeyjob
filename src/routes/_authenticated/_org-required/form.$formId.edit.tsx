@@ -29,7 +29,7 @@ import {
 import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 
-export const Route = createFileRoute('/_authenticated/form/$formId/edit')({
+export const Route = createFileRoute('/_authenticated/_org-required/form/$formId/edit')({
   component: FormEditorPage,
   staticData: {
     sidebar: false, // Hide sidebar for full-screen form editor

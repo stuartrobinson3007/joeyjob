@@ -7,7 +7,7 @@ import { nanoid } from 'nanoid'
 import errorTranslations from '@/i18n/locales/en/errors.json'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
-import { invitation, organization, user } from '@/database/schema'
+import { invitation, organization, user, account } from '@/database/schema'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { validationRules } from '@/lib/validation/validation-registry'
 
@@ -32,13 +32,30 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       )
     }
 
-    // Update user profile (but don't mark onboarding complete yet - that happens after payment)
+    const userId = session.user.id
+
+    // Check if user has OAuth account (Simpro/provider connection)
+    const oauthAccounts = await db
+      .select({
+        providerId: account.providerId,
+      })
+      .from(account)
+      .where(eq(account.userId, userId))
+
+    const hasOAuthAccount = oauthAccounts.length > 0
+    const isSimproUser = oauthAccounts.some(acc => acc.providerId === 'simpro')
+
+    // For OAuth users (like Simpro), complete user onboarding immediately
+    // For regular users, keep it false until payment is complete
+    const shouldCompleteOnboarding = hasOAuthAccount
+
+    // Update user profile
     await auth.api.updateUser({
       headers: request.headers,
       body: {
         firstName: data.firstName,
         lastName: data.lastName,
-        onboardingCompleted: false, // Will be set to true after successful payment
+        onboardingCompleted: shouldCompleteOnboarding,
         name: `${data.firstName} ${data.lastName}`.trim(),
       },
     })
@@ -64,8 +81,13 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       }
 
       organizationId = result.invitation.organizationId
+    } else if (hasOAuthAccount) {
+      // OAuth users (like Simpro) don't need a personal workspace
+      // Their organizations are created during OAuth setup
+      // Return a placeholder - the user will select their organization next
+      organizationId = 'oauth-user'
     } else {
-      // Create personal workspace
+      // Create personal workspace for regular users
       const slug = `${data.firstName.toLowerCase()}-workspace-${nanoid(8)}`
       const org = await auth.api.createOrganization({
         headers: request.headers,
@@ -91,6 +113,8 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       success: true,
       organizationId,
       isInvite: !!data.invitationId,
+      isOAuthUser: hasOAuthAccount,
+      userType: isSimproUser ? 'simpro' : hasOAuthAccount ? 'oauth' : 'regular',
     }
   })
 
