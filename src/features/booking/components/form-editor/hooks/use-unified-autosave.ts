@@ -227,11 +227,11 @@ export function useUnifiedAutosave(
   useEffect(() => {
     const currentHash = createDataHash(data);
     
-    // Skip on initial load
+    // Skip on initial load - don't mark as dirty
     if (!isInitializedRef.current) {
       lastSavedDataRef.current = currentHash;
       isInitializedRef.current = true;
-      setState(prev => ({ ...prev, isDirty: false }));
+      // Don't set isDirty here - it's already false from initial state
       return;
     }
 

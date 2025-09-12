@@ -2,9 +2,13 @@ import { BookingSubmitData } from '@/features/booking/components/form-editor/boo
 import { createSimproBookingForUser } from '@/lib/simpro/simpro.server'
 import { assignEmployeeToBooking, updateBookingSimproStatus } from '@/lib/simpro/employees.server'
 import { db } from '@/lib/db/db'
-import { bookings, services, organizationEmployees } from '@/database/schema'
-import { eq, and } from 'drizzle-orm'
+import { bookings, services, organizationEmployees, organization, bookingForms, bookingEmployees } from '@/database/schema'
+import { eq, and, isNull, inArray } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { combineDateAndTime, formatInTimezone } from '@/taali/utils/date'
+import { addMinutes, format } from 'date-fns'
+import { selectEmployeeForBooking } from '@/lib/simpro/booking-employee-selection.server'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 /**
  * Submit a booking and create it in both JoeyJob and Simpro
@@ -22,74 +26,117 @@ export async function submitBookingWithSimproIntegration({
         organizationId,
         userId,
         service: bookingData.service.id,
-        employee: bookingData.employee?.id,
         date: bookingData.date,
         time: bookingData.time
     })
 
-    // Step 1: Validate that the service exists and belongs to the organization
-    const service = await db
+    // Get organization with timezone
+    const org = await db
         .select()
-        .from(services)
+        .from(organization)
+        .where(eq(organization.id, organizationId))
+        .limit(1)
+
+    if (!org.length) {
+        throw new AppError(
+            ERROR_CODES.BIZ_NOT_FOUND,
+            404,
+            { organizationId },
+            'Organization not found'
+        )
+    }
+
+    const orgRecord = org[0]
+
+    // Get service details from form config
+    const form = await db
+        .select()
+        .from(bookingForms)
         .where(
             and(
-                eq(services.id, bookingData.service.id),
-                eq(services.organizationId, organizationId)
+                eq(bookingForms.organizationId, organizationId),
+                eq(bookingForms.isActive, true),
+                isNull(bookingForms.deletedAt)
             )
         )
         .limit(1)
 
-    if (!service.length) {
-        throw new Error('Service not found or access denied')
+    if (!form.length) {
+        throw new AppError(
+            ERROR_CODES.BIZ_NOT_FOUND,
+            404,
+            { formId: bookingData.service },
+            'No active booking form found'
+        )
     }
 
-    const serviceRecord = service[0]
+    const formConfig = form[0].formConfig as any
+    const serviceNode = findServiceInTree(formConfig?.serviceTree, bookingData.service.id)
 
-    // Step 2: Validate employee if selected
-    let employeeRecord = null
-    if (bookingData.employee) {
-        const orgEmployee = await db
-            .select()
-            .from(organizationEmployees)
-            .where(
-                and(
-                    eq(organizationEmployees.id, bookingData.employee.id),
-                    eq(organizationEmployees.organizationId, organizationId),
-                    eq(organizationEmployees.isActive, true)
-                )
-            )
-            .limit(1)
-
-        if (!orgEmployee.length) {
-            throw new Error('Selected employee not found or not available')
-        }
-
-        employeeRecord = orgEmployee[0]
+    if (!serviceNode) {
+        throw new AppError(
+            ERROR_CODES.BIZ_NOT_FOUND,
+            404,
+            { serviceId: bookingData.service },
+            'Service not found in form configuration'
+        )
     }
 
-    // Step 3: Create booking in JoeyJob database
+    // Convert booking time to UTC using organization timezone
+    const bookingStartAt = combineDateAndTime(
+        bookingData.date,
+        bookingData.time,
+        orgRecord.timezone
+    )
+    const bookingEndAt = addMinutes(bookingStartAt, serviceNode.duration)
+
+    console.log('Converted booking times:', {
+        originalDate: bookingData.date,
+        originalTime: bookingData.time,
+        timezone: orgRecord.timezone,
+        startAtUTC: bookingStartAt.toISOString(),
+        endAtUTC: bookingEndAt.toISOString()
+    })
+
+    // Extract customer info from form data
+    // Form fields use hyphenated IDs: 'first-name', 'last-name', etc.
+    const customer = {
+        firstName: bookingData.formData['first-name'] || '',
+        lastName: bookingData.formData['last-name'] || '',
+        name: `${bookingData.formData['first-name'] || ''} ${bookingData.formData['last-name'] || ''}`.trim() || 'Customer',
+        email: bookingData.formData['email'] || '',
+        phone: bookingData.formData['phone'] || ''
+    }
+
+    // Extract address data (make optional for Simpro) 
+    // Check if address fields exist in form data (using hyphenated IDs)
+    const hasAddress = bookingData.formData['street'] || bookingData.formData['city'] || bookingData.formData['state']
+    const address = hasAddress ? {
+        line1: bookingData.formData['street'] || 'No Address Provided',
+        city: bookingData.formData['city'] || 'Unknown',
+        state: bookingData.formData['state'] || 'Unknown', 
+        postalCode: bookingData.formData['zip'] || '00000',
+        country: bookingData.formData['country'] || 'AUS'
+    } : null
+
     const bookingId = nanoid()
     const confirmationCode = `JJ${Date.now().toString().slice(-8)}`
 
-    // Extract customer info from form data
-    const customerName = `${bookingData.formData.contact?.firstName || ''} ${bookingData.formData.contact?.lastName || ''}`.trim()
-    const customerEmail = bookingData.formData.contact?.email || ''
-    const customerPhone = bookingData.formData.contact?.phone || ''
-
+    // Create booking in database with proper timestamps
     const booking = await db
         .insert(bookings)
         .values({
             id: bookingId,
             organizationId,
-            serviceId: serviceRecord.id,
-            customerEmail,
-            customerName,
-            customerPhone,
-            bookingDate: new Date(bookingData.date),
-            startTime: bookingData.time,
-            endTime: calculateEndTime(bookingData.time, serviceRecord.duration),
-            duration: serviceRecord.duration,
-            price: serviceRecord.price,
+            serviceId: bookingData.service.id,
+            formId: form[0].id,
+            customerEmail: customer.email,
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            bookingStartAt,
+            bookingEndAt,
+            duration: serviceNode.duration,
+            price: serviceNode.price || '0',
             status: 'pending',
             formData: bookingData.formData,
             confirmationCode,
@@ -99,89 +146,205 @@ export async function submitBookingWithSimproIntegration({
 
     const createdBooking = booking[0]
 
+    // Get all assigned employees for smart selection
+    const assignedEmployeeIds = serviceNode.assignedEmployeeIds || []
+    const defaultEmployeeId = serviceNode.defaultEmployeeId
+    
+    console.log('Employee assignment:', {
+        assignedEmployeeIds,
+        defaultEmployeeId: defaultEmployeeId || 'none'
+    })
+
+    // Get all assigned employee records
+    const assignedEmployees = await db
+        .select()
+        .from(organizationEmployees)
+        .where(
+            and(
+                inArray(organizationEmployees.id, assignedEmployeeIds),
+                eq(organizationEmployees.organizationId, organizationId),
+                eq(organizationEmployees.isActive, true)
+            )
+        )
+
+    if (assignedEmployees.length === 0) {
+        throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            400,
+            { serviceId: bookingData.service },
+            'No active employees assigned to this service'
+        )
+    }
+
+    console.log('Found assigned employees:', assignedEmployees.map(emp => ({
+        id: emp.id,
+        name: emp.simproEmployeeName,
+        simproId: emp.simproEmployeeId
+    })))
+
+    // Convert booking time to proper format for availability check
+    const bookingDate = new Date(bookingData.date)
+    
+    // Find which employees are actually available for this time slot using optimized selection
+    const employeeSelection = await selectEmployeeForBooking(
+        assignedEmployees.map(emp => emp.simproEmployeeId),
+        bookingDate,
+        bookingData.time,
+        {
+            duration: serviceNode.duration,
+            interval: serviceNode.interval || 30,
+            bufferTime: serviceNode.bufferTime || 15,
+            minimumNotice: serviceNode.minimumNotice || 0
+        },
+        organizationId,
+        userId,
+        new Map(assignedEmployees.map(emp => [
+            emp.simproEmployeeId, 
+            { isDefault: emp.id === defaultEmployeeId }
+        ]))
+    )
+
+    if (!employeeSelection || employeeSelection.availableEmployees.length === 0) {
+        throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            400,
+            { timeSlot: `${bookingData.date} at ${bookingData.time}` },
+            'No employees available for the selected time slot. Please choose a different time.'
+        )
+    }
+
+    console.log(`Found ${employeeSelection.availableEmployees.length} available employees for ${bookingData.date} at ${bookingData.time}`)
+
+    // Get the selected employee data from our database
+    const selectedEmployee = assignedEmployees.find(emp => 
+        emp.simproEmployeeId === employeeSelection.selectedEmployee.employeeId
+    )
+    
+    if (!selectedEmployee) {
+        throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            500,
+            { employeeId: employeeSelection.selectedEmployee.employeeId },
+            'Could not assign an employee for this booking'
+        )
+    }
+
+    console.log('Selected employee for booking:', {
+        id: selectedEmployee.id,
+        name: selectedEmployee.simproEmployeeName,
+        simproId: selectedEmployee.simproEmployeeId,
+        isDefault: selectedEmployee.isDefault
+    })
+
     try {
-        // Step 4: Assign employee to booking (if selected)
-        if (employeeRecord) {
-            await assignEmployeeToBooking(bookingId, employeeRecord.id)
+        // Get the full employee record for Simpro integration
+        const employeeRecord = assignedEmployees.find(emp => emp.id === selectedEmployee.id)
+        if (!employeeRecord) {
+            throw new AppError(
+                ERROR_CODES.BIZ_INVALID_STATE,
+                500,
+                { employeeId: selectedEmployee.id },
+                'Selected employee record not found'
+            )
         }
 
-        // Step 5: Create booking in Simpro (if user has Simpro integration and employee is selected)
+        // Create Simpro booking if employee is assigned
         let simproData = null
-        let hasSimproIntegration = true
-        
-        try {
-            if (employeeRecord) {
+        if (employeeRecord) {
+            try {
                 simproData = await createSimproBookingForUser(userId, {
                     customer: {
-                        givenName: bookingData.formData.contact?.firstName || customerName.split(' ')[0] || 'Customer',
-                        familyName: bookingData.formData.contact?.lastName || customerName.split(' ')[1] || '',
-                        email: customerEmail,
-                        phone: customerPhone,
-                        address: {
-                            line1: bookingData.formData.address?.street || '123 Main St',
-                            city: bookingData.formData.address?.city || 'Unknown City',
-                            state: bookingData.formData.address?.state || 'Unknown State', 
-                            postalCode: bookingData.formData.address?.zip || '00000',
+                        givenName: customer.firstName || 'Customer',
+                        familyName: customer.lastName || 'Customer', // Simpro requires non-empty FamilyName
+                        email: customer.email,
+                        phone: customer.phone,
+                        address: address || {
+                            line1: 'No Address Provided',
+                            city: 'Unknown',
+                            state: 'Unknown',
+                            postalCode: '00000',
                             country: 'AUS'
                         }
                     },
                     job: {
                         type: 'Service',
-                        name: serviceRecord.name,
-                        description: serviceRecord.description || `${serviceRecord.name} booking via JoeyJob`
+                        name: serviceNode.label,
+                        description: serviceNode.description || serviceNode.label
                     },
                     schedule: {
                         employeeId: employeeRecord.simproEmployeeId,
                         blocks: [{
-                            startTime: bookingData.time,
-                            endTime: calculateEndTime(bookingData.time, serviceRecord.duration),
-                            date: bookingData.date.split('T')[0] // Get just the date part
+                            date: format(bookingStartAt, 'yyyy-MM-dd'),
+                            startTime: format(bookingStartAt, 'HH:mm'),
+                            endTime: format(bookingEndAt, 'HH:mm')
                         }]
                     }
                 })
 
                 console.log('Simpro booking created successfully:', simproData)
 
-                // Update booking with Simpro references
-                if (employeeRecord) {
-                    await updateBookingSimproStatus(
-                        bookingId,
-                        'scheduled',
-                        {
-                            jobId: simproData.job.ID,
-                            customerId: simproData.customer.ID,
-                            scheduleId: simproData.schedule.ID,
-                            siteId: simproData.customer.Sites?.[0]?.ID
-                        }
+                // Create booking-employee assignment with Simpro IDs
+                await db.insert(bookingEmployees).values({
+                    id: nanoid(),
+                    bookingId,
+                    organizationEmployeeId: employeeRecord.id,
+                    simproJobId: simproData.job.ID,
+                    simproCustomerId: simproData.customer.ID,
+                    simproScheduleId: simproData.schedule.ID,
+                    simproSiteId: simproData.customer.Sites?.[0]?.ID,
+                    simproStatus: 'scheduled'
+                })
+
+                // Update booking status to confirmed
+                await db
+                    .update(bookings)
+                    .set({ status: 'confirmed' })
+                    .where(eq(bookings.id, bookingId))
+            } catch (simproError) {
+                console.error('Simpro integration failed:', simproError)
+                
+                const errorMessage = simproError instanceof Error ? simproError.message : 'Unknown error'
+                
+                // Categorize errors for better handling
+                if (errorMessage.includes('No Simpro account') || 
+                    errorMessage.includes('Missing Simpro tokens') ||
+                    errorMessage.includes('Missing Simpro build configuration')) {
+                    console.log('Organization has no Simpro integration')
+                    
+                    throw new AppError(
+                        ERROR_CODES.SYS_CONFIG_ERROR,
+                        500,
+                        { simproError: errorMessage },
+                        'Simpro integration is not configured for this organization. Please contact support.'
+                    )
+                } else if (errorMessage.includes('422') || errorMessage.includes('Unprocessable Entity')) {
+                    // Handle Simpro API validation errors
+                    throw new AppError(
+                        ERROR_CODES.BIZ_INVALID_STATE,
+                        400,
+                        { simproError: errorMessage },
+                        'Unable to create booking in scheduling system. Please try again or contact support.'
+                    )
+                } else if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+                    // Handle Simpro authentication errors
+                    throw new AppError(
+                        ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+                        401,
+                        { simproError: errorMessage },
+                        'Scheduling system authentication failed. Please contact support.'
+                    )
+                } else {
+                    // Generic Simpro error
+                    throw new AppError(
+                        ERROR_CODES.SYS_SERVER_ERROR,
+                        500,
+                        { simproError: errorMessage },
+                        'Failed to integrate with scheduling system. Please try again.'
                     )
                 }
-            } else {
-                // No employee selected - just log that the booking was created locally
-                console.log('Booking created locally only (no employee selected)')
             }
-        } catch (simproError) {
-            console.error('Simpro integration failed:', simproError)
-            hasSimproIntegration = false
-            
-            // Check if this is a "no Simpro account" error vs other errors
-            const errorMessage = simproError instanceof Error ? simproError.message : 'Simpro sync failed'
-            const isNoSimproAccount = errorMessage.includes('No Simpro account') || 
-                                      errorMessage.includes('Missing Simpro tokens') ||
-                                      errorMessage.includes('Missing Simpro build configuration')
-            
-            // Update booking status to indicate Simpro sync failed (only if employee was selected)
-            if (employeeRecord) {
-                await updateBookingSimproStatus(
-                    bookingId,
-                    'pending',
-                    undefined,
-                    isNoSimproAccount ? 'No Simpro integration configured' : errorMessage
-                )
-            }
-
-            // Don't throw the error - the booking was created successfully in JoeyJob
-            // We'll handle the Simpro sync failure gracefully
-            console.log(`Booking created locally${isNoSimproAccount ? ' (no Simpro integration)' : ' (Simpro sync failed)'}`)
+        } else {
+            console.log('No employees assigned to service - booking created without Simpro sync')
         }
 
         return {
@@ -189,7 +352,6 @@ export async function submitBookingWithSimproIntegration({
             booking: createdBooking,
             simpro: simproData,
             confirmationCode,
-            hasSimproIntegration,
             employeeAssigned: !!employeeRecord
         }
 
@@ -206,14 +368,21 @@ export async function submitBookingWithSimproIntegration({
 }
 
 /**
- * Calculate end time based on start time and duration in minutes
+ * Helper function to find a service in the service tree structure
  */
-function calculateEndTime(startTime: string, durationMinutes: number): string {
-    const [hours, minutes] = startTime.split(':').map(Number)
-    const startDate = new Date()
-    startDate.setHours(hours, minutes, 0, 0)
+function findServiceInTree(tree: any, serviceId: string): any {
+    if (!tree) return null
     
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60000)
+    if (tree.id === serviceId && tree.type === 'service') {
+        return tree
+    }
     
-    return `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`
+    if (tree.children) {
+        for (const child of tree.children) {
+            const found = findServiceInTree(child, serviceId)
+            if (found) return found
+        }
+    }
+    
+    return null
 }

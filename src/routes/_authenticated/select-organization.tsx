@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Building2, Plus, Loader2, Check } from 'lucide-react'
 
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
@@ -35,16 +35,45 @@ function SelectOrganizationPage() {
   const { t: tNotifications } = useTranslation('notifications')
   const { showError, showSuccess } = useErrorHandler()
 
-  const { data: organizations, isPending: isLoading, refetch: refetchOrganizations } = useListOrganizations()
+  console.log('[SelectOrganizationPage] Component rendering')
+  
+  const { data: organizations, isPending: isLoading, refetch: refetchOrganizations, error } = useListOrganizations()
+  
+  console.log('[SelectOrganizationPage] Organizations query state:', {
+    organizations,
+    isLoading,
+    error,
+    organizationsCount: organizations?.length
+  })
+  
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [hasAutoSelected, setHasAutoSelected] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
   })
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+
+  // Handle auto-selection if only one organization
+  useEffect(() => {
+    if (!isLoading && organizations?.length === 1 && !hasAutoSelected && !isSelecting) {
+      console.log('[SelectOrganizationPage] Auto-selecting single organization:', organizations[0].id)
+      setHasAutoSelected(true)
+      setActiveOrganizationId(organizations[0].id)
+      navigate({ to: '/' })
+    }
+  }, [isLoading, organizations, navigate, isSelecting, hasAutoSelected])
+
+  useEffect(() => {
+    console.log('[SelectOrganizationPage] useEffect - Component mounted/updated', {
+      isLoading,
+      organizationsCount: organizations?.length,
+      error
+    })
+  }, [isLoading, organizations, error])
 
   const handleSelectOrganization = async (organizationId: string) => {
     try {
@@ -119,6 +148,7 @@ function SelectOrganizationPage() {
   }
 
   if (isLoading) {
+    console.log('[SelectOrganizationPage] Showing loading state')
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -128,6 +158,8 @@ function SelectOrganizationPage() {
       </div>
     )
   }
+  
+  console.log('[SelectOrganizationPage] Rendering main content with organizations:', organizations)
 
   return (
     <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

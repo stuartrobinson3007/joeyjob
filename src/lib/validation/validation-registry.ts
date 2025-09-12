@@ -14,7 +14,9 @@ export const validationRules = {
     slug: z.string()
       .min(3, vm.organization.slug.min(3))
       .max(50, vm.organization.slug.max(50))
-      .regex(/^[a-z0-9-]+$/, vm.organization.slug.pattern)
+      .regex(/^[a-z0-9-]+$/, vm.organization.slug.pattern),
+    timezone: z.string()
+      .min(1, 'Timezone is required')
   },
   user: {
     email: z.string().email(vm.user.email.invalid),

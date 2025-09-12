@@ -1,8 +1,7 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/db'
 import { organizationEmployees, serviceEmployees, bookingEmployees } from '@/database/schema'
 import { getEmployeesForUser } from './simpro.server'
-import type { Employee } from './types'
 
 /**
  * Sync organization employees from Simpro
@@ -30,7 +29,6 @@ export async function syncOrganizationEmployees(organizationId: string, userId: 
         simproEmployeeId: emp.ID,
         simproEmployeeName: emp.Name,
         simproEmployeeEmail: emp.Email || null,
-        displayOnSchedule: emp.DisplayOnSchedule !== false,
         isActive: true,
         lastSyncAt: new Date(),
         syncError: null,
@@ -54,7 +52,6 @@ export async function syncOrganizationEmployees(organizationId: string, userId: 
           .set({
             simproEmployeeName: emp.simproEmployeeName,
             simproEmployeeEmail: emp.simproEmployeeEmail,
-            displayOnSchedule: emp.displayOnSchedule,
             lastSyncAt: emp.lastSyncAt,
             syncError: null,
           })
@@ -145,10 +142,33 @@ export async function assignEmployeesToService(
   employeeIds: string[],
   defaultEmployeeId?: string
 ) {
+  console.log('👥 [ASSIGN EMPLOYEES] Starting assignment:', {
+    serviceId,
+    serviceIdType: typeof serviceId,
+    serviceIdLength: serviceId?.length,
+    employeeIds,
+    employeeIdsLength: employeeIds.length,
+    defaultEmployeeId
+  })
+
+  // First check existing assignments
+  const existingAssignments = await db
+    .select()
+    .from(serviceEmployees)
+    .where(eq(serviceEmployees.serviceId, serviceId))
+    
+  console.log('👥 [ASSIGN EMPLOYEES] Existing assignments before deletion:', {
+    count: existingAssignments.length,
+    assignments: existingAssignments
+  })
+
   // Remove existing assignments
-  await db
+  console.log('👥 [ASSIGN EMPLOYEES] Deleting existing assignments for serviceId:', serviceId)
+  const deleteResult = await db
     .delete(serviceEmployees)
     .where(eq(serviceEmployees.serviceId, serviceId))
+    
+  console.log('👥 [ASSIGN EMPLOYEES] Delete result:', deleteResult)
 
   // Add new assignments
   if (employeeIds.length > 0) {
@@ -158,21 +178,78 @@ export async function assignEmployeesToService(
       isDefault: employeeId === defaultEmployeeId,
     }))
 
-    await db.insert(serviceEmployees).values(assignments)
+    console.log('👥 [ASSIGN EMPLOYEES] Creating new assignments:', assignments)
+    const insertResult = await db.insert(serviceEmployees).values(assignments)
+    console.log('👥 [ASSIGN EMPLOYEES] Insert result:', insertResult)
+    
+    // Verify the assignments were created
+    const verifyAssignments = await db
+      .select()
+      .from(serviceEmployees)
+      .where(eq(serviceEmployees.serviceId, serviceId))
+      
+    console.log('👥 [ASSIGN EMPLOYEES] Verification - assignments after insert:', {
+      count: verifyAssignments.length,
+      assignments: verifyAssignments
+    })
+  } else {
+    console.log('👥 [ASSIGN EMPLOYEES] No employees to assign - assignments cleared')
   }
 }
 
 /**
  * Get employees assigned to a service
+ * @param serviceId - The service ID
+ * @param checkAvailability - Whether to check Simpro for availability when form loads (default: false)
  */
-export async function getServiceEmployees(serviceId: string) {
-  return await db
+export async function getServiceEmployees(serviceId: string, checkAvailability: boolean = false) {
+  console.log('📋 [GET SERVICE EMPLOYEES] Called with:', {
+    serviceId,
+    serviceIdType: typeof serviceId,
+    serviceIdLength: serviceId?.length,
+    checkAvailability
+  })
+  
+  // First, check if any serviceEmployees records exist for this service at all
+  console.log('🔍 [DB DEBUG] Checking serviceEmployees table for serviceId:', serviceId)
+  const serviceEmployeeRecords = await db
+    .select()
+    .from(serviceEmployees)
+    .where(eq(serviceEmployees.serviceId, serviceId))
+  
+  console.log('🔍 [DB DEBUG] Raw serviceEmployees records found:', {
+    count: serviceEmployeeRecords.length,
+    records: serviceEmployeeRecords
+  })
+  
+  // Also check what serviceEmployee records exist in general  
+  const allServiceEmployees = await db
+    .select({
+      serviceId: serviceEmployees.serviceId,
+      organizationEmployeeId: serviceEmployees.organizationEmployeeId,
+      isDefault: serviceEmployees.isDefault
+    })
+    .from(serviceEmployees)
+    .limit(10)
+  
+  console.log('🔍 [DB DEBUG] Sample of all serviceEmployees records:', allServiceEmployees)
+  
+  // Check if organizationEmployees exist
+  const organizationEmployeeCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(organizationEmployees)
+    .where(eq(organizationEmployees.isActive, true))
+    
+  console.log('🔍 [DB DEBUG] Active organizationEmployees count:', organizationEmployeeCount[0]?.count || 0)
+  
+  // Now run the main query with detailed logging
+  console.log('🔍 [DB DEBUG] Running main query with JOIN...')
+  const employees = await db
     .select({
       id: organizationEmployees.id,
       simproEmployeeId: organizationEmployees.simproEmployeeId,
       simproEmployeeName: organizationEmployees.simproEmployeeName,
       simproEmployeeEmail: organizationEmployees.simproEmployeeEmail,
-      displayOnSchedule: organizationEmployees.displayOnSchedule,
       isDefault: serviceEmployees.isDefault,
     })
     .from(serviceEmployees)
@@ -186,6 +263,43 @@ export async function getServiceEmployees(serviceId: string) {
         eq(organizationEmployees.isActive, true)
       )
     )
+
+  console.log('📋 [GET SERVICE EMPLOYEES] Found employees from DB:', {
+    count: employees.length,
+    employees: employees.map(e => ({
+      name: e.simproEmployeeName,
+      id: e.id,
+      simproId: e.simproEmployeeId,
+      isDefault: e.isDefault
+    }))
+  })
+
+  // If availability checking is not requested, return all employees
+  if (!checkAvailability) {
+    console.log('⏭️ [GET SERVICE EMPLOYEES] Availability checking disabled, returning all employees')
+    return employees
+  }
+
+  console.log('🔍 [GET SERVICE EMPLOYEES] Availability checking ENABLED, checking Simpro...')
+  
+  // Check Simpro availability for the employees
+  try {
+    const { checkEmployeesAvailabilityInSimpro } = await import('./availability.server')
+    const availableEmployees = await checkEmployeesAvailabilityInSimpro(employees, serviceId)
+    
+    console.log('✅ [GET SERVICE EMPLOYEES] Availability check complete:', {
+      originalCount: employees.length,
+      availableCount: availableEmployees.length,
+      filteredOut: employees.length - availableEmployees.length
+    })
+    
+    return availableEmployees
+  } catch (error) {
+    console.error('❌ [GET SERVICE EMPLOYEES] Error checking employee availability:', error)
+    console.log('⚠️ [GET SERVICE EMPLOYEES] Falling back to returning all employees')
+    // On error, return all employees (graceful degradation)
+    return employees
+  }
 }
 
 /**

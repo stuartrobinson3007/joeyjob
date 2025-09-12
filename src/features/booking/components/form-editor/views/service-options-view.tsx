@@ -5,17 +5,18 @@ import {
     SlidersHorizontalIcon,
     MessageCircleQuestionIcon
 } from "lucide-react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
-import type { ServiceDetailView } from "../hooks/use-form-editor-state";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import type { ServiceDetailView, NavigationLevel } from "../hooks/use-form-editor-state";
 import type { FlowNode } from "../form-flow-tree";
 import useFormEditorData from "../hooks/use-form-editor-data";
-import ServiceEmployeeAssignmentView from "./service-employee-assignment-view";
 
 interface ServiceOptionsViewProps {
     node: FlowNode;
     onNavigateBack: () => void;
     onNavigateToDetail: (view: ServiceDetailView) => void;
     activeView?: ServiceDetailView;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
 }
 
 /**
@@ -26,6 +27,8 @@ export function ServiceOptionsView({
     onNavigateBack,
     onNavigateToDetail,
     activeView = "details",
+    currentLevel = 'service-details',
+    onNavigate,
     onUpdateNode
 }: ServiceOptionsViewProps) {
     // Access form data context - not actively used in this view but available for future enhancements
@@ -33,23 +36,12 @@ export function ServiceOptionsView({
 
     if (!node) return null;
 
-    // If activeView is "employees", render the employee assignment view
-    if (activeView === "employees") {
-        return (
-            <ServiceEmployeeAssignmentView
-                node={node}
-                onNavigateBack={onNavigateBack}
-                onUpdateNode={onUpdateNode || (() => {})}
-            />
-        );
-    }
-
-    // Otherwise render the main service options menu
     return (
         <>
-            <BackButton
-                label="Services"
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <h2 className="text-2xl font-bold mb-6">{node.label}</h2>

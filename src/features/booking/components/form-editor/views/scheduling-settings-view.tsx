@@ -6,8 +6,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/ui/select";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import type { FlowNode } from "../form-flow-tree";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 import useFormEditorData from "../hooks/use-form-editor-data";
 import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
 import { Label } from "@/ui/label";
@@ -17,6 +18,8 @@ import { Input } from "@/ui/input";
 interface SchedulingSettingsViewProps {
     node: FlowNode;
     onNavigateBack: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
     onUpdateNode?: (nodeId: string, updates: Partial<FlowNode>) => void;
 }
 
@@ -29,6 +32,8 @@ type DateRangeOption = "rolling" | "fixed" | "indefinite";
 export function SchedulingSettingsView({
     node,
     onNavigateBack,
+    currentLevel = 'service-scheduling',
+    onNavigate,
     onUpdateNode
 }: SchedulingSettingsViewProps) {
     const { dispatch } = useFormEditorData();
@@ -213,9 +218,10 @@ export function SchedulingSettingsView({
 
     return (
         <>
-            <BackButton
-                label={node.label}
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <h2 className="text-2xl font-bold mb-6">Scheduling Settings</h2>

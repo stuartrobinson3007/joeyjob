@@ -17,6 +17,8 @@
     "taali:check": "echo 'Checking taali structure...' && ls -la src/taali/",
     "taali:remote": "git remote get-url taali",
     "seed:todos": "tsx scripts/seed-todos.ts",
+    "job:refresh-tokens": "tsx src/jobs/refresh-simpro-tokens.ts",
+    "job:check-tokens": "tsx -e \"import { checkTokenExpirationStatus } from './src/lib/simpro/token-refresh.server.js'; checkTokenExpirationStatus(7).then(r => console.log(JSON.stringify(r, null, 2))).catch(console.error)\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/ --ext .ts,.tsx",
     "lint:fix": "eslint src/ --ext .ts,.tsx --fix",

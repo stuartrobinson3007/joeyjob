@@ -62,10 +62,10 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
         
         // Map column IDs to database columns
         const columnMap: Record<string, PgColumn> = {
-          bookingDate: bookings.bookingDate,
+          bookingStartAt: bookings.bookingStartAt,
           customerName: bookings.customerName,
           status: bookings.status,
-          serviceName: bookings.serviceId,
+          serviceName: services.name,
           price: bookings.price,
         }
         
@@ -96,7 +96,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
           ? sorting
               .map((sort: { id: string; desc?: boolean }) => {
                 const columnMap: Record<string, PgColumn> = {
-                  bookingDate: bookings.bookingDate,
+                  bookingStartAt: bookings.bookingStartAt,
                   customerName: bookings.customerName,
                   status: bookings.status,
                   duration: bookings.duration,
@@ -107,7 +107,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
                 return column ? (sort.desc ? desc(column) : asc(column)) : null
               })
               .filter(Boolean)
-          : [desc(bookings.bookingDate)]
+          : [desc(bookings.bookingStartAt)]
       
       // Get bookings with joins
       const bookingsData = await db
@@ -131,9 +131,8 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
         customerName: row.booking.customerName,
         customerEmail: row.booking.customerEmail,
         customerPhone: row.booking.customerPhone,
-        bookingDate: row.booking.bookingDate,
-        startTime: row.booking.startTime,
-        endTime: row.booking.endTime,
+        bookingStartAt: row.booking.bookingStartAt,
+        bookingEndAt: row.booking.bookingEndAt,
         duration: row.booking.duration,
         price: row.booking.price,
         status: row.booking.status,
@@ -158,6 +157,13 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
       return response
     } catch (error) {
       console.error('❌ getBookingsTable failed:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        organizationId,
+        filters: data.filters,
+        search: data.search
+      })
       throw new AppError(
         ERROR_CODES.SYS_SERVER_ERROR,
         500,
@@ -204,9 +210,8 @@ export const getBooking = createServerFn({ method: 'POST' })
         customerName: row.booking.customerName,
         customerEmail: row.booking.customerEmail,
         customerPhone: row.booking.customerPhone,
-        bookingDate: row.booking.bookingDate,
-        startTime: row.booking.startTime,
-        endTime: row.booking.endTime,
+        bookingStartAt: row.booking.bookingStartAt,
+        bookingEndAt: row.booking.bookingEndAt,
         duration: row.booking.duration,
         price: row.booking.price,
         status: row.booking.status,
@@ -281,7 +286,7 @@ export const getAllBookingsIds = createServerFn({ method: 'POST' })
         const { operator, value: filterValue } = parseFilterValue(value)
         
         const columnMap: Record<string, PgColumn> = {
-          bookingDate: bookings.bookingDate,
+          bookingStartAt: bookings.bookingStartAt,
           customerName: bookings.customerName,
           status: bookings.status,
           serviceName: bookings.serviceId,
@@ -310,6 +315,14 @@ export const getAllBookingsIds = createServerFn({ method: 'POST' })
         ids: result.map(r => r.id),
       }
     } catch (error) {
+      console.error('❌ getAllBookingsIds failed:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        organizationId,
+        filters: data.filters,
+        search: data.search
+      })
       throw new AppError(
         ERROR_CODES.SYS_SERVER_ERROR,
         500,

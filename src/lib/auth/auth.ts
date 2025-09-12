@@ -303,6 +303,18 @@ const getAuthConfig = serverOnly(() =>
           // Disabled - no team invitations in single-user mode
           console.log('Invitation disabled in single-user mode:', data)
         },
+        schema: {
+          organization: {
+            additionalFields: {
+              timezone: {
+                type: "string",
+                input: true,
+                required: false,
+                defaultValue: "America/New_York"
+              }
+            }
+          }
+        },
         ac,
         roles: {
           owner, // All users are owners of their single organization

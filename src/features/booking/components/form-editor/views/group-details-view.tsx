@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import type { FlowNode } from "../form-flow-tree";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface GroupDetailsViewProps {
     node: FlowNode;
     onNavigateBack: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
     onUpdateNode?: (nodeId: string, updates: Partial<FlowNode>) => void;
 }
 
@@ -14,6 +17,8 @@ interface GroupDetailsViewProps {
 export function GroupDetailsView({
     node,
     onNavigateBack,
+    currentLevel = 'group-details',
+    onNavigate,
     onUpdateNode
 }: GroupDetailsViewProps) {
     const [title, setTitle] = useState(node?.label || '');
@@ -75,9 +80,10 @@ export function GroupDetailsView({
 
     return (
         <>
-            <BackButton
-                label={isStartNode ? "All settings" : "Services"}
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <h2 className="text-2xl font-bold mb-6">

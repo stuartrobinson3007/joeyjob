@@ -8,6 +8,7 @@ import { startOfMonth, addMonths, subMonths } from "date-fns";
 interface CalendarProps {
 	value?: Date | null;
 	onChange?: (date: Date | null) => void;
+	onMonthChange?: (date: Date) => void; // Called when user navigates months
 	isDateUnavailable?: (date: Date) => boolean;
 	minValue?: Date;
 	maxValue?: Date;
@@ -17,6 +18,7 @@ interface CalendarProps {
 export function Calendar({
 	value,
 	onChange,
+	onMonthChange,
 	isDateUnavailable,
 	minValue,
 	maxValue,
@@ -27,11 +29,37 @@ export function Calendar({
 	const visibleMonth = startOfMonth(currentDate);
 	
 	const goToPreviousMonth = () => {
-		setCurrentDate(subMonths(currentDate, 1));
+		const newDate = subMonths(currentDate, 1);
+		const monthStart = startOfMonth(newDate);
+		setCurrentDate(monthStart);
+		
+		// Clear selection when navigating months
+		if (onChange) {
+			console.log('📅 [CALENDAR] Previous month - clearing selection');
+			onChange(null);
+		}
+		
+		if (onMonthChange) {
+			console.log('📅 [CALENDAR] Previous month clicked:', monthStart);
+			onMonthChange(monthStart);
+		}
 	};
 	
 	const goToNextMonth = () => {
-		setCurrentDate(addMonths(currentDate, 1));
+		const newDate = addMonths(currentDate, 1);
+		const monthStart = startOfMonth(newDate);
+		setCurrentDate(monthStart);
+		
+		// Clear selection when navigating months
+		if (onChange) {
+			console.log('📅 [CALENDAR] Next month - clearing selection');
+			onChange(null);
+		}
+		
+		if (onMonthChange) {
+			console.log('📅 [CALENDAR] Next month clicked:', monthStart);
+			onMonthChange(monthStart);
+		}
 	};
 	
 	const handleDateSelect = (date: Date) => {

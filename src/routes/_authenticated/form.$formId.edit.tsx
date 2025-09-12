@@ -10,12 +10,22 @@ import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
 import { FormEditorLayout } from '@/features/booking/components/form-editor/form-editor-layout'
 import { 
-  FormEditorDataProvider, 
-  FormEditorDataAction, 
-  formEditorDataReducer,
-  BookingFlowData 
+  FormEditorDataProvider
 } from '@/features/booking/components/form-editor/context/form-editor-data-context'
 import { useUnifiedAutosave } from '@/features/booking/components/form-editor/hooks/use-unified-autosave'
+import {
+  FormEditorState,
+  FormEditorStateAction,
+  FormEditorDataAction,
+  BookingFlowData,
+  initialFormEditorState,
+  createDefaultFormData
+} from '@/features/booking/components/form-editor/types/form-editor-state'
+import {
+  formEditorStateReducer,
+  isFormEditorReady,
+  getFormData
+} from '@/features/booking/components/form-editor/reducers/form-editor-state-reducer'
 import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
 
@@ -66,70 +76,71 @@ function FormEditorPage() {
     redirectOnError: '/forms'
   })
 
-  // Initialize form data (only when form is loaded)
-  const initialData = useMemo<BookingFlowData>(() => {
-    console.log('🏗️ [FormEdit] Initializing form data...', {
-      formExists: !!form,
-      formId,
-      rawForm: form
+  // Enhanced state management with proper loading states
+  const [formEditorState, stateDispatch] = useReducer(formEditorStateReducer, initialFormEditorState);
+
+  // Create form data from backend response
+  const createFormDataFromBackend = useCallback((backendForm: any): BookingFlowData => {
+    console.log('🏗️ [FormEdit] Creating form data from backend...', {
+      formExists: !!backendForm,
+      formId: backendForm?.id,
+      formName: backendForm?.name
     });
 
-    if (!form) {
-      console.log('🏗️ [FormEdit] No form data, using defaults');
-      return {
-        id: formId,
-        internalName: '',
-        slug: '',
-        serviceTree: {
-          id: 'root',
-          type: 'start',
-          label: 'Book your service',
-          children: []
-        },
-        baseQuestions: [],
-        theme: 'light',
-        primaryColor: '#3B82F6'
-      }
+    if (!backendForm) {
+      const defaultData = createDefaultFormData(formId);
+      console.log('🏗️ [FormEdit] Using default form data');
+      return defaultData;
     }
-    
-    const initializedData = {
-      id: form.id,
-      internalName: form.name,
-      slug: form.slug || '',
-      serviceTree: form.formConfig?.serviceTree || {
+
+    const formData = {
+      id: backendForm.id,
+      internalName: backendForm.name,
+      slug: backendForm.slug || '',
+      serviceTree: backendForm.formConfig?.serviceTree || {
         id: 'root',
         type: 'start',
         label: 'Book your service',
         children: []
       },
-      baseQuestions: form.formConfig?.baseQuestions || [],
-      theme: (form.theme as 'light' | 'dark') || 'light',
-      primaryColor: form.primaryColor || '#3B82F6'
+      baseQuestions: backendForm.formConfig?.baseQuestions || [],
+      theme: (backendForm.theme as 'light' | 'dark') || 'light',
+      primaryColor: backendForm.primaryColor || '#3B82F6'
     };
 
-    console.log('🏗️ [FormEdit] Initialized form data:', {
-      id: initializedData.id,
-      internalName: initializedData.internalName,
-      slug: initializedData.slug,
-      theme: initializedData.theme,
-      primaryColor: initializedData.primaryColor,
-      serviceTreeStructure: {
-        id: initializedData.serviceTree?.id,
-        type: initializedData.serviceTree?.type,
-        label: initializedData.serviceTree?.label,
-        childrenCount: initializedData.serviceTree?.children?.length || 0,
-        hasChildren: !!initializedData.serviceTree?.children?.length
-      },
-      baseQuestionsCount: initializedData.baseQuestions?.length || 0,
-      formConfigExists: !!form.formConfig,
-      formConfigKeys: form.formConfig ? Object.keys(form.formConfig) : []
+    console.log('🏗️ [FormEdit] Created form data from backend:', {
+      id: formData.id,
+      internalName: formData.internalName,
+      slug: formData.slug,
+      theme: formData.theme,
+      primaryColor: formData.primaryColor,
+      serviceTreeChildren: formData.serviceTree?.children?.length || 0,
+      baseQuestionsCount: formData.baseQuestions?.length || 0
     });
 
-    return initializedData;
-  }, [form, formId])
+    return formData;
+  }, [formId]);
 
-  // Setup form data state using useReducer
-  const [formData, dispatch] = useReducer(formEditorDataReducer, initialData)
+  // Effect to load form data when backend responds
+  useEffect(() => {
+    if (form && formEditorState.status === 'loading') {
+      console.log('📥 [FormEdit] Backend data loaded, dispatching FORM_LOADED');
+      const formData = createFormDataFromBackend(form);
+      stateDispatch({ type: 'FORM_LOADED', payload: formData });
+    }
+  }, [form, formEditorState.status, createFormDataFromBackend]);
+
+  // Effect to handle loading errors
+  useEffect(() => {
+    if (error && formEditorState.status === 'loading') {
+      console.log('❌ [FormEdit] Backend load failed, dispatching FORM_LOAD_ERROR');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load form';
+      stateDispatch({ type: 'FORM_LOAD_ERROR', payload: errorMessage });
+    }
+  }, [error, formEditorState.status]);
+
+  // Get current form data (will be null if not loaded)
+  const currentFormData = getFormData(formEditorState);
 
   // Save function for unified autosave
   const handleSave = useCallback(async (data: BookingFlowData) => {
@@ -201,9 +212,9 @@ function FormEditorPage() {
     }
   }, [formId, activeOrganizationId, queryClient])
 
-  // Setup unified autosave
+  // Setup unified autosave (only when we have data)
   const [autosaveState, autosaveActions] = useUnifiedAutosave(
-    formData,
+    currentFormData || createDefaultFormData(formId), // Fallback to prevent null
     handleSave,
     {
       debounceMs: 2000,
@@ -212,8 +223,25 @@ function FormEditorPage() {
     }
   );
 
+  // Create dispatch wrapper that works with our enhanced state
+  const dispatch = useCallback((action: FormEditorDataAction) => {
+    console.log('🎯 [FormEdit] Dispatching form data action:', action.type);
+    stateDispatch({ type: 'FORM_DATA_UPDATED', payload: action });
+  }, []);
+
+  // Log state changes
+  useEffect(() => {
+    console.log('🔄 [FormEdit] Form editor state changed:', {
+      status: formEditorState.status,
+      hasData: !!formEditorState.data,
+      error: formEditorState.error,
+      dataId: formEditorState.data?.id,
+      dataName: formEditorState.data?.internalName
+    });
+  }, [formEditorState]);
+
   // Log autosave state changes
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('🔄 [FormEdit] Autosave state changed:', {
       isSaving: autosaveState.isSaving,
       lastSaved: autosaveState.lastSaved?.toISOString(),
@@ -223,62 +251,69 @@ function FormEditorPage() {
     });
   }, [autosaveState]);
 
-  // Log form data changes
-  React.useEffect(() => {
-    console.log('📝 [FormEdit] Form data changed:', {
-      id: formData.id,
-      internalName: formData.internalName,
-      slug: formData.slug,
-      serviceTreeLabel: formData.serviceTree?.label,
-      serviceTreeChildren: formData.serviceTree?.children?.length || 0,
-      baseQuestionsCount: formData.baseQuestions?.length || 0
-    });
-  }, [formData])
+  // Log when current form data changes
+  useEffect(() => {
+    if (currentFormData) {
+      console.log('📝 [FormEdit] Current form data updated:', {
+        id: currentFormData.id,
+        internalName: currentFormData.internalName,
+        slug: currentFormData.slug,
+        serviceTreeLabel: currentFormData.serviceTree?.label,
+        serviceTreeChildren: currentFormData.serviceTree?.children?.length || 0,
+        baseQuestionsCount: currentFormData.baseQuestions?.length || 0
+      });
+    }
+  }, [currentFormData]);
 
-  // Separate mutation for isActive toggle with optimistic updates
+  // Memoize mutation function to prevent recreation on every render
   const toggleActiveMutation = useMutation({
-    mutationFn: async (isActive: boolean) => {
+    mutationFn: useCallback(async (isActive: boolean) => {
+      console.log('🔄 [FormEdit] Toggling form active state:', { formId, isActive });
       return updateForm({ 
         data: { 
           id: formId, 
           isActive 
         } 
-      })
-    },
-    onMutate: async (isActive) => {
+      });
+    }, [formId]),
+    onMutate: useCallback(async (isActive: boolean) => {
+      console.log('🔄 [FormEdit] Optimistic update:', { isActive });
       // Optimistic update
-      setOptimisticIsActive(isActive)
-    },
-    onSuccess: (data, isActive) => {
+      setOptimisticIsActive(isActive);
+    }, []),
+    onSuccess: useCallback((data: any, isActive: boolean) => {
+      console.log('🔄 [FormEdit] Toggle success:', { isActive });
       // Show success toast
-      showSuccess(isActive ? 'Form enabled successfully' : 'Form disabled successfully')
+      showSuccess(isActive ? 'Form enabled successfully' : 'Form disabled successfully');
       
       // Update the actual form data with server response
       if (activeOrganizationId) {
         queryClient.setQueryData(
           ['form', activeOrganizationId, formId], 
           (oldData: any) => oldData ? { ...oldData, isActive } : oldData
-        )
+        );
       }
       
       // Clear optimistic state
-      setOptimisticIsActive(null)
-    },
-    onError: (error, isActive) => {
+      setOptimisticIsActive(null);
+    }, [activeOrganizationId, formId, queryClient, showSuccess]),
+    onError: useCallback((error: any, isActive: boolean) => {
+      console.log('🔄 [FormEdit] Toggle error:', { isActive, error });
       // Revert optimistic update
-      setOptimisticIsActive(null)
+      setOptimisticIsActive(null);
       
       // Show error
-      showError(error)
-    }
+      showError(error);
+    }, [showError])
   })
 
-  // Handle enable toggle
+  // Handle enable toggle - memoized to prevent infinite re-renders
   const handleToggleEnabled = useCallback(() => {
-    const currentActive = optimisticIsActive !== null ? optimisticIsActive : form?.isActive
-    const newActive = !currentActive
-    toggleActiveMutation.mutate(newActive)
-  }, [form?.isActive, optimisticIsActive, toggleActiveMutation])
+    const currentActive = optimisticIsActive !== null ? optimisticIsActive : form?.isActive;
+    const newActive = !currentActive;
+    console.log('🔄 [FormEdit] Toggle button clicked:', { currentActive, newActive });
+    toggleActiveMutation.mutate(newActive);
+  }, [form?.isActive, optimisticIsActive, toggleActiveMutation.mutate])
 
   // Loading and error states
   if (!activeOrganizationId) {
@@ -290,30 +325,60 @@ function FormEditorPage() {
     )
   }
 
+  // Handle backend loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+        <span className="ml-3 text-muted-foreground">Loading form...</span>
       </div>
     )
   }
 
+  // Handle backend error state
   if (isError && error) {
     return <ErrorState error={parseError(error)} onRetry={refetch} />
   }
 
-  if (!form) {
+  // Handle form editor loading state
+  if (formEditorState.status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+        <span className="ml-3 text-muted-foreground">Preparing form editor...</span>
+      </div>
+    )
+  }
+
+  // Handle form editor error state
+  if (formEditorState.status === 'error') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h2 className="text-2xl font-bold mb-4">Form Not Found</h2>
-        <p className="text-muted-foreground">The form you're looking for doesn't exist.</p>
+        <h2 className="text-2xl font-bold mb-4">Form Editor Error</h2>
+        <p className="text-muted-foreground mb-4">{formEditorState.error}</p>
+        <button 
+          onClick={() => stateDispatch({ type: 'RESET_TO_LOADING' })} 
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Reset
+        </button>
+      </div>
+    )
+  }
+
+  // Only render form editor when we have loaded data
+  if (!isFormEditorReady(formEditorState) || !currentFormData) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+        <span className="ml-3 text-muted-foreground">Initializing editor...</span>
       </div>
     )
   }
 
   return (
     <FormEditorDataProvider 
-      data={formData}
+      data={currentFormData}
       dispatch={dispatch}
       formId={formId}
       isSaving={autosaveState.isSaving}
@@ -323,8 +388,8 @@ function FormEditorPage() {
       saveNow={autosaveActions.saveNow}
     >
       <FormEditorLayout
-        formName={form.name}
-        isEnabled={optimisticIsActive !== null ? optimisticIsActive : form.isActive}
+        formName={currentFormData.internalName}
+        isEnabled={optimisticIsActive !== null ? optimisticIsActive : form?.isActive || false}
         onToggleEnabled={handleToggleEnabled}
         currentForm={form}
         isSaving={autosaveState.isSaving}

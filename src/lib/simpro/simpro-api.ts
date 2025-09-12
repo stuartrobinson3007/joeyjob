@@ -1,7 +1,6 @@
 import type { 
   TokenResponse, 
   ApiResponse, 
-  TokenData, 
   TokenErrorResponse,
   Customer,
   Job,
@@ -23,16 +22,37 @@ export class SimproApi {
   private refreshToken: string
   private tokenExpiry: number = 0
   private config: SimproConfig
+  private userId?: string
+  private onTokenRefresh?: (
+    accessToken: string, 
+    refreshToken: string, 
+    accessTokenExpiresAt: number,
+    refreshTokenExpiresAt: number
+  ) => Promise<void>
 
-  constructor(accessToken: string, refreshToken: string, config: SimproConfig) {
+  constructor(
+    accessToken: string, 
+    refreshToken: string, 
+    config: SimproConfig,
+    userId?: string,
+    onTokenRefresh?: (
+      accessToken: string, 
+      refreshToken: string, 
+      accessTokenExpiresAt: number,
+      refreshTokenExpiresAt: number
+    ) => Promise<void>
+  ) {
     console.log('Initializing SimproApi with tokens:', {
       accessToken: accessToken ? 'Present' : 'Missing',
       refreshToken: refreshToken ? 'Present' : 'Missing',
-      baseUrl: config.baseUrl
+      baseUrl: config.baseUrl,
+      userId: userId || 'Not provided'
     })
     this.accessToken = accessToken
     this.refreshToken = refreshToken
     this.config = config
+    this.userId = userId
+    this.onTokenRefresh = onTokenRefresh
   }
 
   /**
@@ -88,12 +108,35 @@ export class SimproApi {
       this.accessToken = data.access_token
       this.refreshToken = data.refresh_token
       this.tokenExpiry = Date.now() + (data.expires_in * 1000)
+      
+      // Calculate refresh token expiry (14 days from now according to SimPro docs)
+      const refreshTokenExpiresAt = Date.now() + (14 * 24 * 60 * 60 * 1000)
 
       console.log('Token refresh successful. New tokens state:', {
         accessToken: this.accessToken ? 'Present' : 'Missing',
         refreshToken: this.refreshToken ? 'Present' : 'Missing',
-        tokenExpiry: new Date(this.tokenExpiry).toISOString()
+        tokenExpiry: new Date(this.tokenExpiry).toISOString(),
+        refreshTokenExpiry: new Date(refreshTokenExpiresAt).toISOString()
       })
+      
+      // Persist the new tokens to database if callback provided
+      if (this.onTokenRefresh && this.userId) {
+        console.log('Persisting new tokens to database for user:', this.userId)
+        try {
+          await this.onTokenRefresh(
+            this.accessToken,
+            this.refreshToken,
+            this.tokenExpiry,
+            refreshTokenExpiresAt
+          )
+          console.log('✅ Tokens successfully persisted to database')
+        } catch (error) {
+          console.error('❌ Failed to persist tokens to database:', error)
+          // Continue anyway - at least we have the tokens in memory for this request
+        }
+      } else {
+        console.warn('⚠️ Token refresh callback not provided - tokens not persisted to database!')
+      }
     } catch (error) {
       console.error('Token refresh failed:', error)
       throw error
@@ -103,7 +146,7 @@ export class SimproApi {
   /**
    * Make an authenticated request to the Simpro API
    */
-  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<ApiResponse> {
+  private async makeRequest(endpoint: string, options: RequestInit = {}, retryCount: number = 0): Promise<ApiResponse> {
     console.log('makeRequest called with endpoint:', endpoint)
     console.log('baseUrl:', this.config.baseUrl)
     
@@ -129,11 +172,16 @@ export class SimproApi {
         headers,
       })
 
-      if (response.status === 401) {
+      if (response.status === 401 && retryCount === 0) {
         console.log('Received 401, attempting token refresh...')
         await this.refreshAccessToken()
-        // Retry the request with new token
-        return this.makeRequest(endpoint, options)
+        // Retry the request with new token (only once)
+        return this.makeRequest(endpoint, options, retryCount + 1)
+      }
+
+      if (response.status === 401 && retryCount > 0) {
+        console.error('Authentication failed after token refresh - token may be invalid')
+        throw new Error('Authentication failed: Unable to refresh access token')
       }
 
       if (!response.ok) {
@@ -178,6 +226,19 @@ export class SimproApi {
   }
 
   /**
+   * Get detailed employee information including availability
+   */
+  async getEmployeeDetails(employeeId: number): Promise<any> {
+    try {
+      const response = await this.makeRequest(`/companies/0/employees/${employeeId}`)
+      return response
+    } catch (error) {
+      console.error('Error fetching employee details:', error)
+      throw error
+    }
+  }
+
+  /**
    * Get employee availability for a date range
    */
   async getEmployeeAvailability(request: EmployeeAvailabilityRequest): Promise<any[]> {
@@ -189,6 +250,36 @@ export class SimproApi {
       return response as any[]
     } catch (error) {
       console.error('Error fetching employee availability:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get company-wide schedules for a date range
+   */
+  async getSchedules(filters?: { staffId?: number; startDate?: string; endDate?: string }): Promise<any[]> {
+    let url = '/companies/0/schedules/'
+    const params: string[] = []
+    
+    if (filters?.staffId) {
+      params.push(`Staff.ID=${filters.staffId}`)
+    }
+    
+    if (filters?.startDate && filters?.endDate) {
+      params.push(`Date=between(${filters.startDate},${filters.endDate})`)
+    }
+    
+    if (params.length > 0) {
+      url += '?' + params.join('&')
+    }
+    
+    console.log('📅 [SIMPRO API] Fetching schedules from:', url)
+    
+    try {
+      const response = await this.makeRequest(url)
+      return response as any[]
+    } catch (error) {
+      console.error('Error fetching company schedules:', error)
       throw error
     }
   }
@@ -360,7 +451,14 @@ export function createSimproApi(
   accessToken: string, 
   refreshToken: string, 
   buildName: string, 
-  domain: string
+  domain: string,
+  userId?: string,
+  onTokenRefresh?: (
+    accessToken: string, 
+    refreshToken: string, 
+    accessTokenExpiresAt: number,
+    refreshTokenExpiresAt: number
+  ) => Promise<void>
 ): SimproApi {
   const baseUrl = `https://${buildName}.${domain}`
   const config: SimproConfig = {
@@ -370,5 +468,5 @@ export function createSimproApi(
     clientSecret: process.env.SIMPRO_CLIENT_SECRET || '',
   }
 
-  return new SimproApi(accessToken, refreshToken, config)
+  return new SimproApi(accessToken, refreshToken, config, userId, onTokenRefresh)
 }

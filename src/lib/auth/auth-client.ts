@@ -4,6 +4,7 @@ import {
   magicLinkClient,
   adminClient,
   inferAdditionalFields,
+  inferOrgAdditionalFields,
   emailOTPClient,
   genericOAuthClient,
 } from 'better-auth/client/plugins'
@@ -18,7 +19,9 @@ export const authClient = createAuthClient({
     magicLinkClient(),
     emailOTPClient(),
     adminClient(),
-    organizationClient(),
+    organizationClient({
+      schema: inferOrgAdditionalFields<typeof auth>(),
+    }),
     stripeClient({ subscription: true }),
     inferAdditionalFields<typeof auth>(),
   ],

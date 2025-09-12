@@ -1,14 +1,17 @@
 import React from "react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import useFormEditorData from "../hooks/use-form-editor-data";
 import { Button } from "@/ui/button";
 import { PlusIcon, CalendarIcon, Users } from "lucide-react";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface ServicesViewProps {
     onNavigateBack: () => void;
     servicesContent: React.ReactNode;
     onAddService?: () => void;
     onAddGroup?: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
 }
 
 /**
@@ -18,7 +21,9 @@ export function ServicesView({
     onNavigateBack,
     servicesContent,
     onAddService,
-    onAddGroup
+    onAddGroup,
+    currentLevel = 'services',
+    onNavigate
 }: ServicesViewProps) {
     const { data } = useFormEditorData();
 
@@ -27,9 +32,9 @@ export function ServicesView({
 
     return (
         <>
-            <BackButton
-                label="All settings"
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <h2 className="text-2xl font-bold mb-4">Services</h2>

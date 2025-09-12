@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, CheckCircle, AlertCircle, CloudCheck } from 'lucide-react'
 
 import { Badge } from '@/ui/badge'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
@@ -36,37 +36,40 @@ export function SaveStatusIndicator({
   // Show saving state
   if (isSaving) {
     return (
-      <Badge
-        variant="muted"
-        appearance="soft"
-        startIcon={<Loader2 className="h-3 w-3 animate-spin" />}
-        className={className}
-      >
-        {t('states.savingChanges')}
-      </Badge>
+      // <Badge
+      //   variant="muted"
+      //   appearance="soft"
+      //   startIcon={<Loader2 className="h-3 w-3 animate-spin" />}
+      //   className={className}
+      // >
+      //   {t('states.savingChanges')}
+      // </Badge>
+      <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label={t('states.savingChanges')} />
     )
   }
 
   // Show saved state
   if (lastSaved && !isDirty) {
     return (
-      <Badge
-        variant="success"
-        appearance="soft"
-        startIcon={<CheckCircle className="h-3 w-3" />}
-        className={className}
-      >
-        {t('states.changesSaved')}
-      </Badge>
+      // <Badge
+      //   variant="success"
+      //   appearance="soft"
+      //   status
+      //   className={className}
+      // >
+      //   {t('states.changesSaved')}
+      // </Badge>
+      <CloudCheck className="size-5 text-success" aria-label={t('states.changesSaved')} />
     )
   }
 
   // Show unsaved changes
   if (isDirty) {
     return (
-      <Badge variant="warning" appearance="soft" status className={className}>
-        {t('states.unsavedChanges')}
-      </Badge>
+      // <Badge variant="warning" appearance="soft" status className={className}>
+      //   {t('states.unsavedChanges')}
+      // </Badge>
+      <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label={t('states.savingChanges')} />
     )
   }
 

@@ -77,7 +77,6 @@ export interface Employee {
   CompanyID: string
   Name: string
   Email?: string
-  DisplayOnSchedule?: boolean
   Active?: boolean
   GivenName?: string
   FamilyName?: string

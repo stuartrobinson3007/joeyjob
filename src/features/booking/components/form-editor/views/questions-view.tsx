@@ -1,11 +1,14 @@
 import { useCallback } from "react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import useFormEditorData from "../hooks/use-form-editor-data";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
 import { QuestionList } from "../question-list";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface QuestionsViewProps {
     onNavigateBack: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
     onOptionValueChange?: (questionId: string, eventType: 'option-change' | 'value-update', oldValue: string, newValue: string) => void;
     onFieldTypeChange?: (fieldId: string, oldType: FormFieldType, newType: FormFieldType) => void;
 }
@@ -15,6 +18,8 @@ interface QuestionsViewProps {
  */
 export function QuestionsView({
     onNavigateBack,
+    currentLevel = 'questions',
+    onNavigate,
     onOptionValueChange,
     onFieldTypeChange
 }: QuestionsViewProps) {
@@ -31,9 +36,9 @@ export function QuestionsView({
 
     return (
         <div className="flex flex-col h-full">
-            <BackButton
-                label="All settings"
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <div className="flex-1 overflow-y-auto pr-1">

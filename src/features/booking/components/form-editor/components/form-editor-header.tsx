@@ -7,8 +7,10 @@ import {
     Trash2Icon,
 } from "lucide-react";
 import { Button } from "@/ui/button";
+import { Label } from "@/ui/label";
 import { Switch } from "@/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/tooltip";
 import { SaveStatusIndicator } from "@/components/save-status-indicator";
 
 interface FormEditorHeaderProps {
@@ -26,6 +28,8 @@ interface FormEditorHeaderProps {
     isDirty?: boolean;
     errors?: string[];
     onSaveNow?: () => Promise<void>;
+    // URL props
+    formUrl?: string;
 }
 
 /**
@@ -44,7 +48,8 @@ export function FormEditorHeader({
     lastSaved = null,
     isDirty = false,
     errors = [],
-    onSaveNow = async () => {}
+    onSaveNow = async () => { },
+    formUrl
 }: FormEditorHeaderProps) {
     return (
         <div className="flex items-center justify-between p-4 md:px-6 lg:px-8 border-b md:pb-6 md:border-none">
@@ -64,13 +69,13 @@ export function FormEditorHeader({
                             errors={errors}
                             className="text-sm"
                         />
-                        
-                        <div className="text-sm flex items-center">
-                            Enabled:
+
+                        <div className="flex items-center space-x-2">
+                            <Label htmlFor="form-enabled-desktop" className="text-sm">Enabled:</Label>
                             <Switch
+                                id="form-enabled-desktop"
                                 checked={isEnabled}
                                 onCheckedChange={onToggleEnabled}
-                                className="ml-2 relative top-[1px]"
                             />
                         </div>
 
@@ -82,7 +87,10 @@ export function FormEditorHeader({
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={onOpenPreview}>
+                                <DropdownMenuItem
+                                    onClick={isEnabled ? onOpenPreview : undefined}
+                                    disabled={!isEnabled}
+                                >
                                     <SquareArrowOutUpRightIcon className="h-4 w-4 mr-2" />
                                     Open
                                 </DropdownMenuItem>
@@ -106,11 +114,7 @@ export function FormEditorHeader({
                             Exit
                         </Button>
 
-                        <div className="flex items-center">
-                            <div className="mr-2">Flows</div>
-                            <ChevronLeft className="h-4 w-4 rotate-180" />
-                            <div className="ml-2 font-medium">{formName}</div>
-                        </div>
+                        <h1 className="text-sm font-medium">{formName}</h1>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -122,19 +126,40 @@ export function FormEditorHeader({
                             errors={errors}
                             className="text-sm"
                         />
-                        
-                        <div className="flex items-center">
-                            <span className="mr-2">Enabled:</span>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span tabIndex={0}>
+                                        <Button
+                                            variant="ghost"
+                                            onClick={isEnabled ? onOpenPreview : undefined}
+                                            disabled={!isEnabled}
+                                        >
+                                            <SquareArrowOutUpRightIcon className="h-4 w-4 mr-2" />
+                                            <span>Open</span>
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {!isEnabled && (
+                                    <TooltipContent>
+                                        <p>Enable the form to open it</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <Label 
+                            htmlFor="form-enabled-mobile" 
+                            className="flex items-center space-x-2 bg-muted px-4 py-1 rounded-md self-stretch cursor-pointer"
+                        >
+                            <span className="text-sm font-medium">Enabled:</span>
                             <Switch
+                                id="form-enabled-mobile"
                                 checked={isEnabled}
                                 onCheckedChange={onToggleEnabled}
                             />
-                        </div>
-
-                        <Button variant="ghost" onClick={onOpenPreview}>
-                            <SquareArrowOutUpRightIcon className="h-4 w-4 mr-2" />
-                            <span>Open</span>
-                        </Button>
+                        </Label>
 
                         <Button variant="secondary" onClick={onEmbed}>
                             <Code className="h-4 w-4 mr-2" />

@@ -1,13 +1,15 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { ChevronLeft, ArrowRight, Clock, MapPin } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ChevronLeft, ArrowRight } from 'lucide-react';
 import { Button } from '@/ui/button';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { Form } from '@/ui/form';
 import { cn } from '@/taali/lib/utils';
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer';
 import { FormFieldConfig as StandardFormFieldConfig } from '@/features/booking/lib/form-field-types';
-import { parseISO, isSameDay, format } from 'date-fns';
-import BookingCalendar, { AvailabilityRule, BlockedTime } from './booking-calendar';
+import { format, addDays } from 'date-fns';
+import BookingCalendar from './booking-calendar';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useErrorHandler } from '@/lib/errors/hooks';
 
 // Unique identifier for items in the booking tree
 type ItemId = string;
@@ -15,13 +17,13 @@ type ItemId = string;
 // Base interface for all items in the booking tree
 interface BookingItem {
     id: ItemId;
-    title: string;
-    description: string;
+    label: string;
+    description?: string;
     imageUrl?: string;
 }
 
 // Availability rule interface for scheduling
-interface AvailabilityRule {
+interface LocalAvailabilityRule {
     dayOfWeek: number;
     startTime: string;
     endTime: string;
@@ -29,7 +31,7 @@ interface AvailabilityRule {
 }
 
 // Blocked time interface
-interface BlockedTime {
+interface LocalBlockedTime {
     date: string;
     startTime: string;
     endTime: string;
@@ -41,17 +43,25 @@ export interface Service extends BookingItem {
     type: 'service';
     duration: number;
     price?: string;
-    availabilityRules: AvailabilityRule[];
-    blockedTimes?: BlockedTime[];
+    availabilityRules: LocalAvailabilityRule[];
+    blockedTimes?: LocalBlockedTime[];
     unavailableDates?: Date[];
     bufferTime?: number;
     interval?: number;
     additionalQuestions?: StandardFormFieldConfig[];
+    // Date range and scheduling properties
+    minimumNotice?: number;
+    minimumNoticeUnit?: 'days' | 'hours';
+    dateRangeType?: 'rolling' | 'fixed' | 'indefinite';
+    rollingDays?: number;
+    // Employee assignment properties
+    assignedEmployeeIds?: string[];
+    defaultEmployeeId?: string;
 }
 
 // A group that contains services or other groups
 export interface ServiceGroup extends BookingItem {
-    type: 'group';
+    type: 'split';
     children: (Service | ServiceGroup)[];
 }
 
@@ -67,7 +77,7 @@ export interface BookingFlowProps {
     baseQuestions: FormFieldConfig[];
     primaryColor?: string;
     darkMode?: boolean;
-    onBookingSubmit?: (bookingData: BookingSubmitData) => void;
+    onBookingSubmit?: (bookingData: BookingSubmitData) => Promise<any>;
     className?: string;
     getServiceById?: (id: string) => Service | null;
     // State management props
@@ -77,8 +87,11 @@ export interface BookingFlowProps {
     formMethods?: UseFormReturn<any>;
     // Option change handler 
     onOptionValueChange?: (questionId: string, eventType: 'option-change' | 'value-update', oldValue: string, newValue: string) => void;
-    // Employee data for services
-    getServiceEmployees?: (serviceId: string) => Promise<Employee[]>;
+    // Organization info for contact display
+    organizationName?: string;
+    organizationPhone?: string;
+    organizationId?: string; // Added for API context
+    organizationTimezone?: string; // Organization timezone
 }
 
 // Data that will be submitted when booking is completed
@@ -92,7 +105,7 @@ export interface BookingSubmitData {
 }
 
 // Type for booking flow stages
-type BookingStage = 'selection' | 'employee-selection' | 'date-time' | 'customer-info' | 'confirmation';
+type BookingStage = 'selection' | 'date-time' | 'customer-info' | 'confirmation';
 
 // Interface for employee selection
 export interface Employee {
@@ -111,6 +124,7 @@ export interface BookingState {
     selectedEmployee: Employee | null;
     selectedDate: Date | null;
     selectedTime: string | null;
+    customerInfo?: any; // Store customer form data during submission
     // formData removed as it will be handled by formMethods
 }
 
@@ -154,16 +168,126 @@ export default function BookingFlow({
     onBookingStateChange,
     formMethods,
     onOptionValueChange,
-    getServiceEmployees
+    organizationName,
+    organizationPhone,
+    organizationId,
+    organizationTimezone
 }: BookingFlowProps) {
     const primaryForeground = contrastingColor(primaryColor);
     const [totalFileSize, setTotalFileSize] = useState<number>(0);
     const [showValidation, setShowValidation] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showError, showSuccess } = useErrorHandler();
     const mainContainerRef = React.useRef<HTMLDivElement>(null); // Ref for the main container
+    
+    // Get current month/year for availability fetching
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const queryClient = useQueryClient();
+
+    // Use TanStack Query for service availability (standard pattern)
+    const {
+        data: availabilityData = {},
+        isLoading: availabilityLoading
+    } = useQuery({
+        queryKey: ['service-availability', bookingState.selectedService?.id, currentYear, currentMonth],
+        queryFn: async () => {
+            const service = bookingState.selectedService;
+            if (!service?.id) return {};
+            
+            // Prepare complete service settings
+            const serviceSettings = {
+                duration: service.duration || 30,
+                interval: service.interval || 30,
+                bufferTime: service.bufferTime || 15,
+                minimumNotice: service.minimumNotice || 0,
+                minimumNoticeUnit: service.minimumNoticeUnit || 'hours',
+                dateRangeType: service.dateRangeType || 'indefinite',
+                rollingDays: service.rollingDays || 14,
+                assignedEmployeeIds: service.assignedEmployeeIds || []
+            };
+            
+            console.log('🔍 [BOOKING FLOW] Fetching availability for month:', {
+                serviceId: service.id,
+                year: currentYear,
+                month: currentMonth,
+                serviceSettings
+            });
+            
+            const response = await fetch(`/api/public/services/${service.id}/availability`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    year: currentYear,
+                    month: currentMonth,
+                    organizationId,
+                    serviceSettings
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to fetch service availability');
+            }
+            
+            const availability = await response.json();
+            console.log('✅ [BOOKING FLOW] Received availability:', {
+                datesWithAvailability: Object.keys(availability).length,
+                totalSlots: Object.values(availability).reduce((sum: number, slots: any) => sum + (slots?.length || 0), 0)
+            });
+            
+            return availability;
+        },
+        enabled: !!bookingState.selectedService?.id && bookingState.stage === 'date-time',
+        staleTime: 2 * 60 * 1000, // 2 minutes
+        gcTime: 5 * 60 * 1000     // 5 minutes
+    });
+
+    // Prefetch next month when current month loads
+    useEffect(() => {
+        if (bookingState.selectedService?.id && bookingState.stage === 'date-time') {
+            const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+            const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+            
+            console.log('📅 [BOOKING FLOW] Prefetching next month:', { year: nextYear, month: nextMonth });
+            
+            queryClient.prefetchQuery({
+                queryKey: ['service-availability', bookingState.selectedService.id, nextYear, nextMonth],
+                queryFn: async () => {
+                    const service = bookingState.selectedService;
+                    if (!service?.id) return {};
+                    
+                    const serviceSettings = {
+                        duration: service.duration || 30,
+                        interval: service.interval || 30,
+                        bufferTime: service.bufferTime || 15,
+                        minimumNotice: service.minimumNotice || 0,
+                        minimumNoticeUnit: service.minimumNoticeUnit || 'hours',
+                        dateRangeType: service.dateRangeType || 'indefinite',
+                        rollingDays: service.rollingDays || 14,
+                        assignedEmployeeIds: service.assignedEmployeeIds || []
+                    };
+                    
+                    const response = await fetch(`/api/public/services/${service.id}/availability`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ year: nextYear, month: nextMonth, organizationId, serviceSettings })
+                    });
+                    
+                    if (!response.ok) return {};
+                    return response.json();
+                },
+                staleTime: 2 * 60 * 1000,
+            });
+        }
+    }, [bookingState.selectedService?.id, bookingState.stage, currentYear, currentMonth, queryClient]);
 
     const customStyleVars = {
-        '--custom-primary': primaryColor,
-        '--custom-primary-foreground': primaryForeground,
+        '--primary': primaryColor,
+        '--primary-foreground': primaryForeground,
         '--ring': primaryColor,
     } as React.CSSProperties;
 
@@ -267,27 +391,44 @@ export default function BookingFlow({
                 getServiceById(serviceId) || bookingState.selectedService :
                 bookingState.selectedService;
 
-            // Update booking state to confirmation stage
-            const newBookingState = {
-                ...bookingState,
-                stage: 'confirmation' as BookingStage,
-                selectedService: latestService,
-                customerInfo: data
-            };
+            // Set loading state
+            setIsSubmitting(true);
 
-            handleBookingStateChange(newBookingState);
-
-            // Call the onBookingSubmit callback if provided
+            // Call the onBookingSubmit callback and wait for result
             if (onBookingSubmit && latestService && bookingState.selectedDate && bookingState.selectedTime) {
-                onBookingSubmit({
-                    service: latestService,
-                    employee: bookingState.selectedEmployee,
-                    date: bookingState.selectedDate.toISOString(),
-                    time: bookingState.selectedTime,
-                    formData: data,
-                    navigationPath: bookingState.navigationPath
-                });
-                // Removed: window.parent.postMessage for bookingSubmit
+                try {
+                    await onBookingSubmit({
+                        service: latestService,
+                        employee: bookingState.selectedEmployee,
+                        date: bookingState.selectedDate.toISOString(),
+                        time: bookingState.selectedTime,
+                        formData: data,
+                        navigationPath: bookingState.navigationPath
+                    });
+
+                    // Only show confirmation after successful API response
+                    const confirmationState = {
+                        ...bookingState,
+                        stage: 'confirmation' as BookingStage,
+                        selectedService: latestService,
+                        customerInfo: data
+                    };
+
+                    handleBookingStateChange(confirmationState);
+
+                } catch (error) {
+                    console.error('Booking submission failed:', error);
+                    
+                    // Show error message but stay on form
+                    showError(error);
+                    
+                    setShowValidation(true);
+                } finally {
+                    // Always clear loading state
+                    setIsSubmitting(false);
+                }
+            } else {
+                setIsSubmitting(false);
             }
 
             setShowValidation(false);
@@ -397,7 +538,7 @@ export default function BookingFlow({
     const findItemById = (items: (Service | ServiceGroup)[], id: ItemId): Service | ServiceGroup | null => {
         for (const item of items) {
             if (item.id === id) return item;
-            if (item.type === 'group' && item.children) {
+            if (item.type === 'split' && item.children) {
                 const found = findItemById(item.children, id);
                 if (found) return found;
             }
@@ -410,7 +551,7 @@ export default function BookingFlow({
         let currentItems = services;
         for (const pathId of bookingState.navigationPath) {
             const item = findItemById(currentItems, pathId);
-            if (item && item.type === 'group') {
+            if (item && item.type === 'split') {
                 currentItems = item.children;
             }
         }
@@ -426,7 +567,7 @@ export default function BookingFlow({
             const item = findItemById(currentItems, pathId);
             if (item) {
                 path.push(item);
-                if (item.type === 'group') {
+                if (item.type === 'split') {
                     currentItems = item.children;
                 }
             }
@@ -456,48 +597,16 @@ export default function BookingFlow({
                 form.reset(resetData);
             }
 
-            // Check if this service has employees assigned
-            if (getServiceEmployees) {
-                getServiceEmployees(item.id).then((employees) => {
-                    if (employees.length > 0) {
-                        // Service has employees, go to employee selection
-                        handleBookingStateChange({
-                            ...bookingState,
-                            stage: 'employee-selection',
-                            selectedService: item,
-                            navigationPath: [...bookingState.navigationPath, item.id]
-                        });
-                    } else {
-                        // No employees assigned, skip to date-time
-                        handleBookingStateChange({
-                            ...bookingState,
-                            stage: 'date-time',
-                            selectedService: item,
-                            selectedEmployee: null,
-                            navigationPath: [...bookingState.navigationPath, item.id]
-                        });
-                    }
-                }).catch((error) => {
-                    console.error('Error fetching service employees:', error);
-                    // On error, skip to date-time
-                    handleBookingStateChange({
-                        ...bookingState,
-                        stage: 'date-time',
-                        selectedService: item,
-                        selectedEmployee: null,
-                        navigationPath: [...bookingState.navigationPath, item.id]
-                    });
-                });
-            } else {
-                // No employee function provided, skip to date-time
-                handleBookingStateChange({
-                    ...bookingState,
-                    stage: 'date-time',
-                    selectedService: item,
-                    selectedEmployee: null,
-                    navigationPath: [...bookingState.navigationPath, item.id]
-                });
-            }
+            // Go directly to date-time stage - TanStack Query will handle availability fetching
+            handleBookingStateChange({
+                ...bookingState,
+                stage: 'date-time',
+                selectedService: item,
+                selectedEmployee: null, // Will be assigned automatically when booking is submitted
+                selectedDate: addDays(new Date(), 1), // Default to tomorrow
+                selectedTime: null,
+                navigationPath: [...bookingState.navigationPath, item.id]
+            });
         } else {
             // If group is selected, navigate into that group
             handleBookingStateChange({
@@ -525,24 +634,18 @@ export default function BookingFlow({
                 ...bookingState,
                 navigationPath: bookingState.navigationPath.slice(0, -1)
             });
-        } else if (bookingState.stage === 'employee-selection') {
-            // If in employee-selection stage, go back to selection
+        } else if (bookingState.stage === 'date-time') {
+            // If in date-time stage, go back to selection
             // But preserve the navigation path except for the last item (the service)
             handleBookingStateChange({
                 ...bookingState,
                 stage: 'selection',
                 selectedService: null,
                 selectedEmployee: null,
+                selectedDate: null,
+                selectedTime: null,
                 // Remove the last item from navigation path (the service)
                 navigationPath: bookingState.navigationPath.slice(0, -1)
-            });
-        } else if (bookingState.stage === 'date-time') {
-            // If in date-time stage, go back to employee-selection
-            handleBookingStateChange({
-                ...bookingState,
-                stage: 'employee-selection',
-                selectedDate: null,
-                selectedTime: null
             });
         } else if (bookingState.stage === 'customer-info') {
             // If in customer-info stage, go back to date-time
@@ -627,10 +730,10 @@ export default function BookingFlow({
                             </Button>
                         )}
                         <h1 className="text-3xl font-bold mb-2">
-                            {lastItemInPath ? lastItemInPath.title : startTitle}
+                            {lastItemInPath ? lastItemInPath.label : startTitle}
                         </h1>
                         <p className="mb-4 text-muted-foreground">
-                            {lastItemInPath ? lastItemInPath.description : startDescription}
+                            {lastItemInPath ? (lastItemInPath.description || '') : startDescription}
                         </p>
                     </div>
 
@@ -639,12 +742,12 @@ export default function BookingFlow({
                             {currentItems.map((item) => (
                                 <button
                                     key={item.id}
-                                    className="flex items-center gap-4 text-left h-auto p-6 gap-0 bg-[var(--custom-primary)]/10 rounded-lg hover:bg-[var(--custom-primary)]/20 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-[var(--custom-primary)]/50 focus:outline-none"
+                                    className="flex items-center gap-4 text-left h-auto p-6 gap-0 bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 focus:outline-none"
                                     onClick={() => handleSelectItem(item)}
                                 >
                                     <div className="flex flex-col gap-0 items-start flex-1">
-                                        <span className="text-lg font-semibold opacity-80">{item.title}</span>
-                                        <span className="text-sm opacity-50">{item.description}</span>
+                                        <span className="text-lg font-semibold opacity-80">{item.label}</span>
+                                        <span className="text-sm opacity-50">{item.description || ''}</span>
                                         {item.type === 'service' && item.price && (
                                             <span className="text-sm mt-2 font-medium">{item.price}</span>
                                         )}
@@ -680,20 +783,39 @@ export default function BookingFlow({
             getServiceById(serviceId) || bookingState.selectedService :
             bookingState.selectedService;
 
+        // Remove loading replacement UI - calendar will handle loading state
+
+        // Check if any availability data exists
+        const hasAvailability = Object.keys(availabilityData).length > 0;
+
+        // Normal calendar display when employees are available
         return (
             <>
                 <BookingCalendar
                     title="Select an available time"
-                    serviceName={latestService.title}
-                    timezone="America/New_York"
-                    availabilityRules={latestService.availabilityRules || []}
-                    blockedTimes={latestService.blockedTimes || []}
-                    unavailableDates={latestService.unavailableDates || []}
+                    serviceName={latestService.label}
+                    timezone={organizationTimezone || 'America/New_York'}
                     duration={latestService.duration}
                     bufferTime={latestService.bufferTime || 15}
                     interval={latestService.interval || 30}
                     primaryColor={primaryColor}
                     darkMode={darkMode}
+                    selectedDate={bookingState.selectedDate}
+                    selectedTime={bookingState.selectedTime}
+                    availabilityData={availabilityData}
+                    isLoading={availabilityLoading}
+                    hasNoEmployees={!availabilityLoading && !hasAvailability}
+                    organizationName={organizationName}
+                    organizationPhone={organizationPhone}
+                    currentMonth={currentMonth}
+                    currentYear={currentYear}
+                    onDateChange={(date) => {
+                        handleBookingStateChange({
+                            ...bookingState,
+                            selectedDate: date,
+                            selectedTime: null // Clear time when date changes
+                        });
+                    }}
                     onSelectDateTime={(date, time) => {
                         const newState = {
                             ...bookingState,
@@ -702,6 +824,10 @@ export default function BookingFlow({
                             stage: 'customer-info' as BookingStage
                         };
                         handleBookingStateChange(newState);
+                    }}
+                    onMonthChange={(date) => {
+                        console.log('📅 [BOOKING FLOW] Month changed to:', date);
+                        setCurrentDate(date);
                     }}
                     onBackClicked={handleBack}
                 />
@@ -728,21 +854,8 @@ export default function BookingFlow({
         // Get current form state for debugging
         const hasErrors = Object.keys(form.formState.errors).length > 0;
 
-        // Add safety check - never show confirmation if there are errors
+        // Show confirmation if stage is confirmation, otherwise show form
         const shouldShowConfirmation = bookingState.stage === 'confirmation' && !hasErrors;
-
-        if (bookingState.stage === 'confirmation' && hasErrors) {
-            // Safety measure: force back to customer-info stage if there are errors
-            setTimeout(() => {
-                if (bookingState.stage === 'confirmation' && Object.keys(form.formState.errors).length > 0) {
-                    handleBookingStateChange({
-                        ...bookingState,
-                        stage: 'customer-info'
-                    });
-                    setShowValidation(true);
-                }
-            }, 100);
-        }
 
         // Update the form submission handler to show validation errors
         const handleSubmitForm = form.handleSubmit(
@@ -774,7 +887,7 @@ export default function BookingFlow({
                         <p className="text-muted-foreground mb-2">
                             {formattedDate} at {bookingState.selectedTime}
                         </p>
-                        <h1 className="text-2xl font-bold mb-4">{latestService.title}</h1>
+                        <h1 className="text-2xl font-bold mb-4">{latestService.label}</h1>
                         <p className="text-muted-foreground">
                             Please provide your details to confirm your booking.
                         </p>
@@ -782,10 +895,10 @@ export default function BookingFlow({
 
                     <div className="mt-8 @3xl:mt-0 @container/form">
                         {shouldShowConfirmation ? (
-                            <div className="bg-[var(--custom-primary)]/10 rounded-lg p-8 text-center">
+                            <div className="bg-primary/10 rounded-lg p-8 text-center">
                                 <div className="mb-6">
-                                    <div className="mx-auto w-16 h-16 bg-[var(--custom-primary)]/20 rounded-full flex items-center justify-center mb-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--custom-primary)]">
+                                    <div className="mx-auto w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                                             <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
                                     </div>
@@ -797,7 +910,7 @@ export default function BookingFlow({
                                 <div className="space-y-4 text-left mb-6">
                                     <div>
                                         <h3 className="font-medium text-sm text-foreground/50">Service</h3>
-                                        <p className="font-medium">{latestService.title}</p>
+                                        <p className="font-medium">{latestService.label}</p>
                                     </div>
                                     <div>
                                         <h3 className="font-medium text-sm text-foreground/50">Date & Time</h3>
@@ -806,19 +919,20 @@ export default function BookingFlow({
                                 </div>
                                 <button
                                     onClick={resetBookingFlow}
-                                    className="w-full bg-[var(--custom-primary)] text-[var(--custom-primary-foreground)] rounded-md p-3 hover:bg-[var(--custom-primary)]/80 transition-colors font-medium text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--custom-primary)]/50"
+                                    className="w-full bg-primary text-primary-foreground rounded-md p-3 hover:bg-primary/80 transition-colors font-medium text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50"
                                 >
                                     Book Another Appointment
                                 </button>
                             </div>
                         ) : (
                             <Form {...form}>
-                                <form
-                                    onSubmit={(e) => {
-                                        return handleSubmitForm(e);
-                                    }}
-                                    className="space-y-10"
-                                >
+                                <fieldset disabled={isSubmitting}>
+                                    <form
+                                        onSubmit={(e) => {
+                                            return handleSubmitForm(e);
+                                        }}
+                                        className="space-y-10"
+                                    >
                                     {allQuestions.map((field) => (
                                         <FormFieldRenderer
                                             key={`${field.id}-${field.type}`}
@@ -835,15 +949,14 @@ export default function BookingFlow({
                                     <Button
                                         type="submit"
                                         size="lg"
-                                        className="w-full h-12"
-                                        style={{
-                                            backgroundColor: 'var(--custom-primary)',
-                                            color: 'var(--custom-primary-foreground)'
-                                        }}
+                                        className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90"
+                                        loading={isSubmitting}
+                                        disabled={isSubmitting}
                                     >
-                                        Complete Booking
+                                        {isSubmitting ? 'Submitting...' : 'Complete Booking'}
                                     </Button>
-                                </form>
+                                    </form>
+                                </fieldset>
                             </Form>
                         )}
                     </div>
@@ -852,155 +965,12 @@ export default function BookingFlow({
         );
     };
 
-    // Render employee selection stage
-    const renderEmployeeSelectionStage = () => {
-        if (!bookingState.selectedService) {
-            return <p>No service selected</p>;
-        }
-
-        const [serviceEmployees, setServiceEmployees] = React.useState<Employee[]>([]);
-        const [loading, setLoading] = React.useState(true);
-        const [error, setError] = React.useState<string | null>(null);
-
-        // Fetch employees when component mounts
-        React.useEffect(() => {
-            if (getServiceEmployees && bookingState.selectedService) {
-                setLoading(true);
-                setError(null);
-                getServiceEmployees(bookingState.selectedService.id)
-                    .then((employees) => {
-                        setServiceEmployees(employees);
-                        setLoading(false);
-                    })
-                    .catch((err) => {
-                        console.error('Error loading service employees:', err);
-                        setError('Failed to load employees');
-                        setLoading(false);
-                        // If we can't load employees, skip to date-time after a short delay
-                        setTimeout(() => {
-                            handleBookingStateChange({
-                                ...bookingState,
-                                selectedEmployee: null,
-                                stage: 'date-time'
-                            });
-                        }, 2000);
-                    });
-            } else {
-                // No employee function provided, create fallback
-                setServiceEmployees([]);
-                setLoading(false);
-            }
-        }, [bookingState.selectedService?.id]);
-
-        const handleEmployeeSelect = (employee: Employee) => {
-            handleBookingStateChange({
-                ...bookingState,
-                selectedEmployee: employee,
-                stage: 'date-time'
-            });
-        };
-
-        if (loading) {
-            return (
-                <>
-                    <div className="flex items-center mb-6">
-                        <button
-                            onClick={handleBack}
-                            className="mr-4 p-2 hover:bg-gray-100 rounded-full"
-                        >
-                            <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <div>
-                            <h2 className="text-2xl font-bold mb-1">Select Employee</h2>
-                            <p className="text-gray-600">Loading available employees...</p>
-                        </div>
-                    </div>
-                    <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                </>
-            );
-        }
-
-        if (error) {
-            return (
-                <>
-                    <div className="flex items-center mb-6">
-                        <button
-                            onClick={handleBack}
-                            className="mr-4 p-2 hover:bg-gray-100 rounded-full"
-                        >
-                            <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <div>
-                            <h2 className="text-2xl font-bold mb-1">Employee Selection</h2>
-                            <p className="text-red-600">{error}</p>
-                        </div>
-                    </div>
-                    <div className="text-center py-8">
-                        <p className="text-gray-600 mb-4">Continuing without employee selection...</p>
-                    </div>
-                </>
-            );
-        }
-
-        return (
-            <>
-                <div className="flex items-center mb-6">
-                    <button
-                        onClick={handleBack}
-                        className="mr-4 p-2 hover:bg-gray-100 rounded-full"
-                    >
-                        <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <div>
-                        <h2 className="text-2xl font-bold mb-1">Select Employee</h2>
-                        <p className="text-gray-600">Choose who you'd like to perform your {bookingState.selectedService.title} service</p>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    {serviceEmployees.map((employee) => (
-                        <div
-                            key={employee.id}
-                            onClick={() => handleEmployeeSelect(employee)}
-                            className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all duration-150"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <span className="text-lg font-semibold text-primary">
-                                            {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold">{employee.name}</h3>
-                                        {employee.email && (
-                                            <p className="text-sm text-gray-600">{employee.email}</p>
-                                        )}
-                                        {employee.isDefault && (
-                                            <span className="inline-block px-2 py-1 text-xs bg-primary/10 text-primary rounded-full mt-1">
-                                                Recommended
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <ArrowRight className="h-5 w-5 text-gray-400" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </>
-        );
-    };
 
     // Main render function
     const renderCurrentStage = () => {
         switch (bookingState.stage) {
             case 'selection':
                 return renderSelectionStage();
-            case 'employee-selection':
-                return renderEmployeeSelectionStage();
             case 'date-time':
                 return renderDateTimeStage();
             case 'customer-info':
@@ -1024,6 +994,7 @@ export default function BookingFlow({
             resetFormErrors();
         }
     }, [bookingState.stage, resetFormErrors]);
+
 
     return (
         <div

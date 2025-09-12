@@ -6,7 +6,7 @@ JoeyJob is an online booking and scheduling platform designed for service-based 
 
 ## Core Features
 • Multi-step embeddable or standalone booking forms for customers to select services and schedule appointments
-• Real-time employee availability from Simpro integration
+• Employee availability checking from Simpro integration
 • Per-service scheduling settings (buffers, lead times, assigned employees)
 • Optional Facebook/Meta integration for conversion tracking (Pixel and Conversions API)
 • Global or per-form webhooks for advanced external integrations
@@ -29,7 +29,7 @@ JoeyJob is an online booking and scheduling platform designed for service-based 
 
 ### Authentication & Authorization
 - **Better Auth**: Extensible authentication system with custom providers
-- **Simpro OAuth**: Primary authentication source (provides employee data and availability)
+- **Simpro OAuth**: Primary authentication source (provides employee data for availability checking)
 - **Planned**: Minuba integration for Danish business systems (invoicing/orders)
 - Organization-based multi-tenancy with role-based access control
 

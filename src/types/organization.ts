@@ -3,6 +3,7 @@ export interface Organization {
   name: string
   slug?: string | null
   logo?: string | null
+  timezone: string
   createdAt: Date
   updatedAt: Date
   metadata?: string | null

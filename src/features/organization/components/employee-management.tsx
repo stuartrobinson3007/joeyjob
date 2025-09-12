@@ -18,7 +18,6 @@ interface OrganizationEmployee {
   simproEmployeeName: string
   simproEmployeeEmail?: string | null
   isActive: boolean
-  displayOnSchedule: boolean
   lastSyncAt: Date | null
   syncError?: string | null
 }
@@ -203,11 +202,6 @@ export function EmployeeManagement() {
                         {employee.simproEmployeeName.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </span>
                     </div>
-                    {employee.displayOnSchedule && (
-                      <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <Check className="h-2 w-2 text-white" />
-                      </div>
-                    )}
                   </div>
                   <div>
                     <p className="font-medium">{employee.simproEmployeeName}</p>
@@ -235,12 +229,6 @@ export function EmployeeManagement() {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  {!employee.displayOnSchedule && (
-                    <div className="flex items-center text-amber-600 text-sm">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      <span>Hidden in Simpro</span>
-                    </div>
-                  )}
                   <Switch
                     checked={employee.isActive}
                     onCheckedChange={() => handleToggleEmployee(employee.id, employee.isActive)}

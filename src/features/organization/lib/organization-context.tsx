@@ -3,13 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { getActiveOrganizationId, setActiveOrganizationId as setOrgId } from './organization-utils'
 
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
-
-interface Organization {
-  id: string
-  name: string
-  slug?: string
-  [key: string]: unknown
-}
+import type { Organization } from '@/types/organization'
 
 interface OrganizationContextValue {
   activeOrganizationId: string | null

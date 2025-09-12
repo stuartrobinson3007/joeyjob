@@ -2,118 +2,12 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { FlowNode } from '@/features/booking/components/form-editor/form-flow-tree';
 import { FormFieldConfig } from '@/features/booking/lib/form-field-types';
 import { FormEditorErrorBoundary } from '../components/FormEditorErrorBoundary';
-import { 
-    nodeOps, 
-    updateNodeInTree, 
-    addNodeToTree, 
-    removeNodeFromTree, 
-    reorderNodesInTree 
-} from '../utils/node-operations';
+import { nodeOps } from '../utils/node-operations';
 import { validation } from '../utils/validation';
+import { BookingFlowData, FormEditorDataAction } from '../types/form-editor-state';
 
-/**
- * BookingFlowData represents the complete serializable form configuration
- * that serves as the single source of truth for the form editor.
- * This structure will eventually be saved to the database.
- */
-export interface BookingFlowData {
-    id: string;
-    internalName: string;              // Admin-only reference name
-    slug: string;                      // URL-friendly slug for the form
-    serviceTree: FlowNode;             // Root node with full tree structure
-    baseQuestions: FormFieldConfig[];  // Questions asked for all services
-    theme: 'light' | 'dark';           // Form appearance theme
-    primaryColor: string;              // Primary color for UI elements
-}
-
-/**
- * Union type defining all possible actions that can modify the form data.
- * Each action has a specific type and payload structure.
- */
-export type FormEditorDataAction =
-    | { type: 'UPDATE_FORM_SETTINGS'; payload: { internalName?: string; slug?: string; theme?: 'light' | 'dark'; primaryColor?: string } }
-    | { type: 'UPDATE_NODE'; payload: { nodeId: string; updates: Partial<FlowNode> } }
-    | { type: 'ADD_NODE'; payload: { parentId: string; node: FlowNode } }
-    | { type: 'REORDER_NODES'; payload: { parentId: string; newOrder: FlowNode[] } }
-    | { type: 'UPDATE_BASE_QUESTIONS'; payload: FormFieldConfig[] }
-    | { type: 'INITIALIZE_DATA'; payload: BookingFlowData }
-    | { type: 'REMOVE_NODE'; payload: { nodeId: string } };
-
-/**
- * Reducer function for handling state updates based on dispatched actions.
- * All state updates are immutable, creating new state objects rather than modifying existing ones.
- */
-export function formEditorDataReducer(state: BookingFlowData, action: FormEditorDataAction): BookingFlowData {
-    console.log('🔧 [FormEditorDataReducer] Processing action:', {
-        type: action.type,
-        payload: action.payload,
-        currentState: {
-            id: state.id,
-            internalName: state.internalName,
-            serviceTreeChildren: state.serviceTree?.children?.length || 0
-        }
-    });
-
-    let newState: BookingFlowData;
-    
-    switch (action.type) {
-        case 'UPDATE_FORM_SETTINGS':
-            newState = {
-                ...state,
-                ...action.payload
-            };
-            break;
-        case 'UPDATE_NODE':
-            newState = {
-                ...state,
-                serviceTree: updateNodeInTree(state.serviceTree, action.payload.nodeId, action.payload.updates)
-            };
-            break;
-        case 'ADD_NODE':
-            newState = {
-                ...state,
-                serviceTree: addNodeToTree(state.serviceTree, action.payload.parentId, action.payload.node)
-            };
-            break;
-        case 'REORDER_NODES':
-            newState = {
-                ...state,
-                serviceTree: reorderNodesInTree(state.serviceTree, action.payload.parentId, action.payload.newOrder)
-            };
-            break;
-        case 'UPDATE_BASE_QUESTIONS':
-            newState = {
-                ...state,
-                baseQuestions: action.payload
-            };
-            break;
-        case 'INITIALIZE_DATA':
-            newState = action.payload;
-            break;
-        case 'REMOVE_NODE':
-            newState = {
-                ...state,
-                serviceTree: removeNodeFromTree(state.serviceTree, action.payload.nodeId)
-            };
-            break;
-        default:
-            newState = state;
-    }
-
-    console.log('🔧 [FormEditorDataReducer] Action result:', {
-        type: action.type,
-        stateChanged: newState !== state,
-        newState: {
-            id: newState.id,
-            internalName: newState.internalName,
-            serviceTreeChildren: newState.serviceTree?.children?.length || 0
-        }
-    });
-
-    return newState;
-}
-
-// Note: Tree manipulation functions are now imported from utils/node-operations.ts
+// Note: FormEditorDataAction and formEditorDataReducer have been moved to 
+// the enhanced state management system in types/ and reducers/ directories.
 
 /**
  * Enhanced context interface with validation and error handling.

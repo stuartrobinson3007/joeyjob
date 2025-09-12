@@ -1,5 +1,9 @@
 import { pgTable, text, timestamp, boolean, integer, json, decimal } from 'drizzle-orm/pg-core'
 import { nanoid } from 'nanoid'
+import { customAlphabet } from 'nanoid'
+
+// Custom ID generator for forms: 12 characters, lowercase letters and numbers only
+const generateFormId = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 12)
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -72,6 +76,9 @@ export const organization = pgTable('organization', {
   name: text('name').notNull(),
   slug: text('slug').unique(),
   logo: text('logo'),
+  
+  // Timezone for consistent date/time handling
+  timezone: text('timezone').default('America/New_York').notNull(),
 
   // Billing fields
   currentPlan: text('current_plan').default('pro').notNull(), // Cached from Stripe for quick access
@@ -180,7 +187,7 @@ export const services = pgTable('services', {
 export const bookingForms = pgTable('booking_forms', {
   id: text('id')
     .primaryKey()
-    .$defaultFn(() => nanoid()),
+    .$defaultFn(() => generateFormId()),
   organizationId: text('organization_id')
     .references(() => organization.id, { onDelete: 'cascade' })
     .notNull(),
@@ -205,51 +212,7 @@ export const bookingForms = pgTable('booking_forms', {
   deletedAt: timestamp('deleted_at'),
 })
 
-// Availability patterns (recurring availability rules)
-export const availabilityPatterns = pgTable('availability_patterns', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  organizationId: text('organization_id')
-    .references(() => organization.id, { onDelete: 'cascade' })
-    .notNull(),
-  serviceId: text('service_id')
-    .references(() => services.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  dayOfWeek: integer('day_of_week').notNull(), // 0-6, Sunday=0
-  startTime: text('start_time').notNull(), // HH:mm format
-  endTime: text('end_time').notNull(), // HH:mm format
-  isActive: boolean('is_active').default(true).notNull(),
-  effectiveFrom: timestamp('effective_from').notNull(),
-  effectiveUntil: timestamp('effective_until'),
-  createdBy: text('created_by')
-    .references(() => user.id, { onDelete: 'cascade' })
-    .notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
-
-// Specific availability overrides (exceptions to patterns)
-export const availabilityOverrides = pgTable('availability_overrides', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  organizationId: text('organization_id')
-    .references(() => organization.id, { onDelete: 'cascade' })
-    .notNull(),
-  serviceId: text('service_id')
-    .references(() => services.id, { onDelete: 'cascade' }),
-  date: timestamp('date').notNull(),
-  startTime: text('start_time'), // null means unavailable all day
-  endTime: text('end_time'),
-  isAvailable: boolean('is_available').notNull(),
-  reason: text('reason'),
-  createdBy: text('created_by')
-    .references(() => user.id, { onDelete: 'cascade' })
-    .notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+// Note: Availability is managed through Simpro API, not stored locally
 
 // Individual bookings
 export const bookings = pgTable('bookings', {
@@ -260,8 +223,7 @@ export const bookings = pgTable('bookings', {
     .references(() => organization.id, { onDelete: 'cascade' })
     .notNull(),
   serviceId: text('service_id')
-    .references(() => services.id, { onDelete: 'cascade' })
-    .notNull(),
+    .notNull(), // Service ID from form configuration tree, not a foreign key
   formId: text('form_id')
     .references(() => bookingForms.id, { onDelete: 'set null' }),
   // Customer information (can be guest or registered user)
@@ -270,10 +232,9 @@ export const bookings = pgTable('bookings', {
   customerEmail: text('customer_email').notNull(),
   customerName: text('customer_name').notNull(),
   customerPhone: text('customer_phone'),
-  // Booking details
-  bookingDate: timestamp('booking_date').notNull(),
-  startTime: text('start_time').notNull(), // HH:mm format
-  endTime: text('end_time').notNull(), // HH:mm format
+  // Booking details - full UTC timestamps
+  bookingStartAt: timestamp('booking_start_at').notNull(), // Full UTC timestamp
+  bookingEndAt: timestamp('booking_end_at').notNull(), // Full UTC timestamp
   duration: integer('duration').notNull(), // in minutes
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
   // Status management
@@ -326,7 +287,6 @@ export const organizationEmployees = pgTable('organization_employees', {
   simproEmployeeName: text('simpro_employee_name').notNull(),
   simproEmployeeEmail: text('simpro_employee_email'),
   isActive: boolean('is_active').default(true).notNull(),
-  displayOnSchedule: boolean('display_on_schedule').default(true).notNull(),
   // Sync metadata
   lastSyncAt: timestamp('last_sync_at'),
   syncError: text('sync_error'),

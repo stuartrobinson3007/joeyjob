@@ -84,26 +84,28 @@ export const validation = {
           });
         }
 
-        if (!node.price) {
+        if (node.price === undefined || node.price === null) {
           warnings.push({
             code: 'MISSING_PRICE',
             message: 'Service node should have pricing information',
             path: nodePath
           });
         } else {
-          // Validate price format
-          const priceStr = node.price.toString().replace(/[$,]/g, '');
-          if (isNaN(Number(priceStr))) {
+          // Validate price is a valid number
+          const priceValue = typeof node.price === 'string' ? 
+            parseFloat(node.price.replace(/[$,]/g, '')) : node.price;
+          
+          if (isNaN(priceValue) || priceValue < 0) {
             errors.push({
               code: 'INVALID_PRICE',
-              message: `Invalid price format: ${node.price}`,
+              message: `Invalid price value: ${node.price}. Price must be a positive number.`,
               path: nodePath
             });
           }
         }
       }
 
-      if (node.type === 'group' && (!node.children || node.children.length === 0)) {
+      if (node.type === 'split' && (!node.children || node.children.length === 0)) {
         warnings.push({
           code: 'EMPTY_GROUP',
           message: 'Group node has no children - consider removing or adding services',

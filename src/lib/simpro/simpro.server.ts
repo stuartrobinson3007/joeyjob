@@ -3,6 +3,7 @@ import { db } from '@/lib/db/db'
 import { user, account } from '@/database/schema'
 import { createSimproApi } from './simpro-api'
 import type { Employee, EmployeeAvailabilityRequest } from './types'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 /**
  * Get Simpro API instance for a user
@@ -50,7 +51,30 @@ export async function getSimproApiForUser(userId: string) {
 
   const { simproBuildName, simproDomain } = users[0]
 
-  return createSimproApi(accessToken, refreshToken, simproBuildName, simproDomain)
+  // Create a callback function to persist tokens after refresh
+  const tokenPersistenceCallback = async (
+    newAccessToken: string,
+    newRefreshToken: string,
+    accessTokenExpiresAt: number,
+    refreshTokenExpiresAt: number
+  ) => {
+    await updateUserSimproTokens(
+      userId,
+      newAccessToken,
+      newRefreshToken,
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt
+    )
+  }
+
+  return createSimproApi(
+    accessToken, 
+    refreshToken, 
+    simproBuildName, 
+    simproDomain,
+    userId,
+    tokenPersistenceCallback
+  )
 }
 
 /**
@@ -140,7 +164,7 @@ export async function createSimproBookingForUser(
       Email: bookingData.customer.email,
       Phone: bookingData.customer.phone,
       Address: {
-        Line1: bookingData.customer.address.line1,
+        Address: bookingData.customer.address.line1,
         City: bookingData.customer.address.city,
         State: bookingData.customer.address.state,
         PostalCode: bookingData.customer.address.postalCode,
@@ -149,7 +173,12 @@ export async function createSimproBookingForUser(
     }, true) // createSite = true
 
     if (!customer.Sites || customer.Sites.length === 0) {
-      throw new Error('Failed to create customer site')
+      throw new AppError(
+        ERROR_CODES.SYS_SERVER_ERROR,
+        500,
+        { customerId: customer.ID },
+        'Failed to create customer site in scheduling system'
+      )
     }
 
     const siteId = customer.Sites[0].ID
@@ -191,15 +220,19 @@ export async function updateUserSimproTokens(
   userId: string,
   accessToken: string,
   refreshToken: string,
-  expiresAt: number
+  accessTokenExpiresAt: number,
+  refreshTokenExpiresAt: number
 ) {
   try {
-    await db
+    console.log('Updating Simpro tokens in database for user:', userId)
+    const result = await db
       .update(account)
       .set({
         accessToken,
         refreshToken,
-        accessTokenExpiresAt: new Date(expiresAt),
+        accessTokenExpiresAt: new Date(accessTokenExpiresAt),
+        refreshTokenExpiresAt: new Date(refreshTokenExpiresAt),
+        updatedAt: new Date(),
       })
       .where(
         and(
@@ -207,8 +240,10 @@ export async function updateUserSimproTokens(
           eq(account.providerId, 'simpro')
         )
       )
+    console.log('✅ Database update successful')
+    return result
   } catch (error) {
-    console.error('Error updating user Simpro tokens:', error)
+    console.error('❌ Error updating user Simpro tokens:', error)
     throw error
   }
 }

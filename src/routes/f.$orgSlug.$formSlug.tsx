@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useRef } from 'react'
 
 import { Card, CardContent, CardHeader } from '@/ui/card'
-import { toast } from 'sonner'
 import BookingFlow, { BookingState, BookingSubmitData } from '@/features/booking/components/form-editor/booking-flow'
 
 // Note: Server function will be called dynamically in the loader
@@ -17,19 +16,19 @@ export const Route = createFileRoute('/f/$orgSlug/$formSlug')({
       // Dynamically import and call the server function
       console.log('🔍 [SSR LOADER] Importing getBookingFormBySlug...')
       const { getBookingFormBySlug } = await import('@/features/booking/lib/forms.server')
-      
-      console.log('🔍 [SSR LOADER] Calling getBookingFormBySlug with:', { 
+
+      console.log('🔍 [SSR LOADER] Calling getBookingFormBySlug with:', {
         orgSlug: params.orgSlug,
         formSlug: params.formSlug
       })
-      
-      const formData = await getBookingFormBySlug({ 
-        data: { 
+
+      const formData = await getBookingFormBySlug({
+        data: {
           orgSlug: params.orgSlug,
           formSlug: params.formSlug
-        } 
+        }
       })
-      
+
       console.log('🔍 [SSR LOADER] Got form data:', {
         formExists: !!formData?.form,
         formName: formData?.form?.name,
@@ -37,7 +36,7 @@ export const Route = createFileRoute('/f/$orgSlug/$formSlug')({
         formActive: formData?.form?.isActive,
         orgName: formData?.organization?.name
       })
-      
+
       if (!formData || !formData.form.isActive) {
         console.log('❌ [SSR LOADER] Form not found or inactive')
         throw new Error('Booking form not found or inactive')
@@ -48,16 +47,16 @@ export const Route = createFileRoute('/f/$orgSlug/$formSlug')({
         organization: formData.organization,
         service: formData.service, // Service info embedded in form
       }
-      
+
       console.log('✅ [SSR LOADER] Returning data to client:', {
         formTheme: result.form.theme,
         formName: result.form.name,
         orgName: result.organization.name
       })
-      
+
       return result as {
         form: any
-        organization: any  
+        organization: any
         service: any
       }
     } catch (error) {
@@ -88,7 +87,7 @@ function HostedBookingPage() {
   const loaderData = Route.useLoaderData()
   const { form, organization } = loaderData
   const containerRef = useRef<HTMLDivElement>(null)
-  
+
   // Debug logging
   console.log('🎨 [CLIENT COMPONENT] Received loader data:', {
     formExists: !!form,
@@ -100,24 +99,36 @@ function HostedBookingPage() {
     servicesCount: form?.formConfig?.serviceTree?.children?.length || 0,
     questionsCount: form?.formConfig?.baseQuestions?.length || 0
   })
-  
+
   // Theme and styling from form config
   const theme = form.theme || 'light'
   const primaryColor = form.primaryColor || '#3B82F6'
-  
+
   console.log('🎨 [CLIENT COMPONENT] Applied theme:', theme)
-  console.log('🎨 [CLIENT COMPONENT] Document class should be:', 
+  console.log('🎨 [CLIENT COMPONENT] Document class should be:',
     typeof document !== 'undefined' ? document?.documentElement?.className : 'SSR - no document'
   )
 
   // Extract services and questions from form config
   const services = form.formConfig?.serviceTree?.children || []
   const baseQuestions = form.formConfig?.baseQuestions || []
-  
+
   console.log('🎨 [CLIENT COMPONENT] Services and questions:', {
     servicesCount: services.length,
     questionsCount: baseQuestions.length,
-    serviceTree: form.formConfig?.serviceTree
+    serviceTree: form.formConfig?.serviceTree,
+    firstServiceDetails: services[0] ? {
+      id: services[0].id,
+      label: services[0].label,
+      type: services[0].type,
+      description: services[0].description,
+      price: services[0].price,
+      duration: services[0].duration,
+      hasDescription: !!services[0].description,
+      hasPrice: !!services[0].price,
+      hasDuration: !!services[0].duration,
+      allKeys: Object.keys(services[0])
+    } : null
   })
 
   // BookingFlow state management
@@ -132,20 +143,12 @@ function HostedBookingPage() {
 
   // Theme is now applied via head function htmlProps - no manual DOM manipulation needed
 
-  // Function to fetch employees for a service
-  const getServiceEmployees = async (serviceId: string) => {
-    const response = await fetch(`/api/public/services/${serviceId}/employees`)
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to fetch employees')
-    }
-    return response.json()
-  }
+  // Employee fetching is now handled by the unified availability API in BookingFlow
 
   const handleBookingSubmit = async (data: BookingSubmitData) => {
     try {
       console.log('Submitting booking:', data)
-      
+
       const response = await fetch('/api/bookings/submit', {
         method: 'POST',
         headers: {
@@ -163,37 +166,27 @@ function HostedBookingPage() {
         throw new Error(result.error || 'Failed to submit booking')
       }
 
-      toast.success('Booking Request Submitted!', {
-        description: `Your booking has been submitted successfully. Confirmation code: ${result.confirmationCode}`,
-        duration: 15000,
-      })
-      
+      // Don't show toast here - let BookingFlow handle success/error messaging
+      return result
+
     } catch (error) {
       console.error('Booking submission error:', error)
-      
-      toast.error('Submission Failed', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
-        duration: 10000,
-      })
+      throw error // Re-throw so BookingFlow can handle the error
     }
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`${theme} min-h-screen bg-background text-foreground`}
-      style={{
-        '--primary': primaryColor,
-        '--primary-foreground': theme === 'dark' ? '#ffffff' : '#ffffff',
-      } as React.CSSProperties}
+      className={`${theme} min-h-screen bg-muted text-foreground flex flex-col`}
     >
       {/* Organization Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container max-w-4xl mx-auto py-6 px-6">
+      <header className="border-b bg-background/50">
+        <div className="container max-w-7xl mx-auto py-6 px-6">
           <div className="flex items-center gap-4">
             {organization.logo && (
-              <img 
-                src={organization.logo} 
+              <img
+                src={organization.logo}
                 alt={organization.name}
                 className="h-10 w-10 rounded-full object-cover"
               />
@@ -209,7 +202,7 @@ function HostedBookingPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container max-w-4xl mx-auto py-12 px-6">
+      <main className="container max-w-7xl mx-auto py-16 px-6 flex-1">
         {/* BookingFlow Component */}
         <BookingFlow
           id="hosted-booking-flow"
@@ -222,8 +215,11 @@ function HostedBookingPage() {
           bookingState={bookingState}
           onBookingStateChange={setBookingState}
           onBookingSubmit={handleBookingSubmit}
-          getServiceEmployees={getServiceEmployees}
-          className="bg-transparent"
+          organizationId={organization.id}
+          organizationName={organization.name}
+          organizationPhone={organization.phone}
+          organizationTimezone={organization.timezone}
+          className="bg-background shadow-lg rounded-lg p-4 lg:p-8"
         />
       </main>
 
@@ -232,9 +228,9 @@ function HostedBookingPage() {
         <div className="container max-w-4xl mx-auto py-6 px-6 text-center">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} {organization.name}. Powered by{' '}
-            <a 
-              href="https://joeyjob.com" 
-              target="_blank" 
+            <a
+              href="https://joeyjob.com"
+              target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-foreground transition-colors"
             >

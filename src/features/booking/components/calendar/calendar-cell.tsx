@@ -103,19 +103,19 @@ export function CalendarCell({
 								: "cursor-pointer bg-muted",
 						// Focus ring, visible while the cell has keyboard focus.
 						isFocusVisible &&
-						"ring-2 group-focus:z-2 ring-[var(--custom-primary)] ring-offset-2",
+						"ring-2 group-focus:z-2 ring-primary ring-offset-2",
 						// Darker selection background for the start and end.
-						isSelected && "bg-[var(--custom-primary)] text-[var(--custom-primary-foreground)]",
+						isSelected && "bg-primary text-primary-foreground",
 						// Hover state for non-selected cells.
-						!isSelected && !isDisabled && !isUnavailable && "hover:ring-2 hover:ring-[var(--custom-primary)]",
+						!isSelected && !isDisabled && !isUnavailable && "hover:ring-2 hover:ring-primary",
 					)}
 				>
 					{formattedDate}
 					{isDateToday && (
 						<div
 							className={cn(
-								"absolute bottom-4 left-1/2 transform -translate-x-1/2 translate-y-1/2 size-1.5 bg-[var(--custom-primary)] rounded-full",
-								isSelected && "bg-[var(--custom-primary-foreground)]",
+								"absolute bottom-4 left-1/2 transform -translate-x-1/2 translate-y-1/2 size-1.5 bg-primary rounded-full",
+								isSelected && "bg-primary-foreground",
 							)}
 						/>
 					)}

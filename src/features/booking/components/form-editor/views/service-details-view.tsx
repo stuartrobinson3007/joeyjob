@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import type { FlowNode } from "../form-flow-tree";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface ServiceDetailsViewProps {
     node: FlowNode;
     onNavigateBack: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
     onUpdateNode?: (nodeId: string, updates: Partial<FlowNode>) => void;
 }
 
@@ -14,11 +17,17 @@ interface ServiceDetailsViewProps {
 export function ServiceDetailsView({
     node,
     onNavigateBack,
+    currentLevel = 'service-details-form',
+    onNavigate,
     onUpdateNode
 }: ServiceDetailsViewProps) {
     const [title, setTitle] = useState(node?.label || '');
     const [description, setDescription] = useState(node?.description || '');
-    const [price, setPrice] = useState(node?.price || '');
+    const [price, setPrice] = useState(() => {
+        if (!node?.price) return '';
+        // Handle both existing formatted strings and new numeric values
+        return typeof node.price === 'string' ? node.price.replace(/^\$/, '') : node.price.toString();
+    });
 
     // Track if user has edited each field to prevent useEffect from overriding their changes
     const hasEditedRef = useRef({
@@ -36,7 +45,9 @@ export function ServiceDetailsView({
             if (node) {
                 setTitle(node.label);
                 setDescription(node.description || '');
-                setPrice(node.price || '');
+                const displayPrice = !node.price ? '' : 
+                    typeof node.price === 'string' ? node.price.replace(/^\$/, '') : node.price.toString();
+                setPrice(displayPrice);
             }
             isInitialMount.current = false;
             return;
@@ -51,7 +62,9 @@ export function ServiceDetailsView({
                 setDescription(node.description || '');
             }
             if (!hasEditedRef.current.price) {
-                setPrice(node.price || '');
+                const displayPrice = !node.price ? '' : 
+                    typeof node.price === 'string' ? node.price.replace(/^\$/, '') : node.price.toString();
+                setPrice(displayPrice);
             }
         }
     }, [node]);
@@ -79,7 +92,9 @@ export function ServiceDetailsView({
         setPrice(newPrice);
         hasEditedRef.current.price = true;
         if (onUpdateNode && node) {
-            onUpdateNode(node.id, { price: newPrice ? `$${newPrice}` : '' });
+            // Store price as number, not formatted string
+            const numericPrice = newPrice === '' ? 0 : parseFloat(newPrice) || 0;
+            onUpdateNode(node.id, { price: numericPrice });
         }
     };
 
@@ -87,9 +102,10 @@ export function ServiceDetailsView({
 
     return (
         <>
-            <BackButton
-                label={node.label}
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <h2 className="text-2xl font-bold mb-2">Service Details</h2>

@@ -27,8 +27,20 @@ import {
   Form,
   TextField,
   FormActions,
-  FormRootError
+  FormRootError,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage
 } from '@/taali/components/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/taali/components/ui/select'
 import { Button } from '@/ui/button'
 import { Skeleton } from '@/ui/skeleton'
 import { EmployeeManagement } from '@/features/organization/components/employee-management'
@@ -52,7 +64,8 @@ function OrganizationSettingsForm() {
     resolver: zodResolver(organizationFormSchema),
     defaultValues: {
       name: '',
-      slug: ''
+      slug: '',
+      timezone: 'America/New_York'
     },
     mode: 'onChange' // Enable real-time validation
   })
@@ -60,8 +73,10 @@ function OrganizationSettingsForm() {
   // Sync form with loaded organization data
   useFormSync(form, activeOrganization ? {
     name: activeOrganization.name || '',
-    slug: activeOrganization.slug || ''
+    slug: activeOrganization.slug || '',
+    timezone: activeOrganization.timezone
   } : null, [activeOrganization])
+
 
   // Setup async slug validation
   const validateSlug = useAsyncFieldValidator(
@@ -214,6 +229,66 @@ function OrganizationSettingsForm() {
                 description={t('organization.slugHelp')}
                 rules={{
                   validate: validateSlug
+                }}
+              />
+              {/* 
+              <FormField
+                control={form.control}
+                name="timezone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Timezone</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                        <SelectItem value="America/Phoenix">Arizona Time (MST)</SelectItem>
+                        <SelectItem value="America/Anchorage">Alaska Time (AKT)</SelectItem>
+                        <SelectItem value="Pacific/Honolulu">Hawaii Time (HST)</SelectItem>
+                        <SelectItem value="America/Toronto">Toronto (ET)</SelectItem>
+                        <SelectItem value="America/Vancouver">Vancouver (PT)</SelectItem>
+                        <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                        <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                        <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
+                        <SelectItem value="Australia/Melbourne">Melbourne (AEDT)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              /> */}
+
+              <FormField
+                control={form.control}
+                name="timezone"
+                render={({ field }) => {
+                  console.log('field', field)
+                  return (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a verified email to display" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                          <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
+                          <SelectItem value="Australia/Melbourne">Melbourne (AEDT)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )
                 }}
               />
 

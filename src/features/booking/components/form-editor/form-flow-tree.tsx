@@ -1,11 +1,12 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { createPortal } from "react-dom";
-import { SplitIcon, ChevronDownIcon, EllipsisVerticalIcon, CalendarIcon, ChevronUpIcon, PlusIcon, GripVerticalIcon } from "lucide-react";
+import { SplitIcon, ChevronDownIcon, EllipsisVerticalIcon, CalendarIcon, ChevronUpIcon, PlusIcon, GripVerticalIcon, EditIcon, CopyIcon, TrashIcon } from "lucide-react";
 import { Button } from "@/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/ui/dropdown-menu";
 import {
@@ -59,7 +60,7 @@ export interface FlowNode {
     children?: FlowNode[];
     // Additional properties for service configuration
     description?: string;
-    price?: string;
+    price?: number;
     duration?: number;
     bufferTime?: number;
     interval?: number;
@@ -251,12 +252,15 @@ const TreeNode: React.FC<TreeNodeProps & {
                     onClick={handleNodeClick}
                 >
                     <div
-                        className="h-8 w-8 flex items-center justify-center bg-muted rounded-md border flex-shrink-0"
+                        className={cn(
+                            "h-8 w-8 flex items-center justify-center bg-muted rounded-md border flex-shrink-0",
+                            isHovered && node.type !== "start" && "cursor-grab active:cursor-grabbing"
+                        )}
                         {...(isHovered && node.type !== "start" && dragHandleProps ? { ...dragHandleProps.attributes, ...dragHandleProps.listeners } : {})}
                     >
                         <div className="text-muted-foreground">
                             {isHovered && node.type !== "start" ? (
-                                <GripVerticalIcon className="h-3.5 w-3.5 cursor-grab" />
+                                <GripVerticalIcon className="h-3.5 w-3.5" />
                             ) : node.type === "service" ? (
                                 <CalendarIcon className="h-3.5 w-3.5" />
                             ) : (
@@ -270,17 +274,48 @@ const TreeNode: React.FC<TreeNodeProps & {
                     </div>
 
                     <div className="flex-shrink-0 flex items-center space-x-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                                "opacity-0 group-hover:opacity-100 group-focus:opacity-100 focus:opacity-100 hover:bg-primary/5",
-                                isGlobalDragging && "group-hover:opacity-0" // Hide during dragging
-                            )}
-                            onClick={(e) => handleNodeAction(e, "menu")}
-                        >
-                            <EllipsisVerticalIcon className="h-3.5 w-3.5" />
-                        </Button>
+                        {node.type !== "start" && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={cn(
+                                            "opacity-0 group-hover:opacity-100 group-focus:opacity-100 focus:opacity-100 hover:bg-primary/5",
+                                            isGlobalDragging && "group-hover:opacity-0" // Hide during dragging
+                                        )}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <EllipsisVerticalIcon className="h-3.5 w-3.5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        onClick={(e) => handleNodeAction(e, "edit")}
+                                        className="cursor-pointer"
+                                    >
+                                        <EditIcon className="h-3.5 w-3.5 mr-2" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={(e) => handleNodeAction(e, "duplicate")}
+                                        className="cursor-pointer"
+                                    >
+                                        <CopyIcon className="h-3.5 w-3.5 mr-2" />
+                                        Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        onClick={(e) => handleNodeAction(e, "delete")}
+                                        className="cursor-pointer"
+                                        variant="destructive"
+                                    >
+                                        <TrashIcon className="h-3.5 w-3.5 mr-2" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
 
                         {node.type === "split" && (
                             <Button
@@ -717,38 +752,26 @@ export const FormFlowTree: React.FC<FormFlowTreeProps> = ({
             return result;
         }
 
-        // Both trees have children, try to preserve order from current tree
+        // Both trees have children, use the new tree's order as the source of truth
         if (result.children && currentTree.children) {
-            // Get map of child nodes by ID from current tree to preserve their structure
+            // Get map of child nodes by ID from current tree to preserve their internal state
             const currentChildrenMap = new Map<string, FlowNode>();
             for (const child of currentTree.children) {
                 currentChildrenMap.set(child.id, child);
             }
 
-            // Keep track of the order in current tree
-            const currentOrder: string[] = currentTree.children.map(child => child.id);
-
-            // Create a new children array based on current order
+            // Use the new tree's order as the definitive order
             const newChildren: FlowNode[] = [];
 
-            // First add all nodes that exist in both trees, in current tree's order
-            currentOrder.forEach((id: string) => {
-                const newChild = result.children?.find((child: FlowNode) => child.id === id);
-                if (newChild) {
-                    // Recursively merge this child with its counterpart in current tree
-                    const currentChild = currentChildrenMap.get(id);
-                    if (currentChild) {
-                        newChildren.push(mergeTreesPreservingOrder(currentChild, newChild));
-                    } else {
-                        newChildren.push(JSON.parse(JSON.stringify(newChild)));
-                    }
-                }
-            });
-
-            // Then add any new nodes that only exist in the new tree
-            result.children.forEach((child: FlowNode) => {
-                if (!currentChildrenMap.has(child.id)) {
-                    newChildren.push(JSON.parse(JSON.stringify(child)));
+            // Process children in the order they appear in the new tree
+            result.children.forEach((newChild: FlowNode) => {
+                const currentChild = currentChildrenMap.get(newChild.id);
+                if (currentChild) {
+                    // Node exists in both trees - recursively merge to preserve any internal state
+                    newChildren.push(mergeTreesPreservingOrder(currentChild, newChild));
+                } else {
+                    // New node - use as is
+                    newChildren.push(JSON.parse(JSON.stringify(newChild)));
                 }
             });
 

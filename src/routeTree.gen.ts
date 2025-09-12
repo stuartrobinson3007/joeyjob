@@ -37,13 +37,15 @@ import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
 import { ServerRoute as ApiEmployeesIndexServerRouteImport } from './routes/api/employees/index'
 import { ServerRoute as ApiStripeWebhookServerRouteImport } from './routes/api/stripe/webhook'
 import { ServerRoute as ApiEmployeesSyncServerRouteImport } from './routes/api/employees/sync'
+import { ServerRoute as ApiDebugSimproEmployeesServerRouteImport } from './routes/api/debug/simpro-employees'
+import { ServerRoute as ApiDebugServiceEmployeesServerRouteImport } from './routes/api/debug/service-employees'
 import { ServerRoute as ApiBookingsSubmitServerRouteImport } from './routes/api/bookings/submit'
 import { ServerRoute as ApiAvatarsUploadServerRouteImport } from './routes/api/avatars/upload'
 import { ServerRoute as ApiAvatarsDeleteServerRouteImport } from './routes/api/avatars/delete'
 import { ServerRoute as ApiAvatarsSplatServerRouteImport } from './routes/api/avatars/$'
 import { ServerRoute as ApiAuthSplatServerRouteImport } from './routes/api/auth/$'
 import { ServerRoute as ApiServicesServiceIdEmployeesServerRouteImport } from './routes/api/services/$serviceId/employees'
-import { ServerRoute as ApiPublicServicesServiceIdEmployeesServerRouteImport } from './routes/api/public/services/$serviceId/employees'
+import { ServerRoute as ApiPublicServicesServiceIdAvailabilityServerRouteImport } from './routes/api/public/services/$serviceId/availability'
 
 const rootServerRouteImport = createServerRootRoute()
 
@@ -183,6 +185,18 @@ const ApiEmployeesSyncServerRoute = ApiEmployeesSyncServerRouteImport.update({
   path: '/api/employees/sync',
   getParentRoute: () => rootServerRouteImport,
 } as any)
+const ApiDebugSimproEmployeesServerRoute =
+  ApiDebugSimproEmployeesServerRouteImport.update({
+    id: '/api/debug/simpro-employees',
+    path: '/api/debug/simpro-employees',
+    getParentRoute: () => rootServerRouteImport,
+  } as any)
+const ApiDebugServiceEmployeesServerRoute =
+  ApiDebugServiceEmployeesServerRouteImport.update({
+    id: '/api/debug/service-employees',
+    path: '/api/debug/service-employees',
+    getParentRoute: () => rootServerRouteImport,
+  } as any)
 const ApiBookingsSubmitServerRoute = ApiBookingsSubmitServerRouteImport.update({
   id: '/api/bookings/submit',
   path: '/api/bookings/submit',
@@ -214,10 +228,10 @@ const ApiServicesServiceIdEmployeesServerRoute =
     path: '/api/services/$serviceId/employees',
     getParentRoute: () => rootServerRouteImport,
   } as any)
-const ApiPublicServicesServiceIdEmployeesServerRoute =
-  ApiPublicServicesServiceIdEmployeesServerRouteImport.update({
-    id: '/api/public/services/$serviceId/employees',
-    path: '/api/public/services/$serviceId/employees',
+const ApiPublicServicesServiceIdAvailabilityServerRoute =
+  ApiPublicServicesServiceIdAvailabilityServerRouteImport.update({
+    id: '/api/public/services/$serviceId/availability',
+    path: '/api/public/services/$serviceId/availability',
     getParentRoute: () => rootServerRouteImport,
   } as any)
 
@@ -378,11 +392,13 @@ export interface FileServerRoutesByFullPath {
   '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
   '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
   '/api/bookings/submit': typeof ApiBookingsSubmitServerRoute
+  '/api/debug/service-employees': typeof ApiDebugServiceEmployeesServerRoute
+  '/api/debug/simpro-employees': typeof ApiDebugSimproEmployeesServerRoute
   '/api/employees/sync': typeof ApiEmployeesSyncServerRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
   '/api/employees': typeof ApiEmployeesIndexServerRoute
   '/api/services/$serviceId/employees': typeof ApiServicesServiceIdEmployeesServerRoute
-  '/api/public/services/$serviceId/employees': typeof ApiPublicServicesServiceIdEmployeesServerRoute
+  '/api/public/services/$serviceId/availability': typeof ApiPublicServicesServiceIdAvailabilityServerRoute
 }
 export interface FileServerRoutesByTo {
   '/api/health': typeof ApiHealthServerRoute
@@ -391,11 +407,13 @@ export interface FileServerRoutesByTo {
   '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
   '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
   '/api/bookings/submit': typeof ApiBookingsSubmitServerRoute
+  '/api/debug/service-employees': typeof ApiDebugServiceEmployeesServerRoute
+  '/api/debug/simpro-employees': typeof ApiDebugSimproEmployeesServerRoute
   '/api/employees/sync': typeof ApiEmployeesSyncServerRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
   '/api/employees': typeof ApiEmployeesIndexServerRoute
   '/api/services/$serviceId/employees': typeof ApiServicesServiceIdEmployeesServerRoute
-  '/api/public/services/$serviceId/employees': typeof ApiPublicServicesServiceIdEmployeesServerRoute
+  '/api/public/services/$serviceId/availability': typeof ApiPublicServicesServiceIdAvailabilityServerRoute
 }
 export interface FileServerRoutesById {
   __root__: typeof rootServerRouteImport
@@ -405,11 +423,13 @@ export interface FileServerRoutesById {
   '/api/avatars/delete': typeof ApiAvatarsDeleteServerRoute
   '/api/avatars/upload': typeof ApiAvatarsUploadServerRoute
   '/api/bookings/submit': typeof ApiBookingsSubmitServerRoute
+  '/api/debug/service-employees': typeof ApiDebugServiceEmployeesServerRoute
+  '/api/debug/simpro-employees': typeof ApiDebugSimproEmployeesServerRoute
   '/api/employees/sync': typeof ApiEmployeesSyncServerRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookServerRoute
   '/api/employees/': typeof ApiEmployeesIndexServerRoute
   '/api/services/$serviceId/employees': typeof ApiServicesServiceIdEmployeesServerRoute
-  '/api/public/services/$serviceId/employees': typeof ApiPublicServicesServiceIdEmployeesServerRoute
+  '/api/public/services/$serviceId/availability': typeof ApiPublicServicesServiceIdAvailabilityServerRoute
 }
 export interface FileServerRouteTypes {
   fileServerRoutesByFullPath: FileServerRoutesByFullPath
@@ -420,11 +440,13 @@ export interface FileServerRouteTypes {
     | '/api/avatars/delete'
     | '/api/avatars/upload'
     | '/api/bookings/submit'
+    | '/api/debug/service-employees'
+    | '/api/debug/simpro-employees'
     | '/api/employees/sync'
     | '/api/stripe/webhook'
     | '/api/employees'
     | '/api/services/$serviceId/employees'
-    | '/api/public/services/$serviceId/employees'
+    | '/api/public/services/$serviceId/availability'
   fileServerRoutesByTo: FileServerRoutesByTo
   to:
     | '/api/health'
@@ -433,11 +455,13 @@ export interface FileServerRouteTypes {
     | '/api/avatars/delete'
     | '/api/avatars/upload'
     | '/api/bookings/submit'
+    | '/api/debug/service-employees'
+    | '/api/debug/simpro-employees'
     | '/api/employees/sync'
     | '/api/stripe/webhook'
     | '/api/employees'
     | '/api/services/$serviceId/employees'
-    | '/api/public/services/$serviceId/employees'
+    | '/api/public/services/$serviceId/availability'
   id:
     | '__root__'
     | '/api/health'
@@ -446,11 +470,13 @@ export interface FileServerRouteTypes {
     | '/api/avatars/delete'
     | '/api/avatars/upload'
     | '/api/bookings/submit'
+    | '/api/debug/service-employees'
+    | '/api/debug/simpro-employees'
     | '/api/employees/sync'
     | '/api/stripe/webhook'
     | '/api/employees/'
     | '/api/services/$serviceId/employees'
-    | '/api/public/services/$serviceId/employees'
+    | '/api/public/services/$serviceId/availability'
   fileServerRoutesById: FileServerRoutesById
 }
 export interface RootServerRouteChildren {
@@ -460,11 +486,13 @@ export interface RootServerRouteChildren {
   ApiAvatarsDeleteServerRoute: typeof ApiAvatarsDeleteServerRoute
   ApiAvatarsUploadServerRoute: typeof ApiAvatarsUploadServerRoute
   ApiBookingsSubmitServerRoute: typeof ApiBookingsSubmitServerRoute
+  ApiDebugServiceEmployeesServerRoute: typeof ApiDebugServiceEmployeesServerRoute
+  ApiDebugSimproEmployeesServerRoute: typeof ApiDebugSimproEmployeesServerRoute
   ApiEmployeesSyncServerRoute: typeof ApiEmployeesSyncServerRoute
   ApiStripeWebhookServerRoute: typeof ApiStripeWebhookServerRoute
   ApiEmployeesIndexServerRoute: typeof ApiEmployeesIndexServerRoute
   ApiServicesServiceIdEmployeesServerRoute: typeof ApiServicesServiceIdEmployeesServerRoute
-  ApiPublicServicesServiceIdEmployeesServerRoute: typeof ApiPublicServicesServiceIdEmployeesServerRoute
+  ApiPublicServicesServiceIdAvailabilityServerRoute: typeof ApiPublicServicesServiceIdAvailabilityServerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -655,6 +683,20 @@ declare module '@tanstack/react-start/server' {
       preLoaderRoute: typeof ApiEmployeesSyncServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
+    '/api/debug/simpro-employees': {
+      id: '/api/debug/simpro-employees'
+      path: '/api/debug/simpro-employees'
+      fullPath: '/api/debug/simpro-employees'
+      preLoaderRoute: typeof ApiDebugSimproEmployeesServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
+    '/api/debug/service-employees': {
+      id: '/api/debug/service-employees'
+      path: '/api/debug/service-employees'
+      fullPath: '/api/debug/service-employees'
+      preLoaderRoute: typeof ApiDebugServiceEmployeesServerRouteImport
+      parentRoute: typeof rootServerRouteImport
+    }
     '/api/bookings/submit': {
       id: '/api/bookings/submit'
       path: '/api/bookings/submit'
@@ -697,11 +739,11 @@ declare module '@tanstack/react-start/server' {
       preLoaderRoute: typeof ApiServicesServiceIdEmployeesServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
-    '/api/public/services/$serviceId/employees': {
-      id: '/api/public/services/$serviceId/employees'
-      path: '/api/public/services/$serviceId/employees'
-      fullPath: '/api/public/services/$serviceId/employees'
-      preLoaderRoute: typeof ApiPublicServicesServiceIdEmployeesServerRouteImport
+    '/api/public/services/$serviceId/availability': {
+      id: '/api/public/services/$serviceId/availability'
+      path: '/api/public/services/$serviceId/availability'
+      fullPath: '/api/public/services/$serviceId/availability'
+      preLoaderRoute: typeof ApiPublicServicesServiceIdAvailabilityServerRouteImport
       parentRoute: typeof rootServerRouteImport
     }
   }
@@ -780,13 +822,15 @@ const rootServerRouteChildren: RootServerRouteChildren = {
   ApiAvatarsDeleteServerRoute: ApiAvatarsDeleteServerRoute,
   ApiAvatarsUploadServerRoute: ApiAvatarsUploadServerRoute,
   ApiBookingsSubmitServerRoute: ApiBookingsSubmitServerRoute,
+  ApiDebugServiceEmployeesServerRoute: ApiDebugServiceEmployeesServerRoute,
+  ApiDebugSimproEmployeesServerRoute: ApiDebugSimproEmployeesServerRoute,
   ApiEmployeesSyncServerRoute: ApiEmployeesSyncServerRoute,
   ApiStripeWebhookServerRoute: ApiStripeWebhookServerRoute,
   ApiEmployeesIndexServerRoute: ApiEmployeesIndexServerRoute,
   ApiServicesServiceIdEmployeesServerRoute:
     ApiServicesServiceIdEmployeesServerRoute,
-  ApiPublicServicesServiceIdEmployeesServerRoute:
-    ApiPublicServicesServiceIdEmployeesServerRoute,
+  ApiPublicServicesServiceIdAvailabilityServerRoute:
+    ApiPublicServicesServiceIdAvailabilityServerRoute,
 }
 export const serverRouteTree = rootServerRouteImport
   ._addFileChildren(rootServerRouteChildren)

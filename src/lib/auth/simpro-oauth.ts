@@ -15,7 +15,6 @@ export interface SimProUser {
   CompanyID: string
   Name: string
   Email?: string
-  DisplayOnSchedule?: boolean
   Active?: boolean
 }
 

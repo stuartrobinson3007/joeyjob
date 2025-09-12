@@ -1,12 +1,15 @@
 import React, { useCallback } from "react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
 import { QuestionList } from "../question-list";
 import type { FlowNode } from "../form-flow-tree";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface ServiceQuestionsViewProps {
     node: FlowNode;
     onNavigateBack: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
     onUpdateNode: (nodeId: string, updates: Partial<FlowNode>) => void;
     onOptionValueChange?: (questionId: string, eventType: 'option-change' | 'value-update', oldValue: string, newValue: string) => void;
     onFieldTypeChange?: (fieldId: string, oldType: FormFieldType, newType: FormFieldType) => void;
@@ -19,6 +22,8 @@ interface ServiceQuestionsViewProps {
 export function ServiceQuestionsView({
     node,
     onNavigateBack,
+    currentLevel = 'service-questions',
+    onNavigate,
     onUpdateNode,
     onOptionValueChange,
     onFieldTypeChange,
@@ -36,9 +41,10 @@ export function ServiceQuestionsView({
 
     return (
         <div className="flex flex-col h-full">
-            <BackButton
-                label="Service configuration"
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
 

@@ -28,7 +28,8 @@ export type NavigationLevel =
     | "service-details"
     | "service-details-form"
     | "service-scheduling"
-    | "service-questions";
+    | "service-questions"
+    | "service-employees";
 
 // Service detail view types
 export type ServiceDetailView = "details" | "employees" | "scheduling" | "questions";
@@ -202,7 +203,8 @@ export function useFormEditorState(
             if (level !== 'service-details' &&
                 level !== 'service-details-form' &&
                 level !== 'service-scheduling' &&
-                level !== 'service-questions') {
+                level !== 'service-questions' &&
+                level !== 'service-employees') {
                 setServiceDetailView('details');
             }
         },
@@ -211,13 +213,12 @@ export function useFormEditorState(
 
     // Navigate to a specific service detail view
     const navigateToServiceDetail = (view: ServiceDetailView) => {
-
         setServiceDetailView(view);
 
         // Map view to corresponding navigation level
         const levelMap: Record<ServiceDetailView, NavigationLevel> = {
             details: 'service-details-form',
-            employees: 'service-details', // Using the same level but different view
+            employees: 'service-employees',
             scheduling: 'service-scheduling',
             questions: 'service-questions'
         };
@@ -231,7 +232,8 @@ export function useFormEditorState(
         // Handle navigation based on current level
         if (currentLevel === 'service-details-form' ||
             currentLevel === 'service-scheduling' ||
-            currentLevel === 'service-questions') {
+            currentLevel === 'service-questions' ||
+            currentLevel === 'service-employees') {
             // If we're in a service detail view, go back to service options
             setCurrentLevel('service-details');
         } else if (currentLevel === 'service-details' || currentLevel === 'group-details') {

@@ -46,6 +46,7 @@ export async function updateOrganizationWithValidation(data: {
   organizationId: string
   name: string
   slug: string
+  timezone: string
 }) {
   // 1. Run our custom validations first
   const nameValidation = await validateField({
@@ -83,7 +84,8 @@ export async function updateOrganizationWithValidation(data: {
     organizationId: data.organizationId,
     data: {
       name: data.name,
-      slug: data.slug
+      slug: data.slug,
+      timezone: data.timezone
     }
   })
 

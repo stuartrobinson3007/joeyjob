@@ -33,9 +33,9 @@ export function Button({
 			ref={ref}
 			disabled={isDisabled}
 			className={cn(
-				"p-2 rounded-lg outline-none text-foreground focus:outline-[var(--custom-primary)]",
+				"p-2 rounded-lg outline-none text-foreground focus:outline-primary",
 				isDisabled ? "text-foreground/50" : "hover:bg-muted",
-				isFocusVisible && "ring-2 ring-offset-2 ring-[var(--custom-primary)]",
+				isFocusVisible && "ring-2 ring-offset-2 ring-primary",
 				className
 			)}
 			onFocus={handleFocus}

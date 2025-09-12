@@ -14,6 +14,7 @@ import ServiceOptionsView from "./views/service-options-view";
 import ServiceDetailsView from "./views/service-details-view";
 import SchedulingSettingsView from "./views/scheduling-settings-view";
 import ServiceQuestionsView from "./views/service-questions-view";
+import ServiceEmployeeAssignmentView from "./views/service-employee-assignment-view";
 import GroupDetailsView from "./views/group-details-view";
 import { useFormEditorState, NavigationLevel, ServiceDetailView } from "@/features/booking/components/form-editor/hooks/use-form-editor-state";
 import { FormEditorDataProvider } from "@/features/booking/components/form-editor/context/form-editor-data-context";
@@ -142,278 +143,8 @@ function FormEditorLayoutInner({
     const updateService = { mutate: () => {} };
     const deleteService = { mutate: () => {} };
 
-    // Auto-save functionality
-    const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const lastSavedDataRef = useRef<string>('');
-    const servicesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const isInitializedRef = useRef<boolean>(false);
-    const servicesInitializedRef = useRef<boolean>(false);
-
-    // Services synchronization - completely rewritten for robustness
-    const syncServicesWithDatabase = useCallback(() => {
-        if (!currentForm) return;
-
-        // Extract service nodes from the tree with full context
-        const extractServicesFromTree = (node: FlowNode, path: string[] = []): Array<{
-            id: string;
-            label: string;
-            description?: string;
-            price?: string;
-            path: string[];
-            isUUID: boolean;
-        }> => {
-            const services: Array<{
-                id: string;
-                label: string;
-                description?: string;
-                price?: string;
-                path: string[];
-                isUUID: boolean;
-            }> = [];
-
-            if (node.type === 'service') {
-                services.push({
-                    id: node.id,
-                    label: node.label,
-                    description: node.description,
-                    price: node.price,
-                    path: [...path, node.label],
-                    isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(node.id)
-                });
-            }
-
-            if (node.children) {
-                for (const child of node.children) {
-                    services.push(...extractServicesFromTree(child, [...path, node.label]));
-                }
-            }
-
-            return services;
-        };
-
-        const treeServices = extractServicesFromTree(data.serviceTree);
-
-        // Separate services by type
-        const existingServices = treeServices.filter(s => s.isUUID);
-        const newServices = treeServices.filter(s => !s.isUUID);
-
-        // For existing services, check if they need updates
-        existingServices.forEach(treeService => {
-            const dbService = databaseServices.find(db => db.id === treeService.id);
-
-            if (dbService) {
-                // Service exists in both places - check for differences
-                const hasChanges =
-                    dbService.name !== treeService.label ||
-                    dbService.description !== (treeService.description || '') ||
-                    (treeService.price && dbService.price !== parseFloat(treeService.price.replace('$', '')));
-
-                if (hasChanges) {
-                    // TODO: Update existing service
-                    /*
-                    updateService.mutate({
-                        id: dbService.id,
-                        name: treeService.label,
-                        description: treeService.description || '',
-                        duration_minutes: dbService.duration_minutes,
-                        price: treeService.price ? parseFloat(treeService.price.replace('$', '')) : dbService.price,
-                        active: dbService.active,
-                        buffer_time_minutes: dbService.buffer_time_minutes,
-                        minimum_notice_hours: dbService.minimum_notice_hours,
-                        booking_interval_minutes: dbService.booking_interval_minutes,
-                        date_range_type: dbService.date_range_type,
-                        rolling_days: dbService.rolling_days,
-                        rolling_unit: dbService.rolling_unit,
-                        assigned_employee_ids: dbService.assigned_employee_ids
-                    });
-                    */
-                }
-            } else {
-                // Service has UUID but not found in database - this is unusual
-                // Log it but don't create a new service (the UUID might be stale)
-                console.warn(`Service with UUID ${treeService.id} not found in database`);
-            }
-        });
-
-        // Create new services
-        newServices.forEach(treeService => {
-            // TODO: Create new service
-            /*
-            createService.mutate({
-                name: treeService.label,
-                description: treeService.description || '',
-                duration_minutes: 60,
-                price: treeService.price ? parseFloat(treeService.price.replace('$', '')) : undefined,
-                active: true,
-                buffer_time_minutes: 15,
-                minimum_notice_hours: 24,
-                booking_interval_minutes: 30,
-                date_range_type: 'rolling' as const,
-                rolling_days: 30,
-                rolling_unit: 'calendar-days' as const,
-                assigned_employee_ids: []
-            }, {
-                onSuccess: (createdService) => {
-                    // Update the tree node to use the new service ID
-                    dispatch({
-                        type: 'UPDATE_NODE',
-                        payload: {
-                            nodeId: treeService.id,
-                            updates: { id: createdService.id }
-                        }
-                    });
-                }
-            });
-            */
-        });
-
-        // Find services to delete (services in database but not in tree)
-        const treeServiceUUIDs = existingServices.map(s => s.id);
-        const servicesToDelete = databaseServices.filter(dbService =>
-            !treeServiceUUIDs.includes(dbService.id)
-        );
-
-        servicesToDelete.forEach(dbService => {
-            // TODO: Delete service
-            // deleteService.mutate(dbService.id);
-        });
-
-    }, [currentForm, data.serviceTree, databaseServices, createService, updateService, deleteService, dispatch]);
-
-    // Add a ref to track the last synced service tree state
-    const lastSyncedServicesRef = useRef<string>('');
-
-    // Simplified debounced services sync effect
-    useEffect(() => {
-        if (!currentForm) return;
-
-        // Create a stable comparison key for services only
-        const createServicesKey = () => {
-            const extractServices = (node: FlowNode): any[] => {
-                const services: any[] = [];
-                if (node.type === 'service') {
-                    services.push({
-                        id: node.id,
-                        label: node.label,
-                        description: node.description,
-                        price: node.price
-                    });
-                }
-                if (node.children) {
-                    for (const child of node.children) {
-                        services.push(...extractServices(child));
-                    }
-                }
-                return services;
-            };
-            return JSON.stringify(extractServices(data.serviceTree));
-        };
-
-        const currentKey = createServicesKey();
-
-        // Skip on initial load
-        if (!servicesInitializedRef.current) {
-            lastSyncedServicesRef.current = currentKey;
-            servicesInitializedRef.current = true;
-            return;
-        }
-
-        // Only sync if services actually changed
-        if (currentKey !== lastSyncedServicesRef.current) {
-            // Clear existing timeout
-            if (servicesTimeoutRef.current) {
-                clearTimeout(servicesTimeoutRef.current);
-            }
-
-            // Set new timeout (3 seconds)
-            servicesTimeoutRef.current = setTimeout(() => {
-                syncServicesWithDatabase();
-                lastSyncedServicesRef.current = currentKey;
-            }, 3000);
-        }
-
-        // Cleanup
-        return () => {
-            if (servicesTimeoutRef.current) {
-                clearTimeout(servicesTimeoutRef.current);
-            }
-        };
-    }, [data.serviceTree, syncServicesWithDatabase, currentForm]);
-
-    // Simplified auto-save functionality
-    const autoSave = useCallback(() => {
-        if (!currentForm) return;
-
-        const currentDataString = JSON.stringify({
-            name: data.internalName,
-            form_config: {
-                baseQuestions: data.baseQuestions,
-                serviceTree: data.serviceTree,
-                theme: data.theme,
-                primaryColor: data.primaryColor
-            }
-        });
-
-        // Only save if data has actually changed
-        if (currentDataString !== lastSavedDataRef.current) {
-            // TODO: Replace with new API client
-            /*
-            updateForm.mutate({
-                id: currentForm.id,
-                name: data.internalName,
-                form_config: {
-                    baseQuestions: data.baseQuestions,
-                    serviceTree: data.serviceTree,
-                    theme: data.theme,
-                    primaryColor: data.primaryColor
-                }
-            });
-            */
-            lastSavedDataRef.current = currentDataString;
-        }
-    }, [currentForm, data]);
-
-    // Simplified debounced auto-save effect
-    useEffect(() => {
-        if (!currentForm) return;
-
-        const currentDataString = JSON.stringify({
-            name: data.internalName,
-            form_config: {
-                baseQuestions: data.baseQuestions,
-                serviceTree: data.serviceTree,
-                theme: data.theme,
-                primaryColor: data.primaryColor
-            }
-        });
-
-        // Skip on initial load
-        if (!isInitializedRef.current) {
-            lastSavedDataRef.current = currentDataString;
-            isInitializedRef.current = true;
-            return;
-        }
-
-        // Only save if data changed
-        if (currentDataString !== lastSavedDataRef.current) {
-            // Clear existing timeout
-            if (autoSaveTimeoutRef.current) {
-                clearTimeout(autoSaveTimeoutRef.current);
-            }
-
-            // Set new timeout (2 seconds)
-            autoSaveTimeoutRef.current = setTimeout(() => {
-                autoSave();
-            }, 2000);
-        }
-
-        // Cleanup
-        return () => {
-            if (autoSaveTimeoutRef.current) {
-                clearTimeout(autoSaveTimeoutRef.current);
-            }
-        };
-    }, [data.internalName, data.baseQuestions, data.serviceTree, data.theme, data.primaryColor, autoSave, currentForm]);
+    // Note: Autosave functionality is now handled by the parent component via useUnifiedAutosave
+    // Service synchronization will be implemented when the API hooks are available
 
     // Use our extracted state management hook for UI state only
     const [state, actions] = useFormEditorState(
@@ -840,8 +571,8 @@ function FormEditorLayoutInner({
                 // This is a group node
                 return {
                     id: child.id,
-                    type: 'group',
-                    title: child.label,
+                    type: 'split',
+                    label: child.label,
                     description: child.description || 'Group of services', // Use description if available
                     children: child.children ? convertFlowNodesToServices(child) : []
                 };
@@ -871,7 +602,7 @@ function FormEditorLayoutInner({
                 return {
                     id: child.id,
                     type: 'service',
-                    title: child.label,
+                    label: child.label,
                     description: serviceDescription,
                     duration: serviceDuration,
                     price: servicePrice,
@@ -882,7 +613,12 @@ function FormEditorLayoutInner({
                     interval: serviceInterval,
                     additionalQuestions: serviceAdditionalQuestions,
                     assignedEmployeeIds: serviceAssignedEmployeeIds,
-                    defaultEmployeeId: serviceDefaultEmployeeId
+                    defaultEmployeeId: serviceDefaultEmployeeId,
+                    // Add missing scheduling properties
+                    minimumNotice: child.minimumNotice || 24,
+                    minimumNoticeUnit: child.minimumNoticeUnit || 'hours',
+                    dateRangeType: child.dateRangeType || 'indefinite',
+                    rollingDays: child.rollingDays || 14
                 };
             }
             return null;
@@ -895,13 +631,14 @@ function FormEditorLayoutInner({
         if (onNodeSelect) onNodeSelect(nodeId);
     }, [actions, state.currentLevel, onNodeSelect]);
 
-    // Handle node update
+    // Handle node update - memoized with minimal dependencies to prevent infinite loops
     const handleUpdateNode = useCallback((nodeId: string, updates: Partial<FlowNode>) => {
+        console.log('🔧 [FormEditorLayout] Updating node:', { nodeId, updates });
         dispatch({
             type: 'UPDATE_NODE',
             payload: { nodeId, updates }
         });
-    }, [data.serviceTree, state.selectedNodeId, state.currentLevel, dispatch]);
+    }, [dispatch]);
 
     // Function to update a node in the tree
     const updateNodeInTree = (node: FlowNode, nodeId: string, updates: Partial<FlowNode>): FlowNode => {
@@ -933,36 +670,48 @@ function FormEditorLayoutInner({
         return null;
     };
 
-    // Common navigation and UI handlers
-    const handleExit = () => {
+    // Common navigation and UI handlers - memoized to prevent re-renders
+    const handleExit = useCallback(() => {
         navigate({ to: "/forms" });
-    };
+    }, [navigate]);
 
-    const handleOpenPreview = () => {
-        // Open form preview in new tab
-        window.open("/form-preview", "_blank");
-    };
+    const handleOpenPreview = useCallback(() => {
+        // Open hosted form page in new tab
+        if (activeOrganization?.slug && data.slug) {
+            const formUrl = `/f/${activeOrganization.slug}/${data.slug}`;
+            console.log('🔍 [FormEditorLayout] Opening preview:', formUrl);
+            window.open(formUrl, "_blank");
+        }
+    }, [activeOrganization?.slug, data.slug]);
 
-    const handleEmbed = () => {
+    const handleEmbed = useCallback(() => {
+        console.log('🔗 [FormEditorLayout] Opening embed dialog');
         setIsEmbedDialogOpen(true);
-    };
+    }, []);
 
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
+        console.log('🗑️ [FormEditorLayout] Delete form clicked');
         // Delete form - to be implemented
-    };
+    }, []);
 
     // Handle booking submission for preview
     const handleBookingSubmit = (bookingData: any) => {
         // Process booking submission - to be implemented
     };
 
-    // Helper function to find a node by ID
-    const handleFormSettingsUpdate = (updates: { internalName?: string; theme?: 'light' | 'dark'; primaryColor?: string }) => {
+    // Helper function to update form settings - memoized to prevent re-renders
+    const handleFormSettingsUpdate = useCallback((updates: { 
+        internalName?: string; 
+        slug?: string;
+        theme?: 'light' | 'dark'; 
+        primaryColor?: string 
+    }) => {
+        console.log('⚙️ [FormEditorLayout] Updating form settings:', updates);
         dispatch({
             type: 'UPDATE_FORM_SETTINGS',
             payload: updates
         });
-    };
+    }, [dispatch]);
 
     // Effect to handle navigation state changes
     useEffect(() => {
@@ -1026,9 +775,8 @@ function FormEditorLayoutInner({
                 return (
                     <RootView
                         formName={data.internalName}
-                        formSlug={data.slug}
+                        formId={data.id}
                         onFormNameChange={(name) => handleFormSettingsUpdate({ internalName: name })}
-                        onFormSlugChange={(slug) => handleFormSettingsUpdate({ slug })}
                         onNavigate={actions.navigateToLevel}
                     />
                 );
@@ -1036,14 +784,30 @@ function FormEditorLayoutInner({
                 return (
                     <ServicesView
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         servicesContent={renderServicesContent()}
                         onAddService={() => {
-                            // Add service to root node
+                            // Add service to root node with all required fields
                             const newNode: FlowNode = {
                                 id: `node-${Date.now()}`,
                                 type: "service",
                                 label: "New Service",
-                                additionalQuestions: []
+                                description: "",
+                                price: 0,
+                                duration: 30, // Default 30 minutes
+                                bufferTime: 15, // Default 15 minutes buffer
+                                interval: 30, // Default 30 minute booking intervals
+                                dateRangeType: "indefinite",
+                                minimumNotice: 24,
+                                minimumNoticeUnit: "hours",
+                                bookingInterval: 30,
+                                availabilityRules: [],
+                                blockedTimes: [],
+                                unavailableDates: [],
+                                additionalQuestions: [],
+                                assignedEmployeeIds: [],
+                                defaultEmployeeId: undefined
                             };
 
                             dispatch({
@@ -1063,7 +827,8 @@ function FormEditorLayoutInner({
                             const newNode: FlowNode = {
                                 id: `node-${Date.now()}`,
                                 type: "split",
-                                label: "New Group"
+                                label: "New Group",
+                                children: []
                             };
 
                             dispatch({
@@ -1084,6 +849,8 @@ function FormEditorLayoutInner({
                 return (
                     <QuestionsView
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         onOptionValueChange={(questionId, eventType, oldValue, newValue) =>
                             handleOptionValueChange(questionId, eventType, oldValue, newValue)
                         }
@@ -1094,10 +861,15 @@ function FormEditorLayoutInner({
                 return (
                     <BrandingView
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         formTheme={data.theme}
                         primaryColor={data.primaryColor}
+                        formSlug={data.slug}
+                        organizationSlug={activeOrganization?.slug}
                         onFormThemeChange={(theme) => handleFormSettingsUpdate({ theme })}
                         onPrimaryColorChange={(color) => handleFormSettingsUpdate({ primaryColor: color })}
+                        onFormSlugChange={(slug) => handleFormSettingsUpdate({ slug })}
                     />
                 );
             case "group-details":
@@ -1114,6 +886,8 @@ function FormEditorLayoutInner({
                                 <GroupDetailsView
                                     node={node}
                                     onNavigateBack={actions.navigateBack}
+                                    currentLevel={state.currentLevel}
+                                    onNavigate={actions.navigateToLevel}
                                     onUpdateNode={handleUpdateNode}
                                 />
                             );
@@ -1128,6 +902,8 @@ function FormEditorLayoutInner({
                     <GroupDetailsView
                         node={state.selectedNode}
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         onUpdateNode={handleUpdateNode}
                     />
                 );
@@ -1145,6 +921,8 @@ function FormEditorLayoutInner({
                                 <ServiceOptionsView
                                     node={node}
                                     onNavigateBack={actions.navigateBack}
+                                    currentLevel={state.currentLevel}
+                                    onNavigate={actions.navigateToLevel}
                                     onNavigateToDetail={actions.navigateToServiceDetail}
                                     activeView={state.serviceDetailView}
                                     onUpdateNode={handleUpdateNode}
@@ -1161,6 +939,8 @@ function FormEditorLayoutInner({
                     <ServiceOptionsView
                         node={state.selectedNode}
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         onNavigateToDetail={actions.navigateToServiceDetail}
                         activeView={state.serviceDetailView}
                         onUpdateNode={handleUpdateNode}
@@ -1180,6 +960,8 @@ function FormEditorLayoutInner({
                                 <ServiceDetailsView
                                     node={node}
                                     onNavigateBack={actions.navigateBack}
+                                    currentLevel={state.currentLevel}
+                                    onNavigate={actions.navigateToLevel}
                                     onUpdateNode={handleUpdateNode}
                                 />
                             );
@@ -1194,6 +976,8 @@ function FormEditorLayoutInner({
                     <ServiceDetailsView
                         node={state.selectedNode}
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         onUpdateNode={handleUpdateNode}
                     />
                 );
@@ -1211,6 +995,8 @@ function FormEditorLayoutInner({
                                 <SchedulingSettingsView
                                     node={node}
                                     onNavigateBack={actions.navigateBack}
+                                    currentLevel={state.currentLevel}
+                                    onNavigate={actions.navigateToLevel}
                                     onUpdateNode={handleUpdateNode}
                                 />
                             );
@@ -1225,6 +1011,8 @@ function FormEditorLayoutInner({
                     <SchedulingSettingsView
                         node={state.selectedNode}
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         onUpdateNode={handleUpdateNode}
                     />
                 );
@@ -1242,6 +1030,8 @@ function FormEditorLayoutInner({
                                 <ServiceQuestionsView
                                     node={node}
                                     onNavigateBack={actions.navigateBack}
+                                    currentLevel={state.currentLevel}
+                                    onNavigate={actions.navigateToLevel}
                                     onUpdateNode={handleUpdateNode}
                                     baseQuestions={data.baseQuestions}
                                     onOptionValueChange={(questionId, eventType, oldValue, newValue) =>
@@ -1261,6 +1051,8 @@ function FormEditorLayoutInner({
                     <ServiceQuestionsView
                         node={state.selectedNode}
                         onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
                         onUpdateNode={handleUpdateNode}
                         baseQuestions={data.baseQuestions}
                         onOptionValueChange={(questionId, eventType, oldValue, newValue) =>
@@ -1269,13 +1061,47 @@ function FormEditorLayoutInner({
                         onFieldTypeChange={handleFieldTypeChange}
                     />
                 );
+            case "service-employees":
+                // Safe check: if selectedNode is null, go back to services view
+                if (!state.selectedNode) {
+                    // Try to find the node if we have its ID
+                    if (state.selectedNodeId) {
+                        const node = findNodeById(data.serviceTree, state.selectedNodeId);
+                        if (node) {
+                            // Found the node, update the state
+                            actions.updateSelectedNodeOnly(node);
+                            // Then render with the node
+                            return (
+                                <ServiceEmployeeAssignmentView
+                                    node={node}
+                                    onNavigateBack={actions.navigateBack}
+                                    currentLevel={state.currentLevel}
+                                    onNavigate={actions.navigateToLevel}
+                                    onUpdateNode={handleUpdateNode}
+                                />
+                            );
+                        }
+                    }
+                    // If we reach here, go back to services
+                    setTimeout(() => actions.navigateToLevel("services"), 0);
+                    return null;
+                }
+                // Normal case with selectedNode available
+                return (
+                    <ServiceEmployeeAssignmentView
+                        node={state.selectedNode}
+                        onNavigateBack={actions.navigateBack}
+                        currentLevel={state.currentLevel}
+                        onNavigate={actions.navigateToLevel}
+                        onUpdateNode={handleUpdateNode}
+                    />
+                );
             default:
                 return (
                     <RootView
                         formName={data.internalName}
-                        formSlug={data.slug}
+                        formId={data.id}
                         onFormNameChange={(name) => handleFormSettingsUpdate({ internalName: name })}
-                        onFormSlugChange={(slug) => handleFormSettingsUpdate({ slug })}
                         onNavigate={actions.navigateToLevel}
                     />
                 );
@@ -1295,7 +1121,7 @@ function FormEditorLayoutInner({
                 for (const item of items) {
                     if (!item) continue;
                     if (item.id === serviceId) return item;
-                    if (item.type === 'group' && item.children && Array.isArray(item.children)) {
+                    if (item.type === 'split' && item.children && Array.isArray(item.children)) {
                         const found = findServiceInTree(item.children);
                         if (found) return found;
                     }
@@ -1327,6 +1153,7 @@ function FormEditorLayoutInner({
                     onOptionValueChange={(questionId: string, eventType: 'option-change' | 'value-update', oldValue: string, newValue: string) =>
                         handleOptionValueChange(questionId, eventType, oldValue, newValue)
                     }
+                    organizationId={activeOrganization?.id}
                 />
             </FormEditorPreview>
         );
@@ -1343,17 +1170,94 @@ function FormEditorLayoutInner({
                     type: 'REMOVE_NODE',
                     payload: { nodeId: id }
                 });
+            } else if (action === 'edit') {
+                // Select the node to open its details view
+                actions.selectNode(id);
+                if (onNodeSelect) onNodeSelect(id);
+            } else if (action === 'duplicate') {
+                // Find the node to duplicate
+                const findNode = (node: FlowNode, targetId: string): FlowNode | null => {
+                    if (node.id === targetId) return node;
+                    if (node.children) {
+                        for (const child of node.children) {
+                            const found = findNode(child, targetId);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
+                };
+                
+                const nodeToDuplicate = findNode(data.serviceTree, id);
+                if (nodeToDuplicate) {
+                    // Create a deep copy with new IDs
+                    const duplicateNode = (node: FlowNode): FlowNode => {
+                        const newNode: FlowNode = {
+                            ...node,
+                            id: `node-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                            label: `${node.label} (Copy)`,
+                            children: node.children?.map(duplicateNode)
+                        };
+                        return newNode;
+                    };
+                    
+                    const duplicatedNode = duplicateNode(nodeToDuplicate);
+                    
+                    // Find parent and add the duplicated node
+                    const findParentAndAdd = (node: FlowNode, targetId: string): boolean => {
+                        if (node.children) {
+                            const childIndex = node.children.findIndex(child => child.id === targetId);
+                            if (childIndex !== -1) {
+                                const newChildren = [...node.children];
+                                newChildren.splice(childIndex + 1, 0, duplicatedNode);
+                                dispatch({
+                                    type: 'UPDATE_NODE',
+                                    payload: {
+                                        nodeId: node.id,
+                                        updates: { children: newChildren }
+                                    }
+                                });
+                                return true;
+                            }
+                            for (const child of node.children) {
+                                if (findParentAndAdd(child, targetId)) {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    };
+                    
+                    findParentAndAdd(data.serviceTree, id);
+                }
             }
         };
 
         const handleAddNode = (parentId: string, type: NodeType) => {
-            // Create a new node
-            const newNode: FlowNode = {
+            // Create a new node with all required fields
+            const newNode: FlowNode = type === "service" ? {
                 id: `node-${Date.now()}`,
-                type,
-                label: type === "split" ? "New Group" : "New Service",
-                // Ensure service nodes don't have any questions by default
-                ...(type === "service" ? { additionalQuestions: [] } : {})
+                type: "service",
+                label: "New Service",
+                description: "",
+                price: "$0",
+                duration: 30, // Default 30 minutes
+                bufferTime: 15, // Default 15 minutes buffer
+                interval: 30, // Default 30 minute booking intervals
+                dateRangeType: "indefinite",
+                minimumNotice: 24,
+                minimumNoticeUnit: "hours",
+                bookingInterval: 30,
+                availabilityRules: [],
+                blockedTimes: [],
+                unavailableDates: [],
+                additionalQuestions: [],
+                assignedEmployeeIds: [],
+                defaultEmployeeId: undefined
+            } : {
+                id: `node-${Date.now()}`,
+                type: "split",
+                label: "New Group",
+                children: []
             };
 
             // First update the data context
@@ -1415,6 +1319,12 @@ function FormEditorLayoutInner({
                 isDirty={isDirty}
                 errors={saveErrors}
                 onSaveNow={onSaveNow}
+                formUrl={React.useMemo(() => 
+                    activeOrganization?.slug && data.slug 
+                        ? `/f/${activeOrganization.slug}/${data.slug}` 
+                        : undefined, 
+                    [activeOrganization?.slug, data.slug]
+                )}
             />
 
             {/* Main content - left panel and preview */}

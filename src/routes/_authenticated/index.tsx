@@ -32,6 +32,7 @@ import { useLanguage } from '@/i18n/hooks/useLanguage'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
 import { useQuery } from '@tanstack/react-query'
+import { formatInTimezone } from '@/taali/utils/date'
 
 interface Booking {
   id: string
@@ -39,9 +40,8 @@ interface Booking {
   customerName: string
   customerEmail: string
   customerPhone: string | null
-  bookingDate: Date
-  startTime: string
-  endTime: string
+  bookingStartAt: Date
+  bookingEndAt: Date
   duration: number
   price: string
   status: string
@@ -136,7 +136,7 @@ function BookingsPage() {
 
   const columns: ColumnDef<Booking>[] = useMemo(() => [
     {
-      accessorKey: 'bookingDate',
+      accessorKey: 'bookingStartAt',
       header: ({ column }) => (
         <DataTableHeader column={column} sortable>
           {t('fields.dateTime')}
@@ -151,10 +151,10 @@ function BookingsPage() {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric'
-              }).format(new Date(booking.bookingDate))}
+              }).format(new Date(booking.bookingStartAt))}
             </span>
             <span className="text-sm text-muted-foreground">
-              {booking.startTime} - {booking.endTime}
+              {formatInTimezone(booking.bookingStartAt, organization?.timezone || 'America/New_York', 'h:mm a')} - {formatInTimezone(booking.bookingEndAt, organization?.timezone || 'America/New_York', 'h:mm a')}
             </span>
           </div>
         )
@@ -382,13 +382,13 @@ function BookingsPage() {
                           month: 'long',
                           day: 'numeric',
                           year: 'numeric'
-                        }).format(new Date(selectedBooking.bookingDate))}
+                        }).format(new Date(selectedBooking.bookingStartAt))}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.time')}</span>
                       <span className="font-medium">
-                        {selectedBooking.startTime} - {selectedBooking.endTime}
+                        {formatInTimezone(selectedBooking.bookingStartAt, organization?.timezone || 'America/New_York', 'h:mm a')} - {formatInTimezone(selectedBooking.bookingEndAt, organization?.timezone || 'America/New_York', 'h:mm a')}
                       </span>
                     </div>
                     <div className="flex justify-between">

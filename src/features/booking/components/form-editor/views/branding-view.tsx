@@ -1,15 +1,21 @@
 import React from "react";
 import { SunIcon, MoonIcon } from "lucide-react";
-import BackButton from "@/features/booking/components/form-editor/back-button";
+import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 import { ColorPicker } from "@/ui/color-picker";
+import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
 interface BrandingViewProps {
     onNavigateBack: () => void;
+    currentLevel?: NavigationLevel;
+    onNavigate?: (level: NavigationLevel) => void;
     formTheme: "light" | "dark";
     primaryColor: string;
+    formSlug: string;
+    organizationSlug?: string;
     onFormThemeChange: (theme: "light" | "dark") => void;
     onPrimaryColorChange: (color: string) => void;
+    onFormSlugChange: (slug: string) => void;
 }
 
 /**
@@ -17,16 +23,26 @@ interface BrandingViewProps {
  */
 export function BrandingView({
     onNavigateBack,
+    currentLevel = 'branding',
+    onNavigate,
     formTheme,
     primaryColor,
+    formSlug,
+    organizationSlug,
     onFormThemeChange,
-    onPrimaryColorChange
+    onPrimaryColorChange,
+    onFormSlugChange
 }: BrandingViewProps) {
+    const handleFormSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (onFormSlugChange) {
+            onFormSlugChange(e.target.value);
+        }
+    };
     return (
         <>
-            <BackButton
-                label="All settings"
-                onClick={onNavigateBack}
+            <FormEditorBreadcrumb
+                currentLevel={currentLevel}
+                onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
             <h2 className="text-2xl font-bold mb-4">Branding</h2>
@@ -52,17 +68,21 @@ export function BrandingView({
                 </div>
 
                 <div>
-                    <h3 className="font-medium mb-2">URL</h3>
+                    <h3 className="font-medium mb-2">Form URL Slug</h3>
                     <div>
                         <input
                             type="text"
-                            className="w-full p-2 border rounded-md"
-                            defaultValue="book-online"
+                            className="w-full p-2 border rounded-md font-mono text-sm"
+                            value={formSlug}
+                            onChange={handleFormSlugChange}
+                            placeholder="my-booking-form"
+                            pattern="[a-z0-9-]+"
                         />
                         <p className="text-sm text-muted-foreground mt-1">
-                            The full URL to share with customers will be
-                            <br />
-                            sunshinecoastplumbing.joey.pro/book-online
+                            This creates your hosted page URL:{' '}
+                            <span className="font-mono">
+                                {organizationSlug ? `${organizationSlug}.joey.pro/${formSlug || 'your-slug'}` : `yourorg.joey.pro/${formSlug || 'your-slug'}`}
+                            </span>
                         </p>
                     </div>
                 </div>

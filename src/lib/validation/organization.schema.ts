@@ -5,7 +5,8 @@ import { validationRules } from './validation-registry'
 // Create organization schema from validation rules
 export const organizationFormSchema = z.object({
   name: validationRules.organization.name,
-  slug: validationRules.organization.slug
+  slug: validationRules.organization.slug,
+  timezone: validationRules.organization.timezone
 })
 
 export type OrganizationFormData = z.infer<typeof organizationFormSchema>

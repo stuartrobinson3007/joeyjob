@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getSubscription } from '@/features/billing/lib/billing.server'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 
-export function useSubscription() {
+export function useSubscription(options?: { enabled?: boolean }) {
   const { activeOrganizationId } = useActiveOrganization()
   
   
@@ -14,7 +14,7 @@ export function useSubscription() {
       
       return result
     },
-    enabled: !!activeOrganizationId,
+    enabled: (options?.enabled ?? true) && !!activeOrganizationId,
     retry: 1,
     staleTime: 30000, // Cache for 30 seconds
   })

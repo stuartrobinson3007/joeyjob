@@ -1,7 +1,7 @@
 import { db } from '@/lib/db/db'
 import { bookings, services, bookingForms, organization } from '@/database/schema'
 import { nanoid } from 'nanoid'
-import { addDays, addHours, format } from 'date-fns'
+import { addDays, addHours, addMinutes, format, setHours, setMinutes } from 'date-fns'
 
 // Sample customer names
 const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'Robert', 'Lisa', 'James', 'Mary']
@@ -110,23 +110,21 @@ async function seedBookings() {
       
       // Generate booking date (past 30 days to future 30 days)
       const daysOffset = Math.floor(Math.random() * 60) - 30
-      const bookingDate = addDays(now, daysOffset)
+      const bookingDay = addDays(now, daysOffset)
       
       // Generate start time (8 AM to 4 PM)
       const startHour = Math.floor(Math.random() * 8) + 8
-      const startTime = format(new Date(2024, 0, 1, startHour, 0), 'HH:mm')
+      const bookingStartAt = setHours(setMinutes(bookingDay, 0), startHour)
       
       // Calculate end time based on service duration
       const duration = service.duration || 60
-      const endHour = startHour + Math.floor(duration / 60)
-      const endMinute = duration % 60
-      const endTime = format(new Date(2024, 0, 1, endHour, endMinute), 'HH:mm')
+      const bookingEndAt = addMinutes(bookingStartAt, duration)
       
       // Determine status based on date
       let status = statuses[Math.floor(Math.random() * statuses.length)]
-      if (bookingDate > now && (status === 'completed' || status === 'no-show')) {
+      if (bookingStartAt > now && (status === 'completed' || status === 'no-show')) {
         status = 'confirmed'
-      } else if (bookingDate < now && status === 'pending') {
+      } else if (bookingStartAt < now && status === 'pending') {
         status = 'completed'
       }
       
@@ -139,9 +137,8 @@ async function seedBookings() {
         customerEmail: generateEmail(firstName, lastName),
         customerName: `${firstName} ${lastName}`,
         customerPhone: Math.random() > 0.3 ? generatePhone() : null,
-        bookingDate,
-        startTime,
-        endTime,
+        bookingStartAt,
+        bookingEndAt,
         duration,
         price: service.price || '100',
         status,
@@ -151,11 +148,11 @@ async function seedBookings() {
         formData: generateFormData(),
         source: sources[Math.floor(Math.random() * sources.length)],
         confirmationCode: nanoid(8).toUpperCase(),
-        reminderSent: bookingDate < now ? Math.random() > 0.5 : false,
-        reminderSentAt: bookingDate < now && Math.random() > 0.5 ? addDays(bookingDate, -1) : null,
+        reminderSent: bookingStartAt < now ? Math.random() > 0.5 : false,
+        reminderSentAt: bookingStartAt < now && Math.random() > 0.5 ? addDays(bookingStartAt, -1) : null,
         createdBy: null,
-        createdAt: addDays(bookingDate, -Math.floor(Math.random() * 7) - 1),
-        updatedAt: addDays(bookingDate, -Math.floor(Math.random() * 3)),
+        createdAt: addDays(bookingStartAt, -Math.floor(Math.random() * 7) - 1),
+        updatedAt: addDays(bookingStartAt, -Math.floor(Math.random() * 3)),
       }
       
       bookingsToInsert.push(booking)

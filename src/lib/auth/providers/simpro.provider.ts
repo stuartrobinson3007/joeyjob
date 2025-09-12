@@ -113,7 +113,6 @@ export class SimProProvider implements AuthProvider {
       domain: buildConfig.domain,
       companyId: simproUser.CompanyID,
       metadata: {
-        displayOnSchedule: simproUser.DisplayOnSchedule,
         active: simproUser.Active,
       },
     }

@@ -210,11 +210,11 @@ export function useErrorHandler(context?: string) {
     }
   }, [context]);
 
-  const handleAsyncError = React.useCallback(async <T>(
-    operation: () => Promise<T>,
+  const handleAsyncError = React.useCallback(async (
+    operation: () => Promise<any>,
     errorMessage?: string,
-    retryable = true
-  ): Promise<T> => {
+    retryable: boolean = true
+  ) => {
     try {
       return await operation();
     } catch (error) {
