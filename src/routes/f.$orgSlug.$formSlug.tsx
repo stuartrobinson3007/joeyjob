@@ -218,7 +218,7 @@ function HostedBookingPage() {
           organizationId={organization.id}
           organizationName={organization.name}
           organizationPhone={organization.phone}
-          organizationTimezone={organization.timezone}
+          organizationTimezone={organization.timezone || 'Australia/Sydney'}
           className="bg-background shadow-lg rounded-lg p-4 lg:p-8"
         />
       </main>

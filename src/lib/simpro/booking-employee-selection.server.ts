@@ -54,10 +54,6 @@ export async function selectEmployeeForBooking(
     employeePriorities?: Map<number, { isDefault: boolean }>
 ): Promise<BookingEmployeeSelection | null> {
     
-    console.log('👤 [BOOKING EMPLOYEE SELECTION] Selecting employee for booking')
-    console.log(`   Date: ${date.toISOString().split('T')[0]}`)
-    console.log(`   Time: ${startTime}`)
-    console.log(`   Employees to check: ${assignedEmployeeIds.length}`)
     
     try {
         const simproApi = await getSimproApiForUser(userId)
@@ -66,7 +62,6 @@ export async function selectEmployeeForBooking(
         const employeeDataMap = await fetchEmployeesInBulk(simproApi, assignedEmployeeIds)
         
         if (employeeDataMap.size === 0) {
-            console.warn('⚠️ [BOOKING EMPLOYEE SELECTION] No employee data available')
             return null
         }
         
@@ -79,7 +74,6 @@ export async function selectEmployeeForBooking(
             assignedEmployeeIds
         )
         
-        console.log(`📅 [BOOKING EMPLOYEE SELECTION] Found ${schedules.length} existing schedules for ${bookingDateStr}`)
         
         // STEP 3: Check which employees are available for this specific time slot
         const availableEmployees = getAvailableEmployeesForTimeSlot(
@@ -91,23 +85,19 @@ export async function selectEmployeeForBooking(
             employeePriorities
         )
         
-        console.log(`✅ [BOOKING EMPLOYEE SELECTION] Found ${availableEmployees.length} available employees`)
         
         if (availableEmployees.length === 0) {
-            console.warn('⚠️ [BOOKING EMPLOYEE SELECTION] No employees available for this time slot')
             return {
                 selectedEmployee: null as any,
                 availableEmployees: [],
                 totalEmployeesChecked: assignedEmployeeIds.length
-            } as any // Return null but with context
+            } as any
         }
         
         // STEP 4: Apply priority selection logic
         // The getAvailableEmployeesForTimeSlot already sorts by priority (default first)
         const selectedEmployee = availableEmployees[0]
         
-        console.log(`🎯 [BOOKING EMPLOYEE SELECTION] Selected employee: ${selectedEmployee.employeeName} (ID: ${selectedEmployee.employeeId})`)
-        console.log(`   Reason: ${selectedEmployee.isDefault ? 'Default employee' : 'First available'}`)
         
         return {
             selectedEmployee,
@@ -116,7 +106,6 @@ export async function selectEmployeeForBooking(
         }
         
     } catch (error) {
-        console.error('❌ [BOOKING EMPLOYEE SELECTION] Error selecting employee:', error)
         return null
     }
 }
@@ -155,7 +144,6 @@ export async function isTimeSlotAvailable(
         return selection !== null && selection.availableEmployees.length > 0
         
     } catch (error) {
-        console.error('❌ [BOOKING EMPLOYEE SELECTION] Error checking time slot availability:', error)
         return false // Fail closed - assume not available on error
     }
 }
@@ -188,7 +176,6 @@ export async function getAvailableEmployeesForBooking(
         return selection?.availableEmployees || []
         
     } catch (error) {
-        console.error('❌ [BOOKING EMPLOYEE SELECTION] Error getting available employees:', error)
         return []
     }
 }

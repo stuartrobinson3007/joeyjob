@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Button } from '@/ui/button'
 import { Form } from '@/ui/form'
 import { toast } from 'sonner'
+import { formatServicePrice } from '@/lib/utils/price-formatting'
 
 // Note: Server function will be called dynamically in the loader
 // to avoid bundling server code into client
@@ -202,7 +203,7 @@ function EmbedBookingPage() {
               <div className="text-sm text-muted-foreground space-y-1">
                 <p><strong>Service:</strong> {service.name}</p>
                 <p><strong>Duration:</strong> {service.duration} minutes</p>
-                <p><strong>Price:</strong> ${service.price}</p>
+                <p><strong>Price:</strong> {formatServicePrice(service.price)}</p>
               </div>
             )}
           </CardHeader>

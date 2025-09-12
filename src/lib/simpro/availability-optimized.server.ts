@@ -28,8 +28,6 @@ export async function getServiceAvailability(
     month: number
 ): Promise<{ [date: string]: string[] }> {
     
-    console.log('🚀 [OPTIMIZED AVAILABILITY] Starting optimized availability calculation')
-    console.log(`   Employees: ${assignedEmployeeIds.length}, Month: ${year}-${month}`)
     
     const startTime = Date.now()
     
@@ -37,9 +35,7 @@ export async function getServiceAvailability(
         const simproApi = await getSimproApiForUser(userId)
         
         // STEP 1: Bulk fetch all employee details using shared utils
-        console.log('📋 [OPTIMIZED AVAILABILITY] Fetching all employee details in bulk...')
         const employeeDetailsMap = await fetchEmployeesInBulk(simproApi, assignedEmployeeIds)
-        console.log(`✅ Cached ${employeeDetailsMap.size} employee availability schedules`)
         
         // STEP 2: Bulk fetch all schedules for the month using shared utils
         const startOfMonth = new Date(year, month - 1, 1)
@@ -47,12 +43,9 @@ export async function getServiceAvailability(
         const startDate = startOfMonth.toISOString().split('T')[0]
         const endDate = endOfMonth.toISOString().split('T')[0]
         
-        console.log('📅 [OPTIMIZED AVAILABILITY] Fetching bulk schedules...')
         const relevantSchedules = await fetchSchedulesInBulk(simproApi, startDate, endDate, assignedEmployeeIds)
-        console.log(`✅ Processed ${relevantSchedules.length} relevant schedules`)
         
         // STEP 3: Process all days in-memory (0 additional API calls)
-        console.log('⚡ [OPTIMIZED AVAILABILITY] Processing availability in-memory...')
         
         const availability: { [date: string]: string[] } = {}
         const today = new Date()
@@ -67,7 +60,6 @@ export async function getServiceAvailability(
             }
         }
         
-        console.log(`📊 Processing ${daysToProcess.length} days...`)
         
         // Process each day using shared utility functions
         for (const checkDate of daysToProcess) {
@@ -89,16 +81,10 @@ export async function getServiceAvailability(
         const endTime = Date.now()
         const processingTime = endTime - startTime
         
-        console.log('🎉 [OPTIMIZED AVAILABILITY] Calculation complete!')
-        console.log(`   Processing time: ${processingTime}ms`)
-        console.log(`   Available dates: ${Object.keys(availability).length}`)
-        console.log(`   Total slots: ${Object.values(availability).reduce((sum, slots) => sum + slots.length, 0)}`)
-        console.log(`   API calls made: 2 (down from 200+)`)
         
         return availability
         
     } catch (error) {
-        console.error('❌ [OPTIMIZED AVAILABILITY] Error:', error)
         throw error
     }
 }

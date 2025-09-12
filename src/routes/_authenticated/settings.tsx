@@ -231,40 +231,6 @@ function OrganizationSettingsForm() {
                   validate: validateSlug
                 }}
               />
-              {/* 
-              <FormField
-                control={form.control}
-                name="timezone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Timezone</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select timezone" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                        <SelectItem value="America/Phoenix">Arizona Time (MST)</SelectItem>
-                        <SelectItem value="America/Anchorage">Alaska Time (AKT)</SelectItem>
-                        <SelectItem value="Pacific/Honolulu">Hawaii Time (HST)</SelectItem>
-                        <SelectItem value="America/Toronto">Toronto (ET)</SelectItem>
-                        <SelectItem value="America/Vancouver">Vancouver (PT)</SelectItem>
-                        <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                        <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                        <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
-                        <SelectItem value="Australia/Melbourne">Melbourne (AEDT)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
 
               <FormField
                 control={form.control}
@@ -273,14 +239,15 @@ function OrganizationSettingsForm() {
                   console.log('field', field)
                   return (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <FormLabel>Timezone</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined} defaultValue='America/New_York'>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a verified email to display" />
+                            <SelectValue placeholder="Select timezone..." />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="America/New_York">New York (EST)</SelectItem>
                           <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
                           <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
                           <SelectItem value="Australia/Melbourne">Melbourne (AEDT)</SelectItem>

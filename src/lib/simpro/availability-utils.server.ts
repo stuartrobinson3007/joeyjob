@@ -85,10 +85,7 @@ export async function fetchEmployeesInBulk(
             const workingDays = new Map<string, Array<{ startTime: string; endTime: string }>>()
             
             if (employee.Availability && Array.isArray(employee.Availability)) {
-                console.log(`🕐 [EMPLOYEE ${employeeId}] Raw availability data from Simpro:`, employee.Availability)
                 employee.Availability.forEach(avail => {
-                    console.log(`  ${avail.StartDate}: ${avail.StartTime} - ${avail.EndTime}`)
-                    
                     // Add to existing blocks for this day (don't overwrite)
                     const existingBlocks = workingDays.get(avail.StartDate) || []
                     workingDays.set(avail.StartDate, [
@@ -96,8 +93,6 @@ export async function fetchEmployeesInBulk(
                         { startTime: avail.StartTime, endTime: avail.EndTime }
                     ])
                 })
-            } else {
-                console.log(`⚠️ [EMPLOYEE ${employeeId}] No availability data found`)
             }
             
             return {
@@ -107,7 +102,6 @@ export async function fetchEmployeesInBulk(
             } as EmployeeAvailabilityData
             
         } catch (error) {
-            console.warn(`⚠️ Could not fetch details for employee ${employeeId}:`, error)
             return null
         }
     })
@@ -120,7 +114,6 @@ export async function fetchEmployeesInBulk(
         }
     })
     
-    console.log(`📋 [AVAILABILITY UTILS] Fetched ${employeeMap.size}/${employeeIds.length} employee details`)
     return employeeMap
 }
 
@@ -147,11 +140,9 @@ export async function fetchSchedulesInBulk(
               })
             : []
             
-        console.log(`📅 [AVAILABILITY UTILS] Fetched ${relevantSchedules.length} schedules for ${startDate} to ${endDate}`)
         return relevantSchedules
         
     } catch (error) {
-        console.warn(`⚠️ Could not fetch schedules for ${startDate} to ${endDate}:`, error)
         return []
     }
 }
@@ -281,12 +272,8 @@ export function calculateAvailableSlotsForDate(
     for (const [employeeId, employeeData] of employeeDataMap) {
         const workingBlocks = employeeData.workingDays.get(dayOfWeek)
         if (!workingBlocks || workingBlocks.length === 0) {
-            console.log(`  Employee ${employeeId}: Not scheduled to work on ${dayOfWeek}`)
             continue // Employee doesn't work this day
         }
-        
-        console.log(`  Employee ${employeeId}: Has ${workingBlocks.length} work block(s) on ${dayOfWeek}:`, 
-            workingBlocks.map(block => `${block.startTime}-${block.endTime}`).join(', '))
         
         // Get employee's existing bookings for this date
         const employeeSchedules = schedules.filter(s => 
@@ -296,9 +283,7 @@ export function calculateAvailableSlotsForDate(
         // Calculate available slots for each work block and combine them
         const allEmployeeSlots: string[] = []
         
-        workingBlocks.forEach((workingHours, blockIndex) => {
-            console.log(`    Processing block ${blockIndex + 1}: ${workingHours.startTime}-${workingHours.endTime}`)
-            
+        workingBlocks.forEach((workingHours) => {
             const blockSlots = calculateAvailableSlotsForEmployee(
                 workingHours,
                 employeeSchedules,
@@ -306,13 +291,11 @@ export function calculateAvailableSlotsForDate(
                 date
             )
             
-            console.log(`    Block ${blockIndex + 1} generated ${blockSlots.length} slots`)
             allEmployeeSlots.push(...blockSlots)
         })
         
         // Remove duplicates and add to combined availability
         const uniqueEmployeeSlots = [...new Set(allEmployeeSlots)]
-        console.log(`  Employee ${employeeId}: Total ${uniqueEmployeeSlots.length} unique slots from all blocks`)
         
         uniqueEmployeeSlots.forEach(slot => {
             if (!allAvailableSlots.has(slot)) {
@@ -329,7 +312,6 @@ export function calculateAvailableSlotsForDate(
         const bMinutes = timeStringToMinutes(b)
         return aMinutes - bMinutes
     })
-    console.log(`📅 [${dateKey}] Generated ${finalSlots.length} time slots:`, finalSlots.join(', '))
     return finalSlots
 }
 
@@ -349,8 +331,6 @@ function calculateAvailableSlotsForEmployee(
     const workStart = timeToMinutes(workingHours.startTime)
     const workEnd = timeToMinutes(workingHours.endTime)
     
-    console.log(`    🔢 [TIME CONVERSION] Working hours: ${workingHours.startTime} - ${workingHours.endTime}`)
-    console.log(`    🔢 [TIME CONVERSION] Converted to minutes: ${workStart} - ${workEnd} (${Math.floor(workStart/60)}:${(workStart%60).toString().padStart(2,'0')} - ${Math.floor(workEnd/60)}:${(workEnd%60).toString().padStart(2,'0')})`)
     
     // Get busy periods from existing schedules
     const busyPeriods = employeeSchedules
@@ -384,9 +364,6 @@ function calculateAvailableSlotsForEmployee(
             
             if (hoursUntilSlot >= serviceSettings.minimumNotice) {
                 const timeSlot = minutesToTime12h(currentTime)
-                if (slots.length < 5) { // Log first 5 slots for debugging
-                    console.log(`    🕐 [SLOT GENERATION] Time ${currentTime} minutes = ${Math.floor(currentTime/60)}:${(currentTime%60).toString().padStart(2,'0')} = ${timeSlot}`)
-                }
                 slots.push(timeSlot)
             }
         }

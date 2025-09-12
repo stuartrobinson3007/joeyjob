@@ -6,7 +6,6 @@ import { getServiceAvailability } from '@/lib/simpro/availability-optimized.serv
 
 export const ServerRoute = createServerFileRoute('/api/public/services/$serviceId/availability').methods({
     POST: async ({ params, request }) => {
-        console.log('📅 [SERVICE AVAILABILITY API] POST request for service:', params.serviceId)
         
         try {
             const { serviceId } = params
@@ -19,13 +18,6 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
             const body = await request.json()
             const { year, month, organizationId, serviceSettings } = body
             
-            console.log('📅 [SERVICE AVAILABILITY API] Request data:', {
-                serviceId,
-                year,
-                month,
-                organizationId,
-                serviceSettings: serviceSettings ? Object.keys(serviceSettings) : 'missing'
-            })
 
             if (!year || !month || !organizationId || !serviceSettings) {
                 return Response.json({ error: 'year, month, organizationId, and serviceSettings are required' }, { status: 400 })
@@ -34,7 +26,6 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
             // Get assigned employee IDs from service settings
             const assignedEmployeeIds = serviceSettings.assignedEmployeeIds || []
             if (assignedEmployeeIds.length === 0) {
-                console.log('⚠️ [SERVICE AVAILABILITY API] No employees assigned to this service')
                 return Response.json({})
             }
 
@@ -46,7 +37,6 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
                 .limit(1)
 
             if (!orgMember.length) {
-                console.warn('⚠️ [SERVICE AVAILABILITY API] No organization member found')
                 return Response.json({})
             }
 
@@ -64,7 +54,6 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
                 ))
 
             if (employees.length === 0) {
-                console.log('⚠️ [SERVICE AVAILABILITY API] No active employees found')
                 return Response.json({})
             }
 
@@ -85,11 +74,6 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
                 month
             )
 
-            console.log('✅ [SERVICE AVAILABILITY API] Returning availability data:', {
-                employeeCount: employees.length,
-                availableDatesCount: Object.keys(availability).length,
-                totalSlots: Object.values(availability).reduce((sum, slots) => sum + slots.length, 0)
-            })
 
             return Response.json(availability)
             

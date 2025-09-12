@@ -42,12 +42,6 @@ export class SimproApi {
       refreshTokenExpiresAt: number
     ) => Promise<void>
   ) {
-    console.log('Initializing SimproApi with tokens:', {
-      accessToken: accessToken ? 'Present' : 'Missing',
-      refreshToken: refreshToken ? 'Present' : 'Missing',
-      baseUrl: config.baseUrl,
-      userId: userId || 'Not provided'
-    })
     this.accessToken = accessToken
     this.refreshToken = refreshToken
     this.config = config
@@ -147,24 +141,16 @@ export class SimproApi {
    * Make an authenticated request to the Simpro API
    */
   private async makeRequest(endpoint: string, options: RequestInit = {}, retryCount: number = 0): Promise<ApiResponse> {
-    console.log('makeRequest called with endpoint:', endpoint)
-    console.log('baseUrl:', this.config.baseUrl)
-    
     // Check if endpoint already includes the base URL
     const url = endpoint.startsWith('http') 
       ? endpoint 
       : `${this.config.baseUrl}${endpoint}`
       
-    console.log('Constructed URL:', url)
-    console.log('Current access token:', this.accessToken ? 'Present' : 'Missing')
-    
     const headers = {
       'Authorization': `Bearer ${this.accessToken}`,
       'Content-Type': 'application/json',
       ...options.headers,
     }
-    
-    console.log('Request headers:', headers)
     
     try {
       const response = await fetch(url, {
@@ -173,29 +159,23 @@ export class SimproApi {
       })
 
       if (response.status === 401 && retryCount === 0) {
-        console.log('Received 401, attempting token refresh...')
         await this.refreshAccessToken()
         // Retry the request with new token (only once)
         return this.makeRequest(endpoint, options, retryCount + 1)
       }
 
       if (response.status === 401 && retryCount > 0) {
-        console.error('Authentication failed after token refresh - token may be invalid')
         throw new Error('Authentication failed: Unable to refresh access token')
       }
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error(`API request failed: ${response.status} ${response.statusText}`)
-        console.error('Error details:', errorText)
         throw new Error(`API request failed: ${response.statusText} (${response.status})`)
       }
 
       const data = await response.json()
-      console.log('Response data:', data)
       return data as ApiResponse
     } catch (error) {
-      console.error('Request failed:', error)
       throw error
     }
   }
@@ -427,6 +407,42 @@ export class SimproApi {
       method: 'POST',
       body: JSON.stringify(siteData),
     })
+  }
+
+  /**
+   * Get build information (multi-company, version, etc.)
+   */
+  async getBuildInfo() {
+    try {
+      return this.makeRequest('/info/')
+    } catch (error) {
+      console.error('Error fetching build info:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get list of companies
+   */
+  async getCompanies() {
+    try {
+      return this.makeRequest('/companies/')
+    } catch (error) {
+      console.error('Error fetching companies:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get detailed company information
+   */
+  async getCompanyDetails(companyId: string = '0') {
+    try {
+      return this.makeRequest(`/companies/${companyId}`)
+    } catch (error) {
+      console.error(`Error fetching company details for ${companyId}:`, error)
+      throw error
+    }
   }
 
   /**

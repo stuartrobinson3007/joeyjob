@@ -184,13 +184,20 @@ export async function createSimproBookingForUser(
     const siteId = customer.Sites[0].ID
 
     // Step 2: Create job
-    const job = await simproApi.createJob({
+    const jobData = {
       Type: bookingData.job.type,
       Name: bookingData.job.name,
       Description: bookingData.job.description,
       Customer: customer.ID,
       Site: siteId,
-    })
+    } as any
+    
+    // Add Notes field if provided
+    if (bookingData.job.notes) {
+      jobData.Notes = bookingData.job.notes
+    }
+    
+    const job = await simproApi.createJob(jobData)
 
     // Step 3: Schedule job
     const schedule = await simproApi.scheduleJob(job.ID, {

@@ -107,6 +107,7 @@ export interface CreateJobRequest {
   Type: 'Service' | 'Project' | 'Prepaid'
   Name: string
   Description: string
+  Notes?: string
   Customer: number
   Site?: number
 }

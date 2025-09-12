@@ -84,23 +84,6 @@ const getAuthConfig = serverOnly(() =>
           defaultValue: 'en',
           required: false,
         },
-        // SimPro-specific fields
-        simproId: {
-          type: 'string',
-          required: false,
-        },
-        simproBuildName: {
-          type: 'string',
-          required: false,
-        },
-        simproDomain: {
-          type: 'string',
-          required: false,
-        },
-        simproCompanyId: {
-          type: 'string',
-          required: false,
-        },
       },
     },
 

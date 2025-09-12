@@ -20,15 +20,10 @@ export async function checkEmployeesAvailabilityForTimeSlot(
   startTime: string,
   endTime: string
 ): Promise<typeof employees> {
-  console.log('🔍 [SIMPRO AVAILABILITY CHECK] Checking specific time slot availability')
-  console.log('🔍 [SIMPRO AVAILABILITY CHECK] Date:', date.toISOString().split('T')[0])
-  console.log('🔍 [SIMPRO AVAILABILITY CHECK] Time:', `${startTime} - ${endTime}`)
-  console.log('🔍 [SIMPRO AVAILABILITY CHECK] Employees to check:', employees.length)
   
   try {
     // If no employees, return empty array
     if (!employees || employees.length === 0) {
-      console.log('⚠️ [SIMPRO AVAILABILITY CHECK] No employees provided, returning empty array')
       return []
     }
 
@@ -42,11 +37,9 @@ export async function checkEmployeesAvailabilityForTimeSlot(
       .limit(1)
 
     if (!serviceData.length) {
-      console.warn('⚠️ [SIMPRO AVAILABILITY CHECK] Service not found in database, returning all employees:', serviceId)
       return employees // Graceful degradation
     }
 
-    console.log('✅ [SIMPRO AVAILABILITY CHECK] Found service, organizationId:', serviceData[0].organizationId)
 
     // Get a user from the organization who has Simpro configured
     const orgMember = await db
@@ -58,12 +51,10 @@ export async function checkEmployeesAvailabilityForTimeSlot(
       .limit(1)
 
     if (!orgMember.length) {
-      console.warn('⚠️ [SIMPRO AVAILABILITY CHECK] No organization member found, returning all employees')
       return employees // Graceful degradation
     }
 
     const userId = orgMember[0].userId
-    console.log('✅ [SIMPRO AVAILABILITY CHECK] Found organization member, userId:', userId)
 
     // Note: Simpro API access verified during organization setup
     // No need to test it again here since detailed availability checking
@@ -71,7 +62,6 @@ export async function checkEmployeesAvailabilityForTimeSlot(
 
     // Check availability for each employee for the specific date
     const dateStr = date.toISOString().split('T')[0]
-    console.log('📅 [SIMPRO AVAILABILITY CHECK] Checking availability for date:', dateStr)
 
     // Convert date and time for the shared availability function
     const checkDate = new Date(`${dateStr}T${startTime}`)
@@ -92,8 +82,6 @@ export async function checkEmployeesAvailabilityForTimeSlot(
         new Map(employees.map(emp => [emp.simproEmployeeId, { isDefault: emp.isDefault }]))
     )
 
-    console.log(`📊 [SIMPRO AVAILABILITY CHECK] Final result: ${availableEmployees.length}/${employees.length} employees available for ${dateStr} ${startTime}-${endTime}`)
-    console.log('📊 [SIMPRO AVAILABILITY CHECK] Available employees:', availableEmployees.map(e => e.employeeName))
     
     // Convert back to the original format
     const resultEmployees = employees.filter(emp => 
@@ -125,9 +113,6 @@ export async function checkEmployeesAvailabilityInSimpro(
   }>,
   serviceId: string
 ): Promise<typeof employees> {
-  console.log('🔍 [SIMPRO AVAILABILITY CHECK] General availability check for service:', serviceId)
-  console.log('🔍 [SIMPRO AVAILABILITY CHECK] Returning all assigned employees (detailed checking done at booking time)')
-  console.log(`📊 [SIMPRO AVAILABILITY CHECK] ${employees.length} employees assigned to service`)
   
   // Return all employees - detailed availability checking is now done by:
   // 1. Optimized calendar generation (shows available time slots)  

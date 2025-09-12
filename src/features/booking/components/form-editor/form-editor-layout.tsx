@@ -21,6 +21,7 @@ import { FormEditorDataProvider } from "@/features/booking/components/form-edito
 import useFormEditorData from "./hooks/use-form-editor-data";
 import React, { ReactNode, useCallback, useEffect, useState, useRef } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
+import { formatServicePrice } from '@/lib/utils/price-formatting';
 
 // BookingState type definition
 interface BookingState {
@@ -578,7 +579,7 @@ function FormEditorLayoutInner({
                 };
             } else if (child.type === 'service') {
                 // Extract service properties from the node data if available
-                const servicePrice = child.price || '$99';
+                const servicePrice = child.price || 99;
                 const serviceDuration = child.duration || 60;
                 const serviceDescription = child.description || 'Book this service';
                 const serviceBufferTime = child.bufferTime || 15;
@@ -1239,7 +1240,7 @@ function FormEditorLayoutInner({
                 type: "service",
                 label: "New Service",
                 description: "",
-                price: "$0",
+                price: 0,
                 duration: 30, // Default 30 minutes
                 bufferTime: 15, // Default 15 minutes buffer
                 interval: 30, // Default 30 minute booking intervals

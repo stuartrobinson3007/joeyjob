@@ -1,7 +1,7 @@
 import { db } from '@/lib/db/db'
-import { bookings, services, bookingForms, organization } from '@/database/schema'
+import { bookings, services, organization, user } from '@/database/schema'
 import { nanoid } from 'nanoid'
-import { addDays, addHours, addMinutes, format, setHours, setMinutes } from 'date-fns'
+import { addDays, addMinutes, setHours, setMinutes } from 'date-fns'
 
 // Sample customer names
 const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'Robert', 'Lisa', 'James', 'Mary']
@@ -48,17 +48,35 @@ function generateEmail(firstName: string, lastName: string) {
   return `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${provider}`
 }
 
-// Generate form data
+// Generate form data matching the expected schema structure
 function generateFormData() {
   const hasFormData = Math.random() > 0.5
-  if (!hasFormData) return null
+  if (!hasFormData) return { customQuestions: [] }
   
   return {
-    preferredContactMethod: Math.random() > 0.5 ? 'email' : 'phone',
-    problemDescription: 'Issue with ' + ['pipes', 'heating', 'cooling', 'wiring', 'roof'][Math.floor(Math.random() * 5)],
-    urgency: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-    availability: 'Weekdays after 3pm',
-    additionalNotes: Math.random() > 0.5 ? 'Additional information provided by customer' : null,
+    customQuestions: [
+      {
+        questionId: 'preferred_contact',
+        questionText: 'Preferred Contact Method',
+        questionType: 'select',
+        answer: Math.random() > 0.5 ? 'email' : 'phone',
+        fieldName: 'preferred_contact'
+      },
+      {
+        questionId: 'problem_description',
+        questionText: 'Problem Description',
+        questionType: 'text',
+        answer: 'Issue with ' + ['pipes', 'heating', 'cooling', 'wiring', 'roof'][Math.floor(Math.random() * 5)],
+        fieldName: 'problem_description'
+      },
+      {
+        questionId: 'urgency',
+        questionText: 'Urgency Level',
+        questionType: 'select',
+        answer: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+        fieldName: 'urgency'
+      }
+    ]
   }
 }
 
@@ -75,6 +93,14 @@ async function seedBookings() {
     const orgId = orgs[0].id
     console.log(`📍 Using organization: ${orgs[0].name}`)
     
+    // Get the first user for createdBy field
+    const users = await db.select().from(user).limit(1)
+    if (!users.length) {
+      console.error('❌ No user found. Please create a user first.')
+      return
+    }
+    const userId = users[0].id
+    
     // Get existing services or create them
     let existingServices = await db.select().from(services).where(eq(services.organizationId, orgId))
     
@@ -83,15 +109,13 @@ async function seedBookings() {
       // Create sample services
       for (const serviceName of serviceNames) {
         const [service] = await db.insert(services).values({
-          id: nanoid(),
           organizationId: orgId,
           name: serviceName,
           description: `Professional ${serviceName} service`,
           duration: [30, 60, 90, 120][Math.floor(Math.random() * 4)],
           price: (Math.floor(Math.random() * 400) + 100).toString(),
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdBy: userId,
         }).returning()
         existingServices.push(service)
       }
@@ -129,30 +153,33 @@ async function seedBookings() {
       }
       
       const booking = {
-        id: nanoid(),
         organizationId: orgId,
-        serviceId: service.id,
         formId: null, // No forms for now
+        // Service Information (denormalized)
+        serviceName: service.name,
+        serviceDescription: service.description,
+        serviceDuration: service.duration,
+        servicePrice: service.price || '100',
+        // Customer Information
         customerId: null, // Guest bookings
         customerEmail: generateEmail(firstName, lastName),
         customerName: `${firstName} ${lastName}`,
         customerPhone: Math.random() > 0.3 ? generatePhone() : null,
+        customerCompany: null,
+        // Scheduling
         bookingStartAt,
         bookingEndAt,
-        duration,
-        price: service.price || '100',
+        customerTimezone: orgs[0].timezone,
+        // Form Responses
+        formResponses: generateFormData(),
+        // Status and metadata
         status,
         cancellationReason: status === 'cancelled' ? 'Customer requested cancellation' : null,
-        notes: notesSamples[Math.floor(Math.random() * notesSamples.length)],
+        customerNotes: notesSamples[Math.floor(Math.random() * notesSamples.length)],
         internalNotes: internalNotesSamples[Math.floor(Math.random() * internalNotesSamples.length)],
-        formData: generateFormData(),
-        source: sources[Math.floor(Math.random() * sources.length)],
         confirmationCode: nanoid(8).toUpperCase(),
-        reminderSent: bookingStartAt < now ? Math.random() > 0.5 : false,
-        reminderSentAt: bookingStartAt < now && Math.random() > 0.5 ? addDays(bookingStartAt, -1) : null,
+        bookingSource: sources[Math.floor(Math.random() * sources.length)],
         createdBy: null,
-        createdAt: addDays(bookingStartAt, -Math.floor(Math.random() * 7) - 1),
-        updatedAt: addDays(bookingStartAt, -Math.floor(Math.random() * 3)),
       }
       
       bookingsToInsert.push(booking)

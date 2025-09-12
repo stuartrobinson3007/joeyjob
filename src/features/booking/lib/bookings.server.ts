@@ -65,8 +65,8 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
           bookingStartAt: bookings.bookingStartAt,
           customerName: bookings.customerName,
           status: bookings.status,
-          serviceName: services.name,
-          price: bookings.price,
+          serviceName: bookings.serviceName,
+          servicePrice: bookings.servicePrice,
         }
         
         const column = columnMap[columnId]
@@ -99,9 +99,9 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
                   bookingStartAt: bookings.bookingStartAt,
                   customerName: bookings.customerName,
                   status: bookings.status,
-                  duration: bookings.duration,
-                  price: bookings.price,
-                  serviceName: services.name,
+                  serviceDuration: bookings.serviceDuration,
+                  servicePrice: bookings.servicePrice,
+                  serviceName: bookings.serviceName,
                 }
                 const column = columnMap[sort.id]
                 return column ? (sort.desc ? desc(column) : asc(column)) : null
@@ -109,43 +109,39 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
               .filter(Boolean)
           : [desc(bookings.bookingStartAt)]
       
-      // Get bookings with joins
+      // Get bookings (no joins needed - all data is denormalized)
       const bookingsData = await db
-        .select({
-          booking: bookings,
-          service: services,
-          form: bookingForms,
-        })
+        .select()
         .from(bookings)
-        .leftJoin(services, eq(bookings.serviceId, services.id))
-        .leftJoin(bookingForms, eq(bookings.formId, bookingForms.id))
         .where(and(...conditions))
         .orderBy(...(Array.isArray(orderBy) ? orderBy : [orderBy]))
         .limit(pagination.pageSize)
         .offset(pagination.pageIndex * pagination.pageSize)
       
       // Format the data
-      const formattedData = bookingsData.map(row => ({
-        id: row.booking.id,
-        organizationId: row.booking.organizationId,
-        customerName: row.booking.customerName,
-        customerEmail: row.booking.customerEmail,
-        customerPhone: row.booking.customerPhone,
-        bookingStartAt: row.booking.bookingStartAt,
-        bookingEndAt: row.booking.bookingEndAt,
-        duration: row.booking.duration,
-        price: row.booking.price,
-        status: row.booking.status,
-        notes: row.booking.notes,
-        internalNotes: row.booking.internalNotes,
-        formData: row.booking.formData,
-        source: row.booking.source,
-        confirmationCode: row.booking.confirmationCode,
-        createdAt: row.booking.createdAt,
-        updatedAt: row.booking.updatedAt,
-        serviceName: row.service?.name || null,
-        servicePrice: row.service?.price || null,
-        formName: row.form?.name || null,
+      const formattedData = bookingsData.map(booking => ({
+        id: booking.id,
+        organizationId: booking.organizationId,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone,
+        customerCompany: booking.customerCompany,
+        bookingStartAt: booking.bookingStartAt,
+        bookingEndAt: booking.bookingEndAt,
+        customerTimezone: booking.customerTimezone,
+        serviceName: booking.serviceName,
+        serviceDescription: booking.serviceDescription,
+        serviceDuration: booking.serviceDuration,
+        servicePrice: booking.servicePrice,
+        assignedEmployeeName: booking.assignedEmployeeName,
+        status: booking.status,
+        customerNotes: booking.customerNotes,
+        internalNotes: booking.internalNotes,
+        formResponses: booking.formResponses,
+        bookingSource: booking.bookingSource,
+        confirmationCode: booking.confirmationCode,
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
       }))
       
       const response: ServerQueryResponse<typeof formattedData[0]> = {
@@ -184,12 +180,10 @@ export const getBooking = createServerFn({ method: 'POST' })
       const result = await db
         .select({
           booking: bookings,
-          service: services,
           form: bookingForms,
           creator: user,
         })
         .from(bookings)
-        .leftJoin(services, eq(bookings.serviceId, services.id))
         .leftJoin(bookingForms, eq(bookings.formId, bookingForms.id))
         .leftJoin(user, eq(bookings.createdBy, user.id))
         .where(and(
@@ -205,33 +199,48 @@ export const getBooking = createServerFn({ method: 'POST' })
       const row = result[0]
       
       return {
+        // Booking details
         id: row.booking.id,
         organizationId: row.booking.organizationId,
+        confirmationCode: row.booking.confirmationCode,
+        status: row.booking.status,
+        
+        // Customer information
         customerName: row.booking.customerName,
         customerEmail: row.booking.customerEmail,
         customerPhone: row.booking.customerPhone,
+        customerCompany: row.booking.customerCompany,
+        
+        // Service information (denormalized)
+        serviceName: row.booking.serviceName,
+        serviceDescription: row.booking.serviceDescription,
+        serviceDuration: row.booking.serviceDuration,
+        servicePrice: row.booking.servicePrice,
+        
+        // Scheduling
         bookingStartAt: row.booking.bookingStartAt,
         bookingEndAt: row.booking.bookingEndAt,
-        duration: row.booking.duration,
-        price: row.booking.price,
-        status: row.booking.status,
-        cancellationReason: row.booking.cancellationReason,
-        notes: row.booking.notes,
+        customerTimezone: row.booking.customerTimezone,
+        
+        // Employee assignment
+        assignedEmployeeName: row.booking.assignedEmployeeName,
+        assignedEmployeeEmail: row.booking.assignedEmployeeEmail,
+        
+        // Form responses and notes
+        formResponses: row.booking.formResponses,
+        customerNotes: row.booking.customerNotes,
         internalNotes: row.booking.internalNotes,
-        formData: row.booking.formData,
-        source: row.booking.source,
-        confirmationCode: row.booking.confirmationCode,
-        reminderSent: row.booking.reminderSent,
-        reminderSentAt: row.booking.reminderSentAt,
+        
+        // Status management
+        cancellationReason: row.booking.cancellationReason,
+        statusChangedAt: row.booking.statusChangedAt,
+        
+        // Metadata
+        bookingSource: row.booking.bookingSource,
         createdAt: row.booking.createdAt,
         updatedAt: row.booking.updatedAt,
-        service: row.service ? {
-          id: row.service.id,
-          name: row.service.name,
-          description: row.service.description,
-          duration: row.service.duration,
-          price: row.service.price,
-        } : null,
+        
+        // Related records
         form: row.form ? {
           id: row.form.id,
           name: row.form.name,
@@ -289,8 +298,8 @@ export const getAllBookingsIds = createServerFn({ method: 'POST' })
           bookingStartAt: bookings.bookingStartAt,
           customerName: bookings.customerName,
           status: bookings.status,
-          serviceName: bookings.serviceId,
-          price: bookings.price,
+          serviceName: bookings.serviceName,
+          servicePrice: bookings.servicePrice,
         }
         
         const column = columnMap[columnId]

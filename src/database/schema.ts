@@ -21,11 +21,6 @@ export const user = pgTable('user', {
   lastName: text('last_name'),
   onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   language: text('language').default('en').notNull(),
-  // SimPro-specific fields
-  simproId: text('simpro_id'),
-  simproBuildName: text('simpro_build_name'),
-  simproDomain: text('simpro_domain'),
-  simproCompanyId: text('simpro_company_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
@@ -77,8 +72,27 @@ export const organization = pgTable('organization', {
   slug: text('slug').unique(),
   logo: text('logo'),
   
-  // Timezone for consistent date/time handling
+  // Contact information
+  phone: text('phone'),
+  email: text('email'),
+  website: text('website'),
+  
+  // Location and locale
   timezone: text('timezone').default('America/New_York').notNull(),
+  currency: text('currency'),
+  
+  // Address fields
+  addressStreet: text('address_street'),
+  addressCity: text('address_city'),
+  addressState: text('address_state'),
+  addressPostalCode: text('address_postal_code'),
+  addressCountry: text('address_country'),
+  
+  // Provider integration
+  providerType: text('provider_type'), // 'simpro', 'minuba', etc.
+  providerCompanyId: text('provider_company_id'), // Company ID from provider
+  providerData: json('provider_data'), // Provider-specific data
+  onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
 
   // Billing fields
   currentPlan: text('current_plan').default('pro').notNull(), // Cached from Stripe for quick access
@@ -214,7 +228,7 @@ export const bookingForms = pgTable('booking_forms', {
 
 // Note: Availability is managed through Simpro API, not stored locally
 
-// Individual bookings
+// Individual bookings - redesigned with denormalized service data
 export const bookings = pgTable('bookings', {
   id: text('id')
     .primaryKey()
@@ -222,33 +236,84 @@ export const bookings = pgTable('bookings', {
   organizationId: text('organization_id')
     .references(() => organization.id, { onDelete: 'cascade' })
     .notNull(),
-  serviceId: text('service_id')
-    .notNull(), // Service ID from form configuration tree, not a foreign key
   formId: text('form_id')
     .references(() => bookingForms.id, { onDelete: 'set null' }),
-  // Customer information (can be guest or registered user)
+  
+  // Service Information (Denormalized from form config)
+  serviceName: text('service_name').notNull(),
+  serviceDescription: text('service_description'),
+  serviceDuration: integer('service_duration').notNull(), // minutes
+  servicePrice: decimal('service_price', { precision: 10, scale: 2 }).notNull(),
+  
+  // Customer Information
   customerId: text('customer_id')
     .references(() => user.id, { onDelete: 'set null' }),
   customerEmail: text('customer_email').notNull(),
   customerName: text('customer_name').notNull(),
   customerPhone: text('customer_phone'),
-  // Booking details - full UTC timestamps
-  bookingStartAt: timestamp('booking_start_at').notNull(), // Full UTC timestamp
-  bookingEndAt: timestamp('booking_end_at').notNull(), // Full UTC timestamp
-  duration: integer('duration').notNull(), // in minutes
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  // Status management
+  customerCompany: text('customer_company'),
+  
+  // Scheduling (all times stored in UTC)
+  bookingStartAt: timestamp('booking_start_at').notNull(), // UTC timestamp
+  bookingEndAt: timestamp('booking_end_at').notNull(), // UTC timestamp
+  customerTimezone: text('customer_timezone').notNull(), // e.g., 'America/New_York'
+  
+  // Employee Assignment (denormalized)
+  assignedEmployeeId: text('assigned_employee_id')
+    .references(() => organizationEmployees.id, { onDelete: 'set null' }),
+  assignedEmployeeName: text('assigned_employee_name'),
+  assignedEmployeeEmail: text('assigned_employee_email'),
+  
+  // Form Responses (Structured JSON)
+  formResponses: json('form_responses').notNull().$type<{
+    contactInfo?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      company?: string;
+    };
+    address?: {
+      street: string;
+      street2?: string;
+      city: string;
+      state: string;
+      zip: string;
+      country?: string;
+    };
+    customQuestions: Array<{
+      questionId: string;
+      questionText: string;
+      questionType: string;
+      answer: any;
+      fieldName: string;
+    }>;
+    serviceQuestions?: Array<{
+      questionId: string;
+      questionText: string;
+      questionType: string;
+      answer: any;
+    }>;
+  }>(),
+  
+  // Status Management
   status: text('status').default('pending').notNull(), // pending, confirmed, cancelled, completed, no-show
+  statusChangedAt: timestamp('status_changed_at'),
+  statusChangedBy: text('status_changed_by')
+    .references(() => user.id, { onDelete: 'set null' }),
   cancellationReason: text('cancellation_reason'),
-  notes: text('notes'),
-  internalNotes: text('internal_notes'), // Staff-only notes
-  // Form submission data
-  formData: json('form_data'), // Customer's form responses
+  
+  // Notes
+  customerNotes: text('customer_notes'),
+  internalNotes: text('internal_notes'),
+  
   // Metadata
-  source: text('source').default('web').notNull(), // web, api, admin, etc.
   confirmationCode: text('confirmation_code').notNull(),
-  reminderSent: boolean('reminder_sent').default(false),
-  reminderSentAt: timestamp('reminder_sent_at'),
+  bookingSource: text('booking_source').default('web').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  
+  // Timestamps
   createdBy: text('created_by')
     .references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

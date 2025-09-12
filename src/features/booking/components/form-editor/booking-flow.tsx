@@ -10,6 +10,7 @@ import { format, addDays } from 'date-fns';
 import BookingCalendar from './booking-calendar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useErrorHandler } from '@/lib/errors/hooks';
+import { formatServicePrice } from '@/lib/utils/price-formatting';
 
 // Unique identifier for items in the booking tree
 type ItemId = string;
@@ -42,7 +43,7 @@ interface LocalBlockedTime {
 export interface Service extends BookingItem {
     type: 'service';
     duration: number;
-    price?: string;
+    price?: number;
     availabilityRules: LocalAvailabilityRule[];
     blockedTimes?: LocalBlockedTime[];
     unavailableDates?: Date[];
@@ -102,6 +103,7 @@ export interface BookingSubmitData {
     time: string;
     formData: Record<string, any>;
     navigationPath: ItemId[];
+    organizationTimezone: string;
 }
 
 // Type for booking flow stages
@@ -403,7 +405,8 @@ export default function BookingFlow({
                         date: bookingState.selectedDate.toISOString(),
                         time: bookingState.selectedTime,
                         formData: data,
-                        navigationPath: bookingState.navigationPath
+                        navigationPath: bookingState.navigationPath,
+                        organizationTimezone: organizationTimezone || 'UTC'
                     });
 
                     // Only show confirmation after successful API response
@@ -748,8 +751,8 @@ export default function BookingFlow({
                                     <div className="flex flex-col gap-0 items-start flex-1">
                                         <span className="text-lg font-semibold opacity-80">{item.label}</span>
                                         <span className="text-sm opacity-50">{item.description || ''}</span>
-                                        {item.type === 'service' && item.price && (
-                                            <span className="text-sm mt-2 font-medium">{item.price}</span>
+                                        {item.type === 'service' && item.price !== undefined && (
+                                            <span className="text-sm mt-2 font-medium">{formatServicePrice(item.price)}</span>
                                         )}
                                     </div>
                                     <div className="p-4 rounded-full bg-background">
