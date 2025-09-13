@@ -8,15 +8,31 @@ import { SimProSignIn } from './simpro-sign-in'
 
 interface UpdateConnectionSearch {
   redirectTo?: string
-  provider?: string
 }
 
 export function UpdateConnectionPage() {
   const search = useSearch({ from: '/auth/update-connection' }) as UpdateConnectionSearch
-  const { redirectTo, provider = 'simpro' } = search
+  const { redirectTo } = search
 
-  // TODO: Could also detect provider from error context in URL if needed
-  // For now, default to 'simpro' since that's the primary provider
+  // Detect provider intelligently
+  // Check session storage for build config to determine provider
+  const detectProvider = (): string => {
+    if (typeof window === 'undefined') return 'simpro'
+    
+    // Check for Simpro build config
+    if (sessionStorage.getItem('simpro_build_config')) {
+      return 'simpro'
+    }
+    
+    // Could check for other providers here:
+    // if (sessionStorage.getItem('github_config')) return 'github'
+    // if (sessionStorage.getItem('google_config')) return 'google'
+    
+    // Default to simpro for this app
+    return 'simpro'
+  }
+  
+  const provider = detectProvider()
 
   // Determine provider display name
   const getProviderDisplayName = (providerId: string) => {

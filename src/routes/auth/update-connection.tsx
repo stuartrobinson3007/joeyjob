@@ -6,7 +6,6 @@ import { UpdateConnectionPage } from '@/features/auth/components/update-connecti
 export const Route = createFileRoute('/auth/update-connection')({
   validateSearch: z.object({
     redirectTo: z.string().optional(),
-    provider: z.string().optional(),
   }),
   component: UpdateConnectionPage,
 })

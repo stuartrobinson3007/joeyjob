@@ -1,28 +1,11 @@
 import { useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 
-import { parseError, handleErrorAction as taaliHandleErrorAction } from '@/taali/errors/client-handler'
+import { parseError, handleErrorAction } from '@/taali/errors/client-handler'
 import { isErrorCode } from '@/taali/errors/codes'
-import type { ParsedError, ErrorAction } from '@/taali/errors/client-handler'
+import type { ParsedError } from '@/taali/errors/client-handler'
 import { safePropertyAccess } from '@/taali/utils/type-safe-access'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
-
-// App-specific error action handler that extends Taali
-function handleErrorAction(action: ErrorAction) {
-  switch (action.action) {
-    case 'updateConnection':
-      // App-specific implementation for updateConnection
-      const currentUrl = window.location.pathname + window.location.search + window.location.hash
-      const provider = action.data?.provider || 'simpro'
-      const updateUrl = `/auth/update-connection?redirectTo=${encodeURIComponent(currentUrl)}&provider=${provider}`
-      window.location.href = updateUrl
-      break
-    default:
-      // Delegate to Taali for standard actions
-      taaliHandleErrorAction(action)
-      break
-  }
-}
 
 // Hook to translate and handle errors
 export function useErrorHandler() {
