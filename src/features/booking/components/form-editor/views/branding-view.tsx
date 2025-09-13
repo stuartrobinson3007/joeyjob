@@ -1,6 +1,7 @@
 import React from "react";
 import { SunIcon, MoonIcon } from "lucide-react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 import { ColorPicker } from "@/ui/color-picker";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
@@ -45,7 +46,12 @@ export function BrandingView({
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
-            <h2 className="text-2xl font-bold mb-4">Branding</h2>
+            <TitleWithBack
+                title="Branding"
+                currentLevel={currentLevel}
+                onNavigateBack={onNavigateBack}
+                className="mb-4"
+            />
 
             <div className="space-y-6">
                 <div>

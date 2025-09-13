@@ -6,7 +6,6 @@ import { getServiceAvailability } from '@/lib/simpro/availability-optimized.serv
 
 export const ServerRoute = createServerFileRoute('/api/public/services/$serviceId/availability').methods({
     POST: async ({ params, request }) => {
-        
         try {
             const { serviceId } = params
             if (!serviceId) {
@@ -16,7 +15,7 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
 
             // Get request body with service settings
             const body = await request.json()
-            const { year, month, organizationId, serviceSettings } = body
+            const { year, month, organizationId, serviceSettings, organizationTimezone } = body
             
 
             if (!year || !month || !organizationId || !serviceSettings) {
@@ -42,38 +41,31 @@ export const ServerRoute = createServerFileRoute('/api/public/services/$serviceI
 
             // Get employee data from database
             const employees = await db
-                .select({
-                    id: organizationEmployees.id,
-                    simproEmployeeId: organizationEmployees.simproEmployeeId,
-                })
+                .select()
                 .from(organizationEmployees)
                 .where(and(
                     eq(organizationEmployees.organizationId, organizationId),
                     inArray(organizationEmployees.id, assignedEmployeeIds),
-                    eq(organizationEmployees.isActive, true)
+                    eq(organizationEmployees.isEnabled, true)
                 ))
-
+            
             if (employees.length === 0) {
                 return Response.json({})
             }
-
+            
             // Extract Simpro employee IDs
             const simproEmployeeIds = employees.map(e => e.simproEmployeeId)
 
-            // Use optimized availability calculation
+            // Use optimized availability calculation with all settings
             const availability = await getServiceAvailability(
-                orgMember[0].userId,
+                organizationId,
+                orgMember[0].userId, // Still need user ID for OAuth tokens
                 simproEmployeeIds,
-                {
-                    duration: serviceSettings.duration || 30,
-                    interval: serviceSettings.interval || 30,
-                    bufferTime: serviceSettings.bufferTime || 15,
-                    minimumNotice: serviceSettings.minimumNotice || 0
-                },
+                serviceSettings,
                 year,
-                month
+                month,
+                organizationTimezone
             )
-
 
             return Response.json(availability)
             

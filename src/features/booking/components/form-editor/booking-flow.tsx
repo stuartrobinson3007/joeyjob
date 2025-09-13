@@ -55,6 +55,9 @@ export interface Service extends BookingItem {
     minimumNoticeUnit?: 'days' | 'hours';
     dateRangeType?: 'rolling' | 'fixed' | 'indefinite';
     rollingDays?: number;
+    rollingUnit?: 'calendar-days' | 'week-days';
+    fixedStartDate?: string;  // ISO date string
+    fixedEndDate?: string;    // ISO date string
     // Employee assignment properties
     assignedEmployeeIds?: string[];
     defaultEmployeeId?: string;
@@ -216,14 +219,17 @@ export default function BookingFlow({
             
             // Prepare complete service settings
             const serviceSettings = {
-                duration: service.duration || 30,
-                interval: service.interval || 30,
-                bufferTime: service.bufferTime || 15,
-                minimumNotice: service.minimumNotice || 0,
-                minimumNoticeUnit: service.minimumNoticeUnit || 'hours',
-                dateRangeType: service.dateRangeType || 'indefinite',
-                rollingDays: service.rollingDays || 14,
-                assignedEmployeeIds: service.assignedEmployeeIds || []
+                duration: service.duration,
+                interval: service.interval,
+                bufferTime: service.bufferTime,
+                minimumNotice: service.minimumNotice,
+                minimumNoticeUnit: service.minimumNoticeUnit,
+                dateRangeType: service.dateRangeType,
+                rollingDays: service.rollingDays,
+                rollingUnit: service.rollingUnit,
+                fixedStartDate: service.fixedStartDate,
+                fixedEndDate: service.fixedEndDate,
+                assignedEmployeeIds: service.assignedEmployeeIds
             };
             
             console.log('🔍 [BOOKING FLOW] Fetching availability for month:', {
@@ -242,7 +248,8 @@ export default function BookingFlow({
                     year: currentYear,
                     month: currentMonth,
                     organizationId,
-                    serviceSettings
+                    serviceSettings,
+                    organizationTimezone
                 })
             });
             
@@ -279,20 +286,29 @@ export default function BookingFlow({
                     if (!service?.id) return {};
                     
                     const serviceSettings = {
-                        duration: service.duration || 30,
-                        interval: service.interval || 30,
-                        bufferTime: service.bufferTime || 15,
-                        minimumNotice: service.minimumNotice || 0,
-                        minimumNoticeUnit: service.minimumNoticeUnit || 'hours',
-                        dateRangeType: service.dateRangeType || 'indefinite',
-                        rollingDays: service.rollingDays || 14,
-                        assignedEmployeeIds: service.assignedEmployeeIds || []
+                        duration: service.duration,
+                        interval: service.interval,
+                        bufferTime: service.bufferTime,
+                        minimumNotice: service.minimumNotice,
+                        minimumNoticeUnit: service.minimumNoticeUnit,
+                        dateRangeType: service.dateRangeType,
+                        rollingDays: service.rollingDays,
+                        rollingUnit: service.rollingUnit,
+                        fixedStartDate: service.fixedStartDate,
+                        fixedEndDate: service.fixedEndDate,
+                        assignedEmployeeIds: service.assignedEmployeeIds
                     };
                     
                     const response = await fetch(`/api/public/services/${service.id}/availability`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ year: nextYear, month: nextMonth, organizationId, serviceSettings })
+                        body: JSON.stringify({ 
+                            year: nextYear, 
+                            month: nextMonth, 
+                            organizationId, 
+                            serviceSettings,
+                            organizationTimezone
+                        })
                     });
                     
                     if (!response.ok) return {};
@@ -302,6 +318,14 @@ export default function BookingFlow({
             });
         }
     }, [bookingState.selectedService?.id, bookingState.stage, currentYear, currentMonth, queryClient]);
+
+    // Updated: No longer sends postMessage directly for state changes
+    const handleBookingStateChange = useCallback((newState: BookingState) => {
+        if (onBookingStateChange) {
+            onBookingStateChange(newState);
+        }
+        // Removed: window.parent.postMessage for bookingStateChange
+    }, [onBookingStateChange]);
 
     // Auto-select first available date when calendar opens for a service
     useEffect(() => {
@@ -330,14 +354,6 @@ export default function BookingFlow({
         '--primary-foreground': primaryForeground,
         '--ring': primaryColor,
     } as React.CSSProperties;
-
-    // Updated: No longer sends postMessage directly for state changes
-    const handleBookingStateChange = useCallback((newState: BookingState) => {
-        if (onBookingStateChange) {
-            onBookingStateChange(newState);
-        }
-        // Removed: window.parent.postMessage for bookingStateChange
-    }, [onBookingStateChange]);
 
     // Effect to observe content height and send to parent
     useEffect(() => {
@@ -835,10 +851,17 @@ export default function BookingFlow({
                 <BookingCalendar
                     title="Select an available time"
                     serviceName={latestService.label}
-                    timezone={organizationTimezone || 'America/New_York'}
+                    timezone={organizationTimezone}
                     duration={latestService.duration}
-                    bufferTime={latestService.bufferTime || 15}
-                    interval={latestService.interval || 30}
+                    bufferTime={latestService.bufferTime}
+                    interval={latestService.interval}
+                    minimumNotice={latestService.minimumNotice}
+                    minimumNoticeUnit={latestService.minimumNoticeUnit}
+                    dateRangeType={latestService.dateRangeType}
+                    rollingDays={latestService.rollingDays}
+                    rollingUnit={latestService.rollingUnit}
+                    fixedStartDate={latestService.fixedStartDate ? new Date(latestService.fixedStartDate) : undefined}
+                    fixedEndDate={latestService.fixedEndDate ? new Date(latestService.fixedEndDate) : undefined}
                     primaryColor={primaryColor}
                     darkMode={darkMode}
                     selectedDate={bookingState.selectedDate}

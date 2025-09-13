@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import type { FlowNode } from "../form-flow-tree";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
@@ -108,7 +109,13 @@ export function ServiceDetailsView({
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
-            <h2 className="text-2xl font-bold mb-2">Service Details</h2>
+            <TitleWithBack
+                title="Service Details"
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigateBack={onNavigateBack}
+                className="mb-2"
+            />
 
             <div className="space-y-8">
                 <div>

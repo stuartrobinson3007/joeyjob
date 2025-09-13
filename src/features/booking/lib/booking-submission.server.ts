@@ -266,7 +266,7 @@ export async function submitBookingWithSimproIntegration({
             and(
                 inArray(organizationEmployees.id, assignedEmployeeIds),
                 eq(organizationEmployees.organizationId, organizationId),
-                eq(organizationEmployees.isActive, true)
+                eq(organizationEmployees.isEnabled, true)
             )
         )
 

@@ -27,7 +27,8 @@ export interface CompanyInfo {
   
   /** Company address */
   address?: {
-    street?: string
+    line1?: string
+    line2?: string
     city?: string
     state?: string
     postalCode?: string

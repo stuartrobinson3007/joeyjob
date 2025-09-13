@@ -20,34 +20,8 @@ import { SuperAdminLayout } from '@/features/admin/components/super-admin-layout
 import { authClient } from '@/lib/auth/auth-client'
 import { getActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 import { useSubscription } from '@/features/billing/hooks/use-subscription'
-import { useOrganizationsWithOnboarding } from '@/lib/hooks/use-organizations-with-onboarding'
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async ({ location }) => {
-    // Import here to avoid circular dependencies
-    const { auth } = await import('@/lib/auth/auth')
-    const { getWebRequest } = await import('@tanstack/react-start/server')
-    
-    const request = getWebRequest()
-    const session = await auth.api.getSession({ headers: request.headers })
-    
-    if (!session) {
-      throw redirect({ 
-        to: '/auth/signin',
-        search: { redirect: location.href }
-      })
-    }
-    
-    // Check user onboarding completion
-    if (!session.user.onboardingCompleted && location.pathname !== '/onboarding') {
-      throw redirect({ to: '/onboarding' })
-    }
-    
-    return {
-      user: session.user,
-      session: session
-    }
-  },
   component: AuthenticatedLayout,
 })
 
@@ -60,10 +34,7 @@ function AuthenticatedLayout() {
     enabled: !!session && !sessionPending
   })
 
-  // Also fetch organizations with onboarding status for checking completion (only when authenticated)
-  const { data: organizationsWithOnboarding, isPending: onboardingOrgsPending } = useOrganizationsWithOnboarding({
-    enabled: !!session && !sessionPending
-  })
+  // Better Auth now includes all custom fields via additionalFields configuration
 
 
   // Only fetch subscription if user has completed onboarding
@@ -88,7 +59,6 @@ function AuthenticatedLayout() {
   const currentMatch = matches[matches.length - 1]
   const showSidebar = currentMatch?.staticData?.sidebar !== false
 
-  console.log('🔄 [DEBUG] AuthenticatedLayout - currentPath:', currentPath)
 
   useEffect(() => {
     // Handle unauthenticated users immediately (no need to wait for orgs)
@@ -98,48 +68,45 @@ function AuthenticatedLayout() {
     }
 
     // For authenticated users, wait for both session and organizations
-    if (!sessionPending && session && !orgsPending && !onboardingOrgsPending) {
-      console.log('🔄 [DEBUG] AuthenticatedLayout - checking redirects for:', currentPath)
+    if (!sessionPending && session && !orgsPending) {
 
-      // Routes that require organization onboarding to be complete
-      const orgRequiredPaths = [
-        '/', '/forms', '/billing', '/choose-plan', '/payment-error', 
-        '/settings', '/team', '/todos'
-      ]
-      
-      const needsCompleteOrg = orgRequiredPaths.some(path => 
-        currentPath === path || currentPath.startsWith(path + '/')
-      )
+      // Check if current route requires organization access
+      // Routes can opt-out of org check via staticData.skipOrgCheck
+      // Check all matched routes in the hierarchy (for nested routes like /superadmin/users)
+      const shouldSkipOrgCheck = matches.some(match => match.staticData?.skipOrgCheck === true)
+      const needsCompleteOrg = !shouldSkipOrgCheck
 
-      console.log('🔄 [DEBUG] Route analysis:', {
-        currentPath,
-        needsCompleteOrg,
-        userOnboardingComplete: session.user.onboardingCompleted
-      })
 
       if (needsCompleteOrg && session.user.onboardingCompleted) {
         const activeOrgId = getActiveOrganizationId()
-        console.log('🔄 [DEBUG] Organization checks:', { activeOrgId })
 
         // If no active org ID, redirect to select organization
         if (!activeOrgId || (organizations && !organizations.find(org => org.id === activeOrgId))) {
-          console.log('➡️ [DEBUG] Redirecting to select-organization (no active org)')
           navigate({ to: '/select-organization' })
           return
         }
 
         // Check if current organization has completed onboarding
-        const currentOrgWithOnboarding = organizationsWithOnboarding?.find(org => org.id === activeOrgId)
-        if (currentOrgWithOnboarding && !currentOrgWithOnboarding.onboardingCompleted) {
-          console.log('➡️ [DEBUG] Redirecting to company-sync (org onboarding incomplete)')
-          navigate({ to: '/onboarding/company-sync' })
+        const currentOrg = organizations?.find(org => org.id === activeOrgId)
+        console.log('🔄 [DEBUG] Layout org onboarding check:', {
+          currentPath,
+          hasCurrentOrg: !!currentOrg,
+          onboardingCompleted: currentOrg?.onboardingCompleted,
+          startsWithCompanySetup: currentPath.startsWith('/company-setup'),
+          shouldRedirect: currentOrg && !currentOrg.onboardingCompleted && !currentPath.startsWith('/company-setup')
+        })
+        
+        if (currentOrg && !currentOrg.onboardingCompleted && !currentPath.startsWith('/company-setup')) {
+          console.log('🔄 [DEBUG] Layout redirecting to company-setup/company-info from:', currentPath)
+          navigate({ to: '/company-setup/company-info' })
           return
+        } else if (currentPath.startsWith('/company-setup')) {
+          console.log('🔄 [DEBUG] Layout allowing company-setup route:', currentPath)
         }
 
-        console.log('✅ [DEBUG] All org checks passed for:', currentPath)
       }
     }
-  }, [session, organizations, organizationsWithOnboarding, sessionPending, orgsPending, onboardingOrgsPending, navigate, currentPath])
+  }, [session, organizations, sessionPending, orgsPending, navigate, currentPath])
 
   // End impersonation when navigating to superadmin routes
   useEffect(() => {

@@ -7,6 +7,7 @@ import {
     SelectValue,
 } from "@/ui/select";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import type { FlowNode } from "../form-flow-tree";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
 import useFormEditorData from "../hooks/use-form-editor-data";
@@ -224,7 +225,13 @@ export function SchedulingSettingsView({
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
-            <h2 className="text-2xl font-bold mb-6">Scheduling Settings</h2>
+            <TitleWithBack
+                title="Scheduling Settings"
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigateBack={onNavigateBack}
+                className="mb-6"
+            />
 
             <div className="space-y-6">
                 <div className="flex items-center justify-between bg-muted/50 p-4 rounded-md space-x-4">

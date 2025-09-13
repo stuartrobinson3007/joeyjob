@@ -244,7 +244,6 @@ export const getBooking = createServerFn({ method: 'POST' })
         form: row.form ? {
           id: row.form.id,
           name: row.form.name,
-          description: row.form.description,
         } : null,
         createdBy: row.creator ? {
           id: row.creator.id,

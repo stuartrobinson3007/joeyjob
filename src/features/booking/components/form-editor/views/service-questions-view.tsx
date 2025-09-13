@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
 import { QuestionList } from "../question-list";
 import type { FlowNode } from "../form-flow-tree";
@@ -49,7 +50,12 @@ export function ServiceQuestionsView({
             />
 
             <div className="mb-4">
-                <h2 className="text-2xl font-bold">Service Questions</h2>
+                <TitleWithBack
+                    title="Service Questions"
+                    currentLevel={currentLevel}
+                    selectedNode={node}
+                    onNavigateBack={onNavigateBack}
+                />
                 <p className="text-muted-foreground">
                     These questions are shown when this specific service is selected.
                 </p>

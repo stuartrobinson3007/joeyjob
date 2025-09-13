@@ -6,6 +6,7 @@ import {
     MessageCircleQuestionIcon
 } from "lucide-react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import type { ServiceDetailView, NavigationLevel } from "../hooks/use-form-editor-state";
 import type { FlowNode } from "../form-flow-tree";
 import useFormEditorData from "../hooks/use-form-editor-data";
@@ -44,7 +45,13 @@ export function ServiceOptionsView({
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
-            <h2 className="text-2xl font-bold mb-6">{node.label}</h2>
+            <TitleWithBack
+                title={node.label}
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigateBack={onNavigateBack}
+                className="mb-6"
+            />
 
             <div className="flex flex-col space-y-4">
                 <button

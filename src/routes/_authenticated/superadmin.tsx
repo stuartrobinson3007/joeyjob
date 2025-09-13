@@ -1,6 +1,9 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authenticated/superadmin')({
+  staticData: {
+    skipOrgCheck: true, // Superadmin routes operate across all organizations
+  },
   component: SuperAdminPage,
 })
 

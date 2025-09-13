@@ -12,6 +12,7 @@ import type {
   ScheduleJobRequest,
   SimproConfig
 } from './types'
+import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 /**
  * Simpro API client for interacting with Simpro services
@@ -47,6 +48,11 @@ export class SimproApi {
     this.config = config
     this.userId = userId
     this.onTokenRefresh = onTokenRefresh
+
+    // Log warning if token refresh callback is missing
+    if (!onTokenRefresh && userId) {
+      console.warn(`⚠️ [SIMPRO_API] Token refresh callback not provided for user ${userId}. Refreshed tokens will not be persisted to database!`)
+    }
   }
 
   /**
@@ -57,7 +63,12 @@ export class SimproApi {
     
     try {
       if (!this.refreshToken) {
-        throw new Error('No refresh token available')
+        throw new AppError(
+          ERROR_CODES.SYS_TOKEN_INVALID,
+          401,
+          { userId: this.userId },
+          'No refresh token available for token refresh'
+        )
       }
 
       console.log('Using refresh token for:', this.config.baseUrl)
@@ -89,14 +100,33 @@ export class SimproApi {
 
       if (!response.ok) {
         const errorData = responseData as TokenErrorResponse
-        throw new Error(`Failed to refresh token: ${errorData.error_description || errorData.error || response.statusText}`)
+        throw new AppError(
+          ERROR_CODES.SYS_TOKEN_REFRESH_FAILED,
+          response.status,
+          { 
+            userId: this.userId, 
+            error: errorData.error, 
+            errorDescription: errorData.error_description,
+            statusCode: response.status 
+          },
+          `Failed to refresh token: ${errorData.error_description || errorData.error || response.statusText}`
+        )
       }
 
       const data = responseData as TokenResponse
       console.log('Token refresh response data:', data)
 
       if (!data.access_token || !data.refresh_token) {
-        throw new Error('Invalid token response: missing access_token or refresh_token')
+        throw new AppError(
+          ERROR_CODES.SYS_TOKEN_INVALID,
+          502,
+          { 
+            userId: this.userId, 
+            hasAccessToken: !!data.access_token, 
+            hasRefreshToken: !!data.refresh_token 
+          },
+          'Invalid token response: missing access_token or refresh_token'
+        )
       }
 
       this.accessToken = data.access_token
@@ -129,7 +159,12 @@ export class SimproApi {
           // Continue anyway - at least we have the tokens in memory for this request
         }
       } else {
-        console.warn('⚠️ Token refresh callback not provided - tokens not persisted to database!')
+        console.warn('⚠️ [SIMPRO_API] Token refresh callback not provided - tokens not persisted to database!', {
+          userId: this.userId,
+          hasUserId: !!this.userId,
+          hasCallback: !!this.onTokenRefresh,
+          tokenExpiry: new Date(this.tokenExpiry).toISOString()
+        })
       }
     } catch (error) {
       console.error('Token refresh failed:', error)
@@ -165,12 +200,29 @@ export class SimproApi {
       }
 
       if (response.status === 401 && retryCount > 0) {
-        throw new Error('Authentication failed: Unable to refresh access token')
+        throw new AppError(
+          ERROR_CODES.AUTH_SESSION_EXPIRED,
+          401,
+          { userId: this.userId, retryCount, provider: 'simpro' },
+          'Authentication failed: Unable to refresh access token',
+          [{ action: 'updateConnection', label: 'Update Connection', data: { provider: 'simpro' } }]
+        )
       }
 
       if (!response.ok) {
         const errorText = await response.text()
-        throw new Error(`API request failed: ${response.statusText} (${response.status})`)
+        throw new AppError(
+          ERROR_CODES.SYS_SERVER_ERROR,
+          response.status,
+          { 
+            userId: this.userId, 
+            endpoint, 
+            statusCode: response.status, 
+            statusText: response.statusText,
+            errorText
+          },
+          `API request failed: ${response.statusText} (${response.status})`
+        )
       }
 
       const data = await response.json()

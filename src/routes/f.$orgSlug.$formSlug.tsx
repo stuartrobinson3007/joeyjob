@@ -207,7 +207,7 @@ function HostedBookingPage() {
         <BookingFlow
           id="hosted-booking-flow"
           startTitle={form.formConfig?.serviceTree?.label || form.name}
-          startDescription={form.description || 'Select a service to get started'}
+          startDescription={form.formConfig?.serviceTree?.description || 'Select a service to get started'}
           services={services}
           baseQuestions={baseQuestions}
           primaryColor={primaryColor}

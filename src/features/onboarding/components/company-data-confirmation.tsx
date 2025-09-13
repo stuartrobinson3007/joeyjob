@@ -16,12 +16,15 @@ interface CompanyDataConfirmationProps {
     website?: string | null
     currency?: string | null
     timezone: string
-    addressStreet?: string | null
+    addressLine1?: string | null
+    addressLine2?: string | null
     addressCity?: string | null
     addressState?: string | null
     addressPostalCode?: string | null
     addressCountry?: string | null
     providerType?: string | null
+    providerData?: any
+    providerCompanyId?: string | null
   }
   employees: Employee[]
   onConfirm: () => void
@@ -30,25 +33,27 @@ interface CompanyDataConfirmationProps {
   isLoading?: boolean
 }
 
-export function CompanyDataConfirmation({ 
-  organization, 
-  employees, 
-  onConfirm, 
+export function CompanyDataConfirmation({
+  organization,
+  employees,
+  onConfirm,
   onReportIssue,
   onRefresh,
-  isLoading = false 
+  isLoading = false
 }: CompanyDataConfirmationProps) {
   const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   const formatAddress = () => {
     const parts = [
-      organization.addressStreet,
+      organization.addressLine1,
+      organization.addressLine2,
       organization.addressCity,
       organization.addressState,
       organization.addressPostalCode,
       organization.addressCountry
     ].filter(Boolean)
-    
+
+
     return parts.length > 0 ? parts.join(', ') : 'No address provided'
   }
 
@@ -69,7 +74,7 @@ export function CompanyDataConfirmation({
               Let's get started with your business details.
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {/* Information Notice */}
             <Alert>
@@ -94,8 +99,8 @@ export function CompanyDataConfirmation({
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Timezone</h3>
                 <p className="text-base">
-                  {organization.timezone 
-                    ? organization.timezone.replace('_', ' ') 
+                  {organization.timezone
+                    ? organization.timezone.replace('_', ' ')
                     : 'Not specified'
                   }
                 </p>
@@ -149,17 +154,17 @@ export function CompanyDataConfirmation({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button 
-                onClick={onConfirm} 
+            <div className="flex flex-col sm:flex-row sm:flex-row-reverse gap-3 pt-4">
+              <Button
+                onClick={onConfirm}
                 disabled={isLoading}
                 loading={isLoading}
                 className="flex-1"
               >
                 Yes, this is all correct
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleReportIssue}
                 disabled={isLoading}
                 className="flex-1"
@@ -176,6 +181,10 @@ export function CompanyDataConfirmation({
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
         providerType={organization.providerType || 'simpro'}
+        organizationData={{
+          providerData: organization.providerData,
+          providerCompanyId: organization.providerCompanyId,
+        }}
         onRefresh={onRefresh}
       />
     </>

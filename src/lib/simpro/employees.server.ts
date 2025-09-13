@@ -70,7 +70,7 @@ export async function syncOrganizationEmployees(organizationId: string, userId: 
       await db
         .update(organizationEmployees)
         .set({
-          isActive: false,
+          isEnabled: false,
           lastSyncAt: new Date(),
         })
         .where(
@@ -118,12 +118,12 @@ export async function getOrganizationEmployees(organizationId: string) {
 export async function toggleOrganizationEmployee(
   organizationId: string,
   employeeId: string,
-  isActive: boolean
+  isEnabled: boolean
 ) {
   await db
     .update(organizationEmployees)
     .set({
-      isActive,
+      isEnabled,
       updatedAt: new Date(),
     })
     .where(
@@ -238,7 +238,7 @@ export async function getServiceEmployees(serviceId: string, checkAvailability: 
   const organizationEmployeeCount = await db
     .select({ count: sql<number>`count(*)` })
     .from(organizationEmployees)
-    .where(eq(organizationEmployees.isActive, true))
+    .where(eq(organizationEmployees.isEnabled, true))
     
   console.log('🔍 [DB DEBUG] Active organizationEmployees count:', organizationEmployeeCount[0]?.count || 0)
   
@@ -260,7 +260,7 @@ export async function getServiceEmployees(serviceId: string, checkAvailability: 
     .where(
       and(
         eq(serviceEmployees.serviceId, serviceId),
-        eq(organizationEmployees.isActive, true)
+        eq(organizationEmployees.isEnabled, true)
       )
     )
 

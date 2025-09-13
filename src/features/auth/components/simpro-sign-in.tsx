@@ -4,8 +4,13 @@ import { Building2 } from 'lucide-react'
 import { authClient } from '@/lib/auth/auth-client'
 import { SimProBuildSelector } from './simpro-build-selector'
 import type { SimProBuildConfig } from '@/lib/auth/simpro-oauth'
+import { validateRedirectUrl } from './update-connection'
 
-export function SimProSignIn() {
+interface SimProSignInProps {
+  redirectTo?: string
+}
+
+export function SimProSignIn({ redirectTo }: SimProSignInProps = {}) {
   const [showBuildSelector, setShowBuildSelector] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -29,10 +34,13 @@ export function SimProSignIn() {
       // Store the build config for the callback
       sessionStorage.setItem('simpro_build_config', JSON.stringify(config))
       
+      // Validate and sanitize the redirect URL
+      const validatedRedirectTo = validateRedirectUrl(redirectTo)
+      
       // Initiate OAuth flow with SimPro using generic OAuth
       await authClient.signIn.oauth2({
         providerId: 'simpro',
-        callbackURL: '/',
+        callbackURL: validatedRedirectTo || '/',
       })
     } catch (error) {
       console.error('SimPro sign-in error:', error)

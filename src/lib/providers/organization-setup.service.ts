@@ -157,7 +157,8 @@ export class OrganizationSetupService {
       website: companyInfo.website,
       timezone: companyInfo.timezone || 'America/New_York',
       currency: companyInfo.currency,
-      addressStreet: companyInfo.address?.street,
+      addressLine1: companyInfo.address?.line1,
+      addressLine2: companyInfo.address?.line2,
       addressCity: companyInfo.address?.city,
       addressState: companyInfo.address?.state,
       addressPostalCode: companyInfo.address?.postalCode,
@@ -178,6 +179,7 @@ export class OrganizationSetupService {
     organizationId: string,
     companyInfo: CompanyInfo
   ): Promise<void> {
+
     await db
       .update(organization)
       .set({
@@ -187,7 +189,8 @@ export class OrganizationSetupService {
         website: companyInfo.website,
         timezone: companyInfo.timezone || 'America/New_York',
         currency: companyInfo.currency,
-        addressStreet: companyInfo.address?.street,
+        addressLine1: companyInfo.address?.line1,
+        addressLine2: companyInfo.address?.line2,
         addressCity: companyInfo.address?.city,
         addressState: companyInfo.address?.state,
         addressPostalCode: companyInfo.address?.postalCode,
@@ -196,6 +199,7 @@ export class OrganizationSetupService {
         updatedAt: new Date(),
       })
       .where(eq(organization.id, organizationId))
+
   }
 
   /**

@@ -9,11 +9,12 @@
  * Performance: ~10x faster, 95% fewer API calls
  */
 
-import { getSimproApiForUser } from './simpro.server'
+import { getSimproApiForOrganization } from './simpro.server'
 import { 
     fetchEmployeesInBulk, 
     fetchSchedulesInBulk, 
     calculateAvailableSlotsForDate,
+    calculateBookingWindow,
     type ServiceSettings 
 } from './availability-utils.server'
 
@@ -21,27 +22,43 @@ import {
  * Optimized availability calculation - replaces the existing slow implementation
  */
 export async function getServiceAvailability(
+    organizationId: string,
     userId: string,
     assignedEmployeeIds: number[],
     serviceSettings: ServiceSettings,
     year: number,
-    month: number
+    month: number,
+    organizationTimezone?: string
 ): Promise<{ [date: string]: string[] }> {
     
     
     const startTime = Date.now()
     
     try {
-        const simproApi = await getSimproApiForUser(userId)
+        // EARLY OPTIMIZATION: Calculate booking window FIRST
+        const bookingWindow = calculateBookingWindow(serviceSettings, organizationTimezone!)
+        const { startDate: windowStart, endDate: windowEnd } = bookingWindow
+        
+        // Check if requested month is outside booking window
+        const monthStart = new Date(year, month - 1, 1)
+        const monthEnd = new Date(year, month, 0)
+        
+        // Early return if month is completely outside booking window
+        if (windowEnd && monthStart > windowEnd) {
+            return {} // Month is after booking window
+        }
+        if (monthEnd < windowStart) {
+            return {} // Month is before booking window
+        }
+        
+        const simproApi = await getSimproApiForOrganization(organizationId, userId)
         
         // STEP 1: Bulk fetch all employee details using shared utils
         const employeeDetailsMap = await fetchEmployeesInBulk(simproApi, assignedEmployeeIds)
         
         // STEP 2: Bulk fetch all schedules for the month using shared utils
-        const startOfMonth = new Date(year, month - 1, 1)
-        const endOfMonth = new Date(year, month, 0)
-        const startDate = startOfMonth.toISOString().split('T')[0]
-        const endDate = endOfMonth.toISOString().split('T')[0]
+        const startDate = monthStart.toISOString().split('T')[0]
+        const endDate = monthEnd.toISOString().split('T')[0]
         
         const relevantSchedules = await fetchSchedulesInBulk(simproApi, startDate, endDate, assignedEmployeeIds)
         
@@ -53,8 +70,15 @@ export async function getServiceAvailability(
         
         // Get all days to process in the month
         const daysToProcess: Date[] = []
-        for (let day = 1; day <= endOfMonth.getDate(); day++) {
+        for (let day = 1; day <= monthEnd.getDate(); day++) {
             const checkDate = new Date(year, month - 1, day)
+            
+            // Skip dates outside booking window
+            if (checkDate < windowStart || (windowEnd && checkDate > windowEnd)) {
+                continue
+            }
+            
+            // Skip past dates
             if (checkDate >= today) {
                 daysToProcess.push(checkDate)
             }

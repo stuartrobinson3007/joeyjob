@@ -66,6 +66,10 @@
     "SYS_SERVER_ERROR": "Something went wrong. Please try again",
     "SYS_RATE_LIMIT": "Too many requests. Please slow down",
     "SYS_CONFIG_ERROR": "Configuration error. Please contact support",
+    "SYS_TOKEN_REFRESH_FAILED": "Your provider connection has expired. Please update your connection",
+    "SYS_TOKEN_INVALID": "Your provider authentication is invalid. Please update your connection",
+    "SYS_TOKEN_PERSISTENCE_FAILED": "Failed to save your authentication. Please try again",
+    "SYS_INTERNAL_ERROR": "An internal error occurred. Please try again",
     "NET_CONNECTION_ERROR": "Connection problem. Please check your internet",
     "NET_TIMEOUT": "The request took too long. Please try again"
   },
@@ -75,6 +79,7 @@
     "upgrade": "Upgrade Plan",
     "support": "Contact Support",
     "goBack": "Go Back",
+    "updateConnection": "Update Connection",
     "dismiss": "Dismiss"
   },
   "server": {

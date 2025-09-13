@@ -91,7 +91,8 @@ export class SimproInfoService implements ProviderInfoService {
     try {
       const response = await this.simproApi.getCompanyDetails(companyId)
       
-      return {
+      
+      const companyInfo = {
         id: response.ID.toString(),
         name: response.Name || '',
         phone: response.Phone || undefined,
@@ -100,11 +101,12 @@ export class SimproInfoService implements ProviderInfoService {
         currency: response.Currency || undefined,
         timezone: response.Timezone || undefined,
         address: response.Address ? {
-          street: response.Address.Address || undefined,
-          city: response.Address.City || undefined,
-          state: response.Address.State || undefined,
-          postalCode: response.Address.PostalCode || undefined,
-          country: response.Address.Country || undefined,
+          line1: response.Address.Line1 || undefined,
+          line2: response.Address.Line2 || undefined,
+          city: undefined, // Not provided by Simpro API
+          state: undefined, // Not provided by Simpro API
+          postalCode: undefined, // Not provided by Simpro API
+          country: response.Country || undefined, // From root level
         } : undefined,
         providerData: {
           // Store Simpro-specific fields that don't map to standard fields
@@ -131,6 +133,9 @@ export class SimproInfoService implements ProviderInfoService {
           billingAddress: response.BillingAddress,
         }
       }
+      
+      
+      return companyInfo
     } catch (error) {
       console.error(`Error fetching Simpro company info for company ${companyId}:`, error)
       throw error

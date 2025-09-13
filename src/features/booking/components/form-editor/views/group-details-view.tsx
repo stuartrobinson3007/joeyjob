@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import type { FlowNode } from "../form-flow-tree";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
 
@@ -86,9 +87,13 @@ export function GroupDetailsView({
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
-            <h2 className="text-2xl font-bold mb-6">
-                {isStartNode ? "Form Details" : "Group Details"}
-            </h2>
+            <TitleWithBack
+                title={isStartNode ? "Form Details" : "Group Details"}
+                currentLevel={currentLevel}
+                selectedNode={node}
+                onNavigateBack={onNavigateBack}
+                className="mb-6"
+            />
 
             <div className="space-y-8">
                 <div>

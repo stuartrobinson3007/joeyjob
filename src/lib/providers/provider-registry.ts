@@ -48,6 +48,11 @@ class ProviderInfoRegistry {
       throw new Error(`Unknown provider type: ${providerType}`)
     }
 
+    // Log warning if token refresh callback is missing
+    if (!onTokenRefresh && userId) {
+      console.warn(`⚠️ [PROVIDER_REGISTRY] Token refresh callback not provided for ${providerType} service (userId: ${userId}). Refreshed tokens will not be persisted to database!`)
+    }
+
     return factory(accessToken, refreshToken, buildConfig, userId, onTokenRefresh)
   }
 
@@ -89,6 +94,11 @@ export function createProviderInfoService(
     refreshTokenExpiresAt: number
   ) => Promise<void>
 ): ProviderInfoService {
+  // Log warning if token refresh callback is missing
+  if (!onTokenRefresh && userId) {
+    console.warn(`⚠️ [CREATE_PROVIDER_SERVICE] Token refresh callback not provided for ${providerType} service (userId: ${userId}). Refreshed tokens will not be persisted to database!`)
+  }
+
   return providerInfoRegistry.createService(
     providerType,
     accessToken,

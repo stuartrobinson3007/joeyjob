@@ -1,26 +1,17 @@
 import { createServerFileRoute } from '@tanstack/react-start/server'
-import { auth } from '@/lib/auth/auth'
-import { getOrganizationEmployees, toggleOrganizationEmployee } from '@/lib/simpro/employees.server'
+import { 
+  getEmployeesForOrganization, 
+  toggleEmployeeEnabled 
+} from '@/lib/employees/server'
 
 export const ServerRoute = createServerFileRoute('/api/employees/').methods({
   GET: async ({ request }) => {
     try {
-      const session = await auth.api.getSession({ headers: request.headers })
-      if (!session) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-
-      const url = new URL(request.url)
-      const organizationId = url.searchParams.get('organizationId')
-      
-      if (!organizationId) {
-        return Response.json({ error: 'Organization ID is required' }, { status: 400 })
-      }
-
-      const employees = await getOrganizationEmployees(organizationId)
-      return Response.json(employees)
+      // Use new middleware-based server function
+      const result = await getEmployeesForOrganization()
+      return Response.json(result.employees)
     } catch (error) {
-      console.error('Error fetching employees:', error)
+      console.error('Error fetching employees for user:', error)
       return Response.json(
         { error: error instanceof Error ? error.message : 'Failed to fetch employees' },
         { status: 500 }
@@ -30,20 +21,20 @@ export const ServerRoute = createServerFileRoute('/api/employees/').methods({
   
   PATCH: async ({ request }) => {
     try {
-      const session = await auth.api.getSession({ headers: request.headers })
-      if (!session) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-
       const body = await request.json()
-      const { organizationId, employeeId, isActive } = body
+      const { employeeId, enabled } = body
       
-      if (!organizationId || !employeeId || typeof isActive !== 'boolean') {
+      if (!employeeId || typeof enabled !== 'boolean') {
         return Response.json({ error: 'Invalid request data' }, { status: 400 })
       }
 
-      await toggleOrganizationEmployee(organizationId, employeeId, isActive)
-      return Response.json({ success: true })
+      // Use new middleware-based server function
+      const result = await toggleEmployeeEnabled({ 
+        employeeId, 
+        enabled 
+      })
+      
+      return Response.json(result)
     } catch (error) {
       console.error('Error updating employee status:', error)
       return Response.json(
@@ -51,5 +42,5 @@ export const ServerRoute = createServerFileRoute('/api/employees/').methods({
         { status: 500 }
       )
     }
-  }
+  },
 })

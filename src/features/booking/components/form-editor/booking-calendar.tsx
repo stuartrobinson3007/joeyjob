@@ -56,6 +56,13 @@ export type BookingCalendarProps = {
     duration: number; // in minutes
     bufferTime?: number; // in minutes, default 0
     interval?: number; // in minutes, default 30
+    minimumNotice?: number; // Minimum notice value
+    minimumNoticeUnit?: 'days' | 'hours'; // Unit for minimum notice
+    dateRangeType?: 'rolling' | 'fixed' | 'indefinite'; // Type of date range restriction
+    rollingDays?: number; // Number of days for rolling window
+    rollingUnit?: 'calendar-days' | 'week-days'; // Type of days for rolling window
+    fixedStartDate?: Date; // Start date for fixed range
+    fixedEndDate?: Date; // End date for fixed range
     onSelectDateTime?: (date: Date, time: string) => void;
     onDateChange?: (date: Date | null) => void; // Callback when date selection changes
     onBackClicked?: () => void; // Callback when back button is clicked
@@ -155,7 +162,14 @@ export default function BookingCalendar({
     title,
     serviceName,
     duration,
-    interval = 30,
+    interval,
+    minimumNotice,
+    minimumNoticeUnit,
+    dateRangeType,
+    rollingDays,
+    rollingUnit,
+    fixedStartDate,
+    fixedEndDate,
     onSelectDateTime,
     onDateChange,
     onBackClicked,
@@ -307,14 +321,65 @@ export default function BookingCalendar({
     const dayName = selectedDate ? DAY_NAMES[dayOfWeek] : null;
     const dayNumber = selectedDate ? selectedDate.getDate() : null;
 
+    // Helper function to add days to a date
+    const addDays = (date: Date, days: number): Date => {
+        const result = new Date(date);
+        result.setDate(result.getDate() + days);
+        return result;
+    };
+
+    // Helper function to add weekdays only
+    const addWeekdays = (date: Date, weekdays: number): Date => {
+        let result = new Date(date);
+        let daysAdded = 0;
+        
+        while (daysAdded < weekdays) {
+            result = addDays(result, 1);
+            const dayOfWeek = result.getDay();
+            // Skip weekends (0 = Sunday, 6 = Saturday)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                daysAdded++;
+            }
+        }
+        
+        return result;
+    };
+
     // Check if a date should be disabled in the calendar
     const isDateDisabled = (calendarDate: Date) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        // Disable past dates
-        if (calendarDate < today) return true;
-
+        
+        // Apply minimum notice
+        let earliestBookable = today;
+        if (minimumNotice && minimumNotice > 0) {
+            if (minimumNoticeUnit === 'days') {
+                earliestBookable = addDays(today, minimumNotice);
+            } else {
+                // For hours, add to current time then round to next day if needed
+                const hoursFromNow = new Date(Date.now() + minimumNotice * 60 * 60 * 1000);
+                hoursFromNow.setHours(0, 0, 0, 0);
+                if (hoursFromNow > today) {
+                    earliestBookable = hoursFromNow;
+                }
+            }
+        }
+        
+        if (calendarDate < earliestBookable) return true;
+        
+        // Apply date range restrictions based on type
+        if (dateRangeType === 'rolling' && rollingDays) {
+            const maxDate = rollingUnit === 'week-days' 
+                ? addWeekdays(today, rollingDays)
+                : addDays(today, rollingDays);
+            if (calendarDate > maxDate) return true;
+        }
+        
+        if (dateRangeType === 'fixed') {
+            if (fixedStartDate && calendarDate < fixedStartDate) return true;
+            if (fixedEndDate && calendarDate > fixedEndDate) return true;
+        }
+        
         // When we have availability data from API, check if date has slots
         if (Object.keys(availabilityData).length > 0) {
             const dateKey = calendarDate.toISOString().split('T')[0];

@@ -171,7 +171,7 @@ async function createOrganizationsFromProvider(
   ↓
 /select-organization (existing - if multiple orgs)
   ↓  
-/onboarding/company-sync (NEW - provider data confirmation)
+/company-setup (NEW - provider data confirmation)
   ↓
 / (dashboard)
 ```

@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
 import { account, organization } from '@/database/schema'
 import { organizationSetupService } from './organization-setup.service'
+import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 /**
@@ -199,16 +200,21 @@ export const getPendingOnboardingOrganizations = createServerFn({ method: 'GET' 
  * Mark organization onboarding as complete
  */
 export const completeOrganizationOnboarding = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => 
-    z.object({
-      organizationId: z.string(),
-    }).parse(data)
-  )
-  .handler(async ({ data }) => {
-    const request = getWebRequest()
-    const session = await auth.api.getSession({ headers: request.headers })
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }) => {
+    const organizationId = context.organizationId
+    const userId = context.user?.id
 
-    if (!session?.user) {
+    if (!organizationId) {
+      throw new AppError(
+        ERROR_CODES.BIZ_NOT_FOUND,
+        404,
+        { userId },
+        'No active organization selected'
+      )
+    }
+
+    if (!userId) {
       throw new AppError(
         ERROR_CODES.AUTH_NOT_AUTHENTICATED,
         401,
@@ -225,18 +231,18 @@ export const completeOrganizationOnboarding = createServerFn({ method: 'POST' })
           onboardingCompleted: true,
           updatedAt: new Date(),
         })
-        .where(eq(organization.id, data.organizationId))
+        .where(eq(organization.id, organizationId))
 
       return {
         success: true,
-        organizationId: data.organizationId,
+        organizationId,
       }
     } catch (error) {
-      console.error(`Error completing onboarding for organization ${data.organizationId}:`, error)
+      console.error(`Error completing onboarding for organization ${organizationId}:`, error)
       throw new AppError(
         ERROR_CODES.SYS_INTERNAL_ERROR,
         500,
-        { organizationId: data.organizationId },
+        { organizationId },
         'Failed to complete organization onboarding'
       )
     }

@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/db'
-import { user, account } from '@/database/schema'
+import { user, account, organization, member } from '@/database/schema'
 import { createSimproApi } from './simpro-api'
 import type { Employee, EmployeeAvailabilityRequest } from './types'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
@@ -37,35 +37,24 @@ export async function getSimproApiForUser(userId: string) {
 
   // Get user's Simpro build configuration
   const users = await db
-    .select({
-      simproBuildName: user.simproBuildName,
-      simproDomain: user.simproDomain,
-    })
+    .select()
     .from(user)
     .where(eq(user.id, userId))
     .limit(1)
 
   if (!users.length || !users[0].simproBuildName || !users[0].simproDomain) {
+    console.error('Missing Simpro build configuration for user:', userId, {
+      userFound: users.length > 0,
+      simproBuildName: users[0]?.simproBuildName,
+      simproDomain: users[0]?.simproDomain
+    })
     throw new Error('Missing Simpro build configuration for user')
   }
 
   const { simproBuildName, simproDomain } = users[0]
 
-  // Create a callback function to persist tokens after refresh
-  const tokenPersistenceCallback = async (
-    newAccessToken: string,
-    newRefreshToken: string,
-    accessTokenExpiresAt: number,
-    refreshTokenExpiresAt: number
-  ) => {
-    await updateUserSimproTokens(
-      userId,
-      newAccessToken,
-      newRefreshToken,
-      accessTokenExpiresAt,
-      refreshTokenExpiresAt
-    )
-  }
+  // Create standardized token refresh callback
+  const tokenRefreshCallback = createTokenRefreshCallback(userId, 'GET_SIMPRO_API')
 
   return createSimproApi(
     accessToken, 
@@ -73,7 +62,80 @@ export async function getSimproApiForUser(userId: string) {
     simproBuildName, 
     simproDomain,
     userId,
-    tokenPersistenceCallback
+    tokenRefreshCallback
+  )
+}
+
+/**
+ * Get Simpro API instance for an organization (preferred approach)
+ */
+export async function getSimproApiForOrganization(organizationId: string, userId: string) {
+  // Get user's Simpro OAuth tokens
+  const accounts = await db
+    .select({
+      accessToken: account.accessToken,
+      refreshToken: account.refreshToken,
+      expiresAt: account.accessTokenExpiresAt,
+    })
+    .from(account)
+    .where(
+      and(
+        eq(account.userId, userId),
+        eq(account.providerId, 'simpro')
+      )
+    )
+    .limit(1)
+
+  if (!accounts.length) {
+    throw new Error('No Simpro account found for user')
+  }
+
+  const { accessToken, refreshToken } = accounts[0]
+  
+  if (!accessToken || !refreshToken) {
+    throw new Error('Missing Simpro tokens for user')
+  }
+
+  // Get organization's Simpro configuration
+  const orgs = await db
+    .select()
+    .from(organization)
+    .where(eq(organization.id, organizationId))
+    .limit(1)
+
+  if (!orgs.length) {
+    throw new Error('Organization not found')
+  }
+
+  const org = orgs[0]
+  if (!org.providerType || org.providerType !== 'simpro') {
+    throw new Error('Organization is not configured for Simpro')
+  }
+
+  // Extract Simpro configuration from provider data
+  const providerData = org.providerData as any
+  if (!providerData?.buildName || !providerData?.domain) {
+    console.error('Missing Simpro configuration in organization:', organizationId, {
+      providerType: org.providerType,
+      providerCompanyId: org.providerCompanyId,
+      hasProviderData: !!org.providerData,
+      providerData: org.providerData
+    })
+    throw new Error('Missing Simpro build configuration for organization')
+  }
+
+  const { buildName: simproBuildName, domain: simproDomain } = providerData
+
+  // Create standardized token refresh callback
+  const tokenRefreshCallback = createTokenRefreshCallback(userId, 'GET_SIMPRO_API')
+
+  return createSimproApi(
+    accessToken, 
+    refreshToken, 
+    simproBuildName, 
+    simproDomain,
+    userId,
+    tokenRefreshCallback
   )
 }
 
@@ -221,6 +283,75 @@ export async function createSimproBookingForUser(
 }
 
 /**
+ * Create a standardized token refresh callback for Simpro API instances
+ * This ensures consistent token persistence across all API calls
+ */
+export function createTokenRefreshCallback(userId: string, requestId?: string) {
+  const logPrefix = requestId ? `[${requestId}]` : '[TOKEN_REFRESH]'
+  
+  return async (
+    accessToken: string,
+    refreshToken: string,
+    accessTokenExpiresAt: number,
+    refreshTokenExpiresAt: number
+  ) => {
+    console.log(`${logPrefix} Token refresh callback triggered for user ${userId}`)
+    
+    // Validate parameters before database update
+    if (!accessToken || !refreshToken) {
+      console.error(`${logPrefix} ❌ Invalid tokens provided to refresh callback`, {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        userId
+      })
+      throw new AppError(
+        ERROR_CODES.SYS_TOKEN_INVALID,
+        500,
+        { userId, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken, provider: 'simpro' },
+        'Invalid tokens provided to refresh callback',
+        [{ action: 'updateConnection', label: 'Update Connection', data: { provider: 'simpro' } }]
+      )
+    }
+    
+    if (!accessTokenExpiresAt || !refreshTokenExpiresAt) {
+      console.error(`${logPrefix} ❌ Invalid expiration times provided to refresh callback`, {
+        accessTokenExpiresAt,
+        refreshTokenExpiresAt,
+        userId
+      })
+      throw new AppError(
+        ERROR_CODES.SYS_TOKEN_INVALID,
+        500,
+        { userId, accessTokenExpiresAt, refreshTokenExpiresAt, provider: 'simpro' },
+        'Invalid token expiration times provided to refresh callback',
+        [{ action: 'updateConnection', label: 'Update Connection', data: { provider: 'simpro' } }]
+      )
+    }
+    
+    try {
+      console.log(`${logPrefix} 💾 Persisting new tokens to database for user ${userId}`)
+      await updateUserSimproTokens(
+        userId,
+        accessToken,
+        refreshToken,
+        accessTokenExpiresAt,
+        refreshTokenExpiresAt
+      )
+      console.log(`${logPrefix} ✅ Tokens successfully persisted to database`)
+    } catch (error) {
+      console.error(`${logPrefix} ❌ Failed to persist tokens to database:`, error)
+      throw new AppError(
+        ERROR_CODES.SYS_TOKEN_PERSISTENCE_FAILED,
+        500,
+        { userId, originalError: error instanceof Error ? error.message : String(error), provider: 'simpro' },
+        'Failed to persist refreshed tokens to database',
+        [{ action: 'updateConnection', label: 'Update Connection', data: { provider: 'simpro' } }]
+      )
+    }
+  }
+}
+
+/**
  * Update user's Simpro tokens after refresh
  */
 export async function updateUserSimproTokens(
@@ -231,7 +362,6 @@ export async function updateUserSimproTokens(
   refreshTokenExpiresAt: number
 ) {
   try {
-    console.log('Updating Simpro tokens in database for user:', userId)
     const result = await db
       .update(account)
       .set({
@@ -247,7 +377,6 @@ export async function updateUserSimproTokens(
           eq(account.providerId, 'simpro')
         )
       )
-    console.log('✅ Database update successful')
     return result
   } catch (error) {
     console.error('❌ Error updating user Simpro tokens:', error)

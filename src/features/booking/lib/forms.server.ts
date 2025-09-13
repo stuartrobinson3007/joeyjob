@@ -27,17 +27,14 @@ function generateSlug(text: string): string {
 // Validation schemas
 const createFormSchema = z.object({
   name: z.string().min(1, 'Form name is required').default('Untitled Form'),
-  description: z.string().optional().default(''),
 }).default({
   name: 'Untitled Form',
-  description: '',
 })
 
 const updateFormSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
   slug: z.string().optional(),
-  description: z.string().optional(),
   formConfig: z.any().optional(), // Form editor configuration JSON
   theme: z.enum(['light', 'dark']).optional(),
   primaryColor: z.string().optional(),
@@ -109,7 +106,6 @@ export const createForm = createServerFn({ method: 'POST' })
             organizationId,
             name: data.name,
             slug: '', // Temporary placeholder, will update after insertion
-            description: data.description || null,
             formConfig: defaultConfig,
             theme: 'light',
             primaryColor: '#3B82F6',
@@ -175,7 +171,6 @@ export const updateForm = createServerFn({ method: 'POST' })
       const updateData: any = { updatedAt: new Date() }
       if (data.name !== undefined) updateData.name = data.name
       if (data.slug !== undefined) updateData.slug = data.slug
-      if (data.description !== undefined) updateData.description = data.description
       if (data.formConfig !== undefined) updateData.formConfig = data.formConfig
       if (data.theme !== undefined) updateData.theme = data.theme
       if (data.primaryColor !== undefined) updateData.primaryColor = data.primaryColor
@@ -369,7 +364,6 @@ export const duplicateForm = createServerFn({ method: 'POST' })
           organizationId,
           name: `Copy of ${original.name}`,
           slug: slug,
-          description: original.description,
           formConfig: original.formConfig,
           theme: original.theme,
           primaryColor: original.primaryColor,
@@ -428,8 +422,8 @@ export const getBookingForms = createServerFn({ method: 'GET' })
       
       if (data.search) {
         conditions.push(
-          // Search in name and description
-          sql`${bookingForms.name} ILIKE ${`%${data.search}%`} OR ${bookingForms.description} ILIKE ${`%${data.search}%`}`
+          // Search in name only
+          sql`${bookingForms.name} ILIKE ${`%${data.search}%`}`
         )
       }
       

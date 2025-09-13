@@ -53,10 +53,16 @@ export interface EmployeeAvailabilityData {
 }
 
 export interface ServiceSettings {
-    duration: number      // minutes
-    interval: number      // minutes  
-    bufferTime: number   // minutes
-    minimumNotice: number // hours
+    duration: number           // minutes
+    interval: number          // minutes  
+    bufferTime: number        // minutes
+    minimumNotice: number     // value (can be hours or days)
+    minimumNoticeUnit?: 'days' | 'hours'  
+    dateRangeType?: 'rolling' | 'fixed' | 'indefinite'
+    rollingDays?: number      // number of days for rolling window
+    rollingUnit?: 'calendar-days' | 'week-days'  // type of days for rolling
+    fixedStartDate?: string   // ISO date string in org timezone
+    fixedEndDate?: string     // ISO date string in org timezone
 }
 
 export interface AvailableEmployee {
@@ -188,8 +194,15 @@ export function isEmployeeAvailableForTimeSlot(
     const slotDateTime = new Date(date)
     slotDateTime.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0)
     
-    const hoursUntilSlot = (slotDateTime.getTime() - Date.now()) / (1000 * 60 * 60)
-    if (hoursUntilSlot < serviceSettings.minimumNotice) {
+    const msUntilSlot = slotDateTime.getTime() - Date.now()
+    const hoursUntilSlot = msUntilSlot / (1000 * 60 * 60)
+    
+    // Handle both days and hours for minimum notice
+    const requiredNoticeHours = serviceSettings.minimumNoticeUnit === 'days' 
+        ? serviceSettings.minimumNotice * 24 
+        : serviceSettings.minimumNotice
+    
+    if (hoursUntilSlot < requiredNoticeHours) {
         return false // Not enough notice
     }
     
@@ -360,9 +373,15 @@ function calculateAvailableSlotsForEmployee(
             const slotDateTime = new Date(checkDate)
             slotDateTime.setHours(Math.floor(currentTime / 60), currentTime % 60, 0, 0)
             
-            const hoursUntilSlot = (slotDateTime.getTime() - Date.now()) / (1000 * 60 * 60)
+            const msUntilSlot = slotDateTime.getTime() - Date.now()
+            const hoursUntilSlot = msUntilSlot / (1000 * 60 * 60)
             
-            if (hoursUntilSlot >= serviceSettings.minimumNotice) {
+            // Handle both days and hours for minimum notice
+            const requiredNoticeHours = serviceSettings.minimumNoticeUnit === 'days' 
+                ? serviceSettings.minimumNotice * 24 
+                : serviceSettings.minimumNotice
+            
+            if (hoursUntilSlot >= requiredNoticeHours) {
                 const timeSlot = minutesToTime12h(currentTime)
                 slots.push(timeSlot)
             }
@@ -372,6 +391,104 @@ function calculateAvailableSlotsForEmployee(
     }
     
     return slots
+}
+
+/**
+ * Calculate the valid booking window based on service settings
+ * Returns start and end dates for when bookings can be made
+ */
+export function calculateBookingWindow(
+    serviceSettings: ServiceSettings,
+    organizationTimezone: string
+): { startDate: Date, endDate: Date | null } {
+    const now = new Date()
+    
+    // Apply minimum notice first to get earliest possible booking
+    const minimumNoticeMs = serviceSettings.minimumNoticeUnit === 'days' 
+        ? serviceSettings.minimumNotice * 24 * 60 * 60 * 1000
+        : serviceSettings.minimumNotice * 60 * 60 * 1000
+    const earliestStart = new Date(now.getTime() + minimumNoticeMs)
+    
+    switch (serviceSettings.dateRangeType) {
+        case 'rolling':
+            if (serviceSettings.rollingUnit === 'week-days') {
+                // Calculate weekdays only
+                return calculateWeekdayRange(earliestStart, serviceSettings.rollingDays!)
+            }
+            return {
+                startDate: earliestStart,
+                endDate: addDays(earliestStart, serviceSettings.rollingDays!)
+            }
+            
+        case 'fixed':
+            // Parse dates as they are already in org timezone
+            const fixedStart = new Date(serviceSettings.fixedStartDate!)
+            const fixedEnd = new Date(serviceSettings.fixedEndDate!)
+            return {
+                startDate: fixedStart > earliestStart ? fixedStart : earliestStart,
+                endDate: fixedEnd
+            }
+            
+        case 'indefinite':
+            return {
+                startDate: earliestStart,
+                endDate: null // No end date restriction
+            }
+    }
+}
+
+/**
+ * Calculate end date when adding weekdays only
+ */
+function calculateWeekdayRange(startDate: Date, weekdaysToAdd: number): { startDate: Date, endDate: Date } {
+    let currentDate = new Date(startDate)
+    let weekdaysAdded = 0
+    
+    while (weekdaysAdded < weekdaysToAdd) {
+        currentDate = addDays(currentDate, 1)
+        const dayOfWeek = currentDate.getDay()
+        // Skip weekends (0 = Sunday, 6 = Saturday)
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            weekdaysAdded++
+        }
+    }
+    
+    return {
+        startDate,
+        endDate: currentDate
+    }
+}
+
+/**
+ * Check if a date falls within the valid booking window
+ */
+export function isDateWithinBookingWindow(
+    date: Date,
+    serviceSettings: ServiceSettings,
+    organizationTimezone: string
+): boolean {
+    const { startDate, endDate } = calculateBookingWindow(serviceSettings, organizationTimezone)
+    
+    // Check if date is before earliest booking time
+    if (date < startDate) {
+        return false
+    }
+    
+    // Check if date is after end date (if there is one)
+    if (endDate && date > endDate) {
+        return false
+    }
+    
+    return true
+}
+
+/**
+ * Simple date addition helper (adds days to a date)
+ */
+function addDays(date: Date, days: number): Date {
+    const result = new Date(date)
+    result.setDate(result.getDate() + days)
+    return result
 }
 
 // Helper functions

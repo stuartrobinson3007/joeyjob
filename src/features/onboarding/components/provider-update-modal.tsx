@@ -14,13 +14,18 @@ interface ProviderUpdateModalProps {
   isOpen: boolean
   onClose: () => void
   providerType: string
+  organizationData?: {
+    providerData?: any
+    providerCompanyId?: string
+  }
   onRefresh?: () => Promise<void>
 }
 
 export function ProviderUpdateModal({ 
   isOpen, 
   onClose, 
-  providerType, 
+  providerType,
+  organizationData,
   onRefresh 
 }: ProviderUpdateModalProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -43,11 +48,35 @@ export function ProviderUpdateModal({
   const getProviderInstructions = () => {
     switch (providerType) {
       case 'simpro':
+        // Build the correct Simpro settings URL using the user's actual domain
+        let settingsUrl = null
+        if (organizationData?.providerData) {
+          // Check if we have build config in provider data
+          const buildName = 'joeyjob' // Default, could be extracted from provider data if stored
+          const domain = 'simprosuite.com' // Default, could be extracted from provider data if stored
+          settingsUrl = `https://${buildName}.${domain}/staff/configCompany.php`
+        }
+        
         return {
           displayName: 'SimPro',
-          instructions: 'Go to SimPro Settings to update the incorrect details.',
+          instructions: settingsUrl 
+            ? (
+                <>
+                  Go to{' '}
+                  <a 
+                    href={settingsUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    SimPro Settings
+                  </a>
+                  {' '}to update the incorrect details.
+                </>
+              )
+            : 'Go to SimPro Settings to update the incorrect details.',
           settingsNote: 'Already updated the settings? Click Refresh to see the updated settings.',
-          settingsUrl: null, // Could add specific URL if known
+          settingsUrl,
         }
       case 'minuba':
         return {
@@ -87,7 +116,10 @@ export function ProviderUpdateModal({
         
         <div className="space-y-4">
           <DialogDescription className="text-base">
-            {providerInfo.instructions}
+            {typeof providerInfo.instructions === 'string' 
+              ? providerInfo.instructions 
+              : <div>{providerInfo.instructions}</div>
+            }
           </DialogDescription>
           
           <DialogDescription className="text-base">

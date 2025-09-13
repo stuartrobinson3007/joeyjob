@@ -21,6 +21,8 @@ export interface AutosaveOptions {
   retryDelayMs?: number;
   /** Enable console logging for debugging */
   enableLogging?: boolean;
+  /** Enable autosave functionality */
+  enabled?: boolean;
 }
 
 export interface AutosaveState {
@@ -51,7 +53,8 @@ export function useUnifiedAutosave(
     debounceMs = 2000,
     maxRetries = 3,
     retryDelayMs = 1000,
-    enableLogging = false
+    enableLogging = false,
+    enabled = true
   } = options;
 
   // State
@@ -199,6 +202,14 @@ export function useUnifiedAutosave(
 
   // Manual save function
   const saveNow = useCallback(async (): Promise<void> => {
+    // Skip if disabled or no data
+    if (!enabled || !data) {
+      if (enableLogging) {
+        console.log('⏸️ [Autosave] Save skipped - disabled or no data');
+      }
+      return;
+    }
+
     // Clear any pending debounced save
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -206,7 +217,7 @@ export function useUnifiedAutosave(
     }
 
     await performSave(data, true);
-  }, [data, performSave]);
+  }, [enabled, data, performSave, enableLogging]);
 
   // Other actions
   const resetErrors = useCallback(() => {
@@ -225,6 +236,14 @@ export function useUnifiedAutosave(
 
   // Effect to handle data changes
   useEffect(() => {
+    // Skip all autosave logic if disabled or no data
+    if (!enabled || !data) {
+      if (enableLogging && !enabled) {
+        console.log('⏸️ [Autosave] Disabled, skipping data change detection');
+      }
+      return;
+    }
+
     const currentHash = createDataHash(data);
     
     // Skip on initial load - don't mark as dirty
@@ -232,6 +251,9 @@ export function useUnifiedAutosave(
       lastSavedDataRef.current = currentHash;
       isInitializedRef.current = true;
       // Don't set isDirty here - it's already false from initial state
+      if (enableLogging) {
+        console.log('🔄 [Autosave] Initialized with data, ready for change detection');
+      }
       return;
     }
 
@@ -252,7 +274,7 @@ export function useUnifiedAutosave(
         timeoutRef.current = null;
       }
     };
-  }, [data, createDataHash, debouncedSave, enableLogging]);
+  }, [enabled, data, createDataHash, debouncedSave, enableLogging]);
 
   // Cleanup effect
   useEffect(() => {

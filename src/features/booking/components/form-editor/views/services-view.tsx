@@ -1,5 +1,6 @@
 import React from "react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import useFormEditorData from "../hooks/use-form-editor-data";
 import { Button } from "@/ui/button";
 import { PlusIcon, CalendarIcon, Users } from "lucide-react";
@@ -37,7 +38,12 @@ export function ServicesView({
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
             />
-            <h2 className="text-2xl font-bold mb-4">Services</h2>
+            <TitleWithBack
+                title="Services"
+                currentLevel={currentLevel}
+                onNavigateBack={onNavigateBack}
+                className="mb-4"
+            />
             <div className="mb-6">
                 <p className="text-muted-foreground">
                     Configure the services that customers can book.

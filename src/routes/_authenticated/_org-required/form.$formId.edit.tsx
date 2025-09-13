@@ -212,14 +212,15 @@ function FormEditorPage() {
     }
   }, [formId, activeOrganizationId, queryClient])
 
-  // Setup unified autosave (only when we have data)
+  // Setup unified autosave (only when we have real data loaded)
   const [autosaveState, autosaveActions] = useUnifiedAutosave(
-    currentFormData || createDefaultFormData(formId), // Fallback to prevent null
+    currentFormData || createDefaultFormData(formId), // Fallback for hook stability
     handleSave,
     {
       debounceMs: 2000,
       maxRetries: 3,
-      enableLogging: true // Always enable for debugging
+      enableLogging: true, // Always enable for debugging
+      enabled: !!currentFormData && formEditorState.status === 'loaded' // Only enable with real loaded data
     }
   );
 

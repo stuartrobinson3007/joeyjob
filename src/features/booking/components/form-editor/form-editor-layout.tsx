@@ -673,7 +673,7 @@ function FormEditorLayoutInner({
 
     // Common navigation and UI handlers - memoized to prevent re-renders
     const handleExit = useCallback(() => {
-        navigate({ to: "/forms" });
+        navigate({ to: "/" });
     }, [navigate]);
 
     const handleOpenPreview = useCallback(() => {
@@ -1141,7 +1141,7 @@ function FormEditorLayoutInner({
                 <BookingFlow
                     id="form-editor-preview"
                     startTitle={bookingFlowTitle}
-                    startDescription={state.selectedNode?.description || "Select a service to get started"}
+                    startDescription={data.serviceTree?.description || "Select a service to get started"}
                     services={servicesData}
                     baseQuestions={data.baseQuestions}
                     primaryColor={data.primaryColor}
@@ -1267,17 +1267,7 @@ function FormEditorLayoutInner({
                 payload: { parentId, node: newNode }
             });
 
-            if (onNodeSelect) {
-                onNodeSelect(newNode.id);
-            }
-            setTimeout(() => {
-                // Then update the UI state to navigate to the node
-                if (type === "split") {
-                    actions.navigateToLevel("group-details");
-                } else if (type === "service") {
-                    actions.navigateToLevel("service-details");
-                }
-            }, 0);
+            // Note: Removed automatic navigation to allow user to manually select when ready
         };
 
         const handleReorder = (parentId: string, newOrder: FlowNode[]) => {

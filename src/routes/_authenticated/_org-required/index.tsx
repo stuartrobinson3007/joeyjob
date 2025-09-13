@@ -1,533 +1,334 @@
-'use client'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Plus, FileText, Edit, Trash2, Copy, Eye, Code } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
-import * as React from 'react'
-import { useMemo, useState } from 'react'
-import { ColumnDef } from '@tanstack/react-table'
-import { createFileRoute } from '@tanstack/react-router'
-import { Calendar, User, FileText, Hash, Loader2 } from 'lucide-react'
-
-import { getBookingsTable, getBooking } from '@/features/booking/lib/bookings.server'
-import { bookingKeys } from '@/features/booking/lib/query-keys'
+import { getBookingForms, createForm, deleteForm, duplicateForm, undoDeleteForm } from '@/features/booking/lib/forms.server'
+import { useErrorHandler } from '@/lib/errors/hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
-import { PageHeader } from '@/components/page-header'
-import { DataTable, DataTableHeader } from '@/taali/components/data-table'
-import { useTableQuery } from '@/taali/components/data-table'
-import {
-  DataTableConfig,
-  DataTableColumnMeta,
-  ServerQueryParams,
-} from '@/taali/components/data-table'
+import { useLoadingItems } from '@/taali/hooks/use-loading-state'
+import { useConfirm } from '@/ui/confirm-dialog'
+import { Button } from '@/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Badge } from '@/ui/badge'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/ui/sheet'
-import { Separator } from '@/ui/separator'
-import { ScrollArea } from '@/ui/scroll-area'
-import { useTranslation } from '@/i18n/hooks/useTranslation'
-import { useLanguage } from '@/i18n/hooks/useLanguage'
-import { ErrorState } from '@/components/error-state'
-import { parseError } from '@/taali/errors/client-handler'
-import { useQuery } from '@tanstack/react-query'
-import { formatInTimezone } from '@/taali/utils/date'
-
-interface Booking {
-  id: string
-  organizationId: string
-  customerName: string
-  customerEmail: string
-  customerPhone: string | null
-  bookingStartAt: Date
-  bookingEndAt: Date
-  duration: number
-  price: string
-  status: string
-  notes: string | null
-  internalNotes: string | null
-  formData: unknown
-  source: string
-  confirmationCode: string
-  createdAt: Date
-  updatedAt: Date
-  serviceName: string | null
-  servicePrice: string | null
-  formName: string | null
-}
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/ui/dropdown-menu'
+import { PageHeader } from '@/components/page-header'
+import { EmbedDialog } from '@/features/booking/components/embed-dialog'
 
 export const Route = createFileRoute('/_authenticated/_org-required/')({
-  component: BookingsPage,
+  component: FormsPage,
 })
 
-function BookingsPage() {
-  const { activeOrganizationId } = useActiveOrganization()
-  const { t } = useTranslation('bookings')
-  const { t: tCommon } = useTranslation('common')
-  const { language } = useLanguage()
+function FormsPage() {
+  const { activeOrganizationId, activeOrganization } = useActiveOrganization()
+  const navigate = useNavigate()
+  const { showError, showSuccess } = useErrorHandler()
+  const confirm = useConfirm()
+  const [isCreating, setIsCreating] = useState(false)
+  const [embedDialog, setEmbedDialog] = useState<{ open: boolean; formId: string; formName: string; formSlug?: string }>({
+    open: false,
+    formId: '',
+    formName: '',
+    formSlug: ''
+  })
 
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [currentFilters, setCurrentFilters] = React.useState<ServerQueryParams>({})
+  // Loading states for individual form actions
+  const {
+    isLoading: isLoadingForm,
+    startLoading: startFormLoading,
+    stopLoading: stopFormLoading,
+    loadingItems: loadingForms,
+  } = useLoadingItems<string>()
 
-  // Use the table query hook
-  const { data, totalCount, isLoading, isFetching, isError, error, onStateChange, refetch } = useTableQuery<Booking>({
-    queryKey: activeOrganizationId ? [...bookingKeys.tables(activeOrganizationId)] : [],
-    queryFn: (params?: ServerQueryParams) => {
-      const queryParams = params || {}
-      setCurrentFilters(queryParams)
-      return getBookingsTable({ data: queryParams })
-    },
+  // Fetch forms data using React Query
+  const { data: formsData, isLoading, refetch } = useQuery({
+    queryKey: ['forms', activeOrganizationId],
+    queryFn: () => getBookingForms({ 
+      data: { 
+        limit: 50,
+        offset: 0 
+      } 
+    }),
     enabled: !!activeOrganizationId,
   })
 
-  // Query for selected booking details
-  const { data: selectedBooking, isLoading: isLoadingDetail } = useQuery({
-    queryKey: selectedBookingId && activeOrganizationId
-      ? bookingKeys.detail(activeOrganizationId, selectedBookingId)
-      : [],
-    queryFn: () => selectedBookingId ? getBooking({ data: { id: selectedBookingId } }) : null,
-    enabled: !!selectedBookingId && !!activeOrganizationId && isSheetOpen,
-  })
+  const forms = formsData?.forms || []
+  const services = [] // Services will be implemented later
 
-  const handleRowClick = React.useCallback((booking: Booking) => {
-    setSelectedBookingId(booking.id)
-    setIsSheetOpen(true)
-  }, [])
+  const getServiceName = (serviceId: string | null) => {
+    if (!serviceId) return 'All Services'
+    const service = services.find(s => s.id === serviceId)
+    return service?.name || 'Unknown Service'
+  }
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', className: string }> = {
-      pending: { variant: 'outline', className: 'border-yellow-200 bg-yellow-50 text-yellow-700' },
-      confirmed: { variant: 'outline', className: 'border-green-200 bg-green-50 text-green-700' },
-      completed: { variant: 'outline', className: 'border-blue-200 bg-blue-50 text-blue-700' },
-      cancelled: { variant: 'outline', className: 'border-gray-200 bg-gray-50 text-gray-700' },
-      'no-show': { variant: 'outline', className: 'border-red-200 bg-red-50 text-red-700' },
+  const handleEmbedForm = (formId: string, formName: string, formSlug?: string) => {
+    setEmbedDialog({ open: true, formId, formName, formSlug })
+  }
+
+  const handleDelete = async (formId: string, formName: string) => {
+    const confirmed = await confirm({
+      title: 'Delete Form',
+      description: `Are you sure you want to delete "${formName}"? This action can be undone.`,
+      confirmText: 'Delete',
+      variant: 'destructive'
+    })
+    if (!confirmed) return
+
+    startFormLoading(formId)
+    try {
+      await deleteForm({ data: { id: formId } })
+      refetch()
+
+      // Show success toast with undo action
+      showSuccess('Form deleted successfully', {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await undoDeleteForm({ data: { id: formId } })
+              refetch()
+              showSuccess('Form restored successfully')
+            } catch (error) {
+              showError(error)
+            }
+          }
+        }
+      })
+    } catch (error) {
+      showError(error)
+    } finally {
+      stopFormLoading(formId)
     }
-
-    const config = variants[status] || { variant: 'outline' as const, className: '' }
-    const label = status === 'no-show' ? t('status.noShow') : t(`status.${status}`)
-
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {label}
-      </Badge>
-    )
   }
 
-  const formatPrice = (price: string | number) => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price
-    const locale = language === 'es' ? 'es-ES' : 'en-US'
-    const currency = 'USD' // This could come from org settings
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency,
-    }).format(numPrice)
-  }
-
-  const formatDuration = (minutes: number) => {
-    if (minutes < 60) {
-      return t('duration.minutes', { count: minutes })
+  const handleDuplicate = async (formId: string, formName: string) => {
+    startFormLoading(formId)
+    try {
+      const duplicated = await duplicateForm({ data: { id: formId } })
+      refetch()
+      showSuccess('Form duplicated successfully')
+      
+      // Navigate to edit the duplicated form
+      navigate({ to: '/form/$formId/edit', params: { formId: duplicated.id } })
+    } catch (error) {
+      showError(error)
+    } finally {
+      stopFormLoading(formId)
     }
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return t('duration.hours', { hours, minutes: mins })
   }
 
-  const columns: ColumnDef<Booking>[] = useMemo(() => [
-    {
-      accessorKey: 'bookingStartAt',
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          {t('fields.dateTime')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => {
-        const booking = row.original
-        return (
-          <div className="flex flex-col">
-            <span className="font-medium">
-              {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              }).format(new Date(booking.bookingStartAt))}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {formatInTimezone(booking.bookingStartAt, organization?.timezone || 'America/New_York', 'h:mm a')} - {formatInTimezone(booking.bookingEndAt, organization?.timezone || 'America/New_York', 'h:mm a')}
-            </span>
-          </div>
-        )
-      },
-      enableColumnFilter: true,
-      enableSorting: true,
-      size: 150,
-      meta: {
-        filterConfig: {
-          type: 'dateRange',
-          title: t('fields.date'),
-        },
-      } as DataTableColumnMeta,
-    },
-    {
-      accessorKey: 'customerName',
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          {t('fields.customerName')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => {
-        const booking = row.original
-        return (
-          <div className="flex flex-col">
-            <span className="font-medium">{booking.customerName}</span>
-            {booking.customerEmail && (
-              <span className="text-sm text-muted-foreground">{booking.customerEmail}</span>
-            )}
-          </div>
-        )
-      },
-      enableColumnFilter: false,
-      enableSorting: true,
-      size: 200,
-    },
-    {
-      accessorKey: 'customerPhone',
-      header: ({ column }) => (
-        <DataTableHeader column={column}>
-          {t('fields.phone')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => row.original.customerPhone || tCommon('messages.emptyValue'),
-      enableColumnFilter: false,
-      enableSorting: false,
-      size: 120,
-    },
-    {
-      accessorKey: 'serviceName',
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          {t('fields.service')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => row.original.serviceName || tCommon('messages.emptyValue'),
-      enableColumnFilter: true,
-      enableSorting: true,
-      size: 150,
-    },
-    {
-      accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          {t('fields.status')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => getStatusBadge(row.original.status),
-      enableColumnFilter: true,
-      enableSorting: true,
-      filterFn: (row, id, value) => {
-        return value.includes(row.getValue(id))
-      },
-      size: 120,
-      meta: {
-        filterConfig: {
-          type: 'select',
-          title: t('filters.status'),
-          options: [
-            { label: t('status.pending'), value: 'pending' },
-            { label: t('status.confirmed'), value: 'confirmed' },
-            { label: t('status.completed'), value: 'completed' },
-            { label: t('status.cancelled'), value: 'cancelled' },
-            { label: t('status.noShow'), value: 'no-show' },
-          ],
-        },
-      } as DataTableColumnMeta,
-    },
-    {
-      accessorKey: 'duration',
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          {t('fields.duration')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => formatDuration(row.original.duration),
-      enableColumnFilter: false,
-      enableSorting: true,
-      size: 100,
-    },
-    {
-      accessorKey: 'price',
-      header: ({ column }) => (
-        <DataTableHeader column={column} sortable>
-          {t('fields.price')}
-        </DataTableHeader>
-      ),
-      cell: ({ row }) => formatPrice(row.original.price),
-      enableColumnFilter: false,
-      size: 100,
-    },
-  ], [t, tCommon, language, formatPrice, formatDuration])
+  // Handle immediate form creation (like createTodo pattern)
+  const handleCreateForm = async () => {
+    setIsCreating(true)
+    try {
+      const formData = {
+        name: 'Untitled Form',
+        description: '',
+      }
+      console.log('📝 Client calling createForm with:', formData)
 
-  const tableConfig = React.useMemo<DataTableConfig<Booking>>(
-    () => ({
-      searchConfig: {
-        placeholder: t('filters.search'),
-      },
-      paginationConfig: {
-        pageSizeOptions: [10, 20, 30, 50],
-        defaultPageSize: 10,
-      },
-      enableColumnFilters: true,
-      enableRowSelection: false,
-      enableSorting: true,
-      manualFiltering: true,
-      manualPagination: true,
-      manualSorting: true,
-      onRowClick: handleRowClick,
-    }),
-    [t, handleRowClick]
-  )
+      const created = await createForm({ data: formData })
 
-  if (!activeOrganizationId) {
+      showSuccess('Form created')
+      console.log('📝 Attempting navigation to:', `/form/${created.id}/edit`)
+      
+      // Refetch forms list after creation
+      refetch()
+
+      navigate({ to: '/form/$formId/edit', params: { formId: created.id } })
+    } catch (error) {
+      showError(error)
+      setIsCreating(false)
+    }
+  }
+
+  // Handle loading state
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h2 className="text-2xl font-bold mb-4">{tCommon('errors.noOrganization')}</h2>
-        <p className="text-muted-foreground">{tCommon('errors.noOrganizationDescription')}</p>
+      <div className="flex flex-col h-full">
+        <PageHeader title="Forms" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
       </div>
     )
-  }
-
-  if (isError && error) {
-    return <ErrorState error={parseError(error)} onRetry={refetch} />
   }
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title={t('title')} />
-
+      <PageHeader
+        title="Forms"
+        actions={
+          <Button onClick={handleCreateForm} disabled={isCreating}>
+            <Plus className="h-4 w-4 mr-2" />
+            {isCreating ? 'Creating...' : 'Create Form'}
+          </Button>
+        }
+      />
       <div className="flex-1 p-6">
-        <DataTable
-          columns={columns}
-          data={data || []}
-          config={tableConfig}
-          totalCount={totalCount}
-          isLoading={isLoading}
-          isFetching={isFetching}
-          onStateChange={onStateChange}
-          currentFilters={currentFilters}
-          onRowClick={handleRowClick}
-          getRowIdProp={row => row.id}
-          resetText={tCommon('actions.reset')}
-          noResultsText={tCommon('messages.noResults')}
-          className="h-[600px]"
-        />
+        {forms.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {forms.map(({ form }) => {
+              const isLoading = isLoadingForm(form.id)
+              return (
+              <Card key={form.id} className={`group hover:shadow-md transition-shadow ${isLoading ? 'opacity-60' : ''}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base line-clamp-2">
+                        {form.name}
+                      </CardTitle>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2"
+                          disabled={isLoading}
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                            />
+                          </svg>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          const hostedUrl = activeOrganization?.slug && form.slug 
+                            ? `/${activeOrganization.slug}/${form.slug}`
+                            : `/book/${form.id}`
+                          window.open(hostedUrl, '_blank')
+                        }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Preview
+                        </DropdownMenuItem>
+                        <Link to="/form/$formId/edit" params={{ formId: form.id }}>
+                          <DropdownMenuItem>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuItem onClick={() => handleEmbedForm(form.id, form.name, form.slug)} disabled={isLoading}>
+                          <Code className="h-4 w-4 mr-2" />
+                          Embed
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(form.id, form.name)} disabled={isLoading}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleDelete(form.id, form.name)} disabled={isLoading}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {/* Status Badges */}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={form.isActive ? "success" : "secondary"} className="text-xs">
+                        {form.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                      {form.isDefault && (
+                        <Badge variant="secondary" className="text-xs">Default</Badge>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        {Array.isArray(form.fields) ? form.fields.length : 0} fields
+                      </Badge>
+                    </div>
+
+                    {/* Service Info */}
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">Service:</span>{' '}
+                      {getServiceName(form.serviceId)}
+                    </div>
+
+                    {/* Last Modified */}
+                    <div className="text-xs text-muted-foreground">
+                      Updated {new Date(form.updatedAt).toLocaleDateString()}
+                    </div>
+
+                    {/* Hosted URL */}
+                    {activeOrganization?.slug && form.slug && (
+                      <div className="text-xs">
+                        <span className="font-medium text-foreground">Hosted at:</span>{' '}
+                        <span className="font-mono text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/f/${activeOrganization.slug}/${form.slug}`)}>
+                          /f/{activeOrganization.slug}/{form.slug}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Quick Actions */}
+                    <div className="flex gap-2 pt-2">
+                      <Link to="/form/$formId/edit" params={{ formId: form.id }} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const hostedUrl = activeOrganization?.slug && form.slug 
+                            ? `/${activeOrganization.slug}/${form.slug}`
+                            : `/book/${form.id}`
+                          window.open(hostedUrl, '_blank')
+                        }}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24">
+            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No forms created yet</h3>
+            <p className="text-muted-foreground mb-6 text-center max-w-md">
+              Create your first booking form to get started collecting customer information
+            </p>
+            <Button onClick={handleCreateForm} disabled={isCreating}>
+              <Plus className="h-4 w-4 mr-2" />
+              {isCreating ? 'Creating...' : 'Create Your First Form'}
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Booking Detail Sheet */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl flex flex-col gap-0">
-          <SheetHeader className="border-b">
-            <SheetTitle>{t('details.title')}</SheetTitle>
-            <SheetDescription>
-              {selectedBooking?.confirmationCode && (
-                <span className="font-mono text-sm">#{selectedBooking.confirmationCode}</span>
-              )}
-            </SheetDescription>
-          </SheetHeader>
-
-          {isLoadingDetail ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : selectedBooking ? (
-            <ScrollArea className="flex-1 h-0">
-              <div className="grid auto-rows-min gap-6 p-6">
-                {/* Customer Information */}
-                <div className="grid gap-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    {t('details.customerInfo')}
-                  </h3>
-                  <div className="grid gap-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.name')}</span>
-                      <span className="font-medium">{selectedBooking.customerName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.email')}</span>
-                      <span className="font-medium">{selectedBooking.customerEmail}</span>
-                    </div>
-                    {selectedBooking.customerPhone && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{t('details.labels.phone')}</span>
-                        <span className="font-medium">{selectedBooking.customerPhone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Booking Information */}
-                <div className="grid gap-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {t('details.bookingInfo')}
-                  </h3>
-                  <div className="grid gap-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.date')}</span>
-                      <span className="font-medium">
-                        {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        }).format(new Date(selectedBooking.bookingStartAt))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.time')}</span>
-                      <span className="font-medium">
-                        {formatInTimezone(selectedBooking.bookingStartAt, organization?.timezone || 'America/New_York', 'h:mm a')} - {formatInTimezone(selectedBooking.bookingEndAt, organization?.timezone || 'America/New_York', 'h:mm a')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.duration')}</span>
-                      <span className="font-medium">{formatDuration(selectedBooking.duration)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.status')}</span>
-                      {getStatusBadge(selectedBooking.status)}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.price')}</span>
-                      <span className="font-medium">{formatPrice(selectedBooking.price)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Service Information */}
-                {selectedBooking.service && (
-                  <>
-                    <div className="grid gap-3">
-                      <h3 className="font-semibold flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        {t('details.serviceInfo')}
-                      </h3>
-                      <div className="grid gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">{t('details.labels.service')}</span>
-                          <span className="font-medium">{selectedBooking.service.name}</span>
-                        </div>
-                        {selectedBooking.service.description && (
-                          <div className="grid gap-1">
-                            <span className="text-muted-foreground text-sm">{t('details.labels.description')}</span>
-                            <p className="text-sm">{selectedBooking.service.description}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Notes */}
-                {(selectedBooking.notes || selectedBooking.internalNotes) && (
-                  <>
-                    <div className="grid gap-3">
-                      <h3 className="font-semibold">{t('fields.notes')}</h3>
-                      <div className="grid gap-3">
-                        {selectedBooking.notes && (
-                          <div className="grid gap-1">
-                            <span className="text-muted-foreground text-sm">{t('details.labels.customerNotes')}</span>
-                            <p className="text-sm">{selectedBooking.notes}</p>
-                          </div>
-                        )}
-                        {selectedBooking.internalNotes && (
-                          <div className="grid gap-1">
-                            <span className="text-muted-foreground text-sm">{t('details.labels.internalNotes')}</span>
-                            <p className="text-sm">{selectedBooking.internalNotes}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Form Data */}
-                {selectedBooking.formData && (
-                  <>
-                    <div className="grid gap-3">
-                      <h3 className="font-semibold">{t('details.formData')}</h3>
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <pre className="text-xs overflow-x-auto">
-                          {JSON.stringify(selectedBooking.formData, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Metadata */}
-                <div className="grid gap-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Hash className="h-4 w-4" />
-                    {t('details.metadata')}
-                  </h3>
-                  <div className="grid gap-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.source')}</span>
-                      <span className="font-medium capitalize">{selectedBooking.source}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.created')}</span>
-                      <span className="font-medium">
-                        {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        }).format(new Date(selectedBooking.createdAt))}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('details.labels.lastUpdated')}</span>
-                      <span className="font-medium">
-                        {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        }).format(new Date(selectedBooking.updatedAt))}
-                      </span>
-                    </div>
-                    {selectedBooking.form && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{t('details.labels.form')}</span>
-                        <span className="font-medium">{selectedBooking.form.name}</span>
-                      </div>
-                    )}
-                    {selectedBooking.createdBy && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{t('details.labels.createdBy')}</span>
-                        <span className="font-medium">{selectedBooking.createdBy.name}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </ScrollArea>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+      {/* Embed Dialog */}
+      <EmbedDialog
+        open={embedDialog.open}
+        onOpenChange={(open) => setEmbedDialog(prev => ({ ...prev, open }))}
+        formId={embedDialog.formId}
+        formName={embedDialog.formName}
+        orgSlug={activeOrganization?.slug}
+        formSlug={embedDialog.formSlug}
+      />
     </div>
   )
 }

@@ -184,8 +184,8 @@ function EmbedBookingPage() {
       {/* Header */}
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-2">{form.name}</h1>
-        {form.description && (
-          <p className="text-muted-foreground">{form.description}</p>
+        {form.formConfig?.serviceTree?.description && (
+          <p className="text-muted-foreground">{form.formConfig.serviceTree.description}</p>
         )}
         {service && (
           <p className="text-sm text-muted-foreground mt-2">

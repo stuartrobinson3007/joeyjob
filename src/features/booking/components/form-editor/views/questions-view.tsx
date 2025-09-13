@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import FormEditorBreadcrumb from "@/features/booking/components/form-editor/form-editor-breadcrumb";
+import { TitleWithBack } from "../components/title-with-back";
 import useFormEditorData from "../hooks/use-form-editor-data";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
 import { QuestionList } from "../question-list";
@@ -40,6 +41,12 @@ export function QuestionsView({
                 currentLevel={currentLevel}
                 onNavigate={onNavigate || onNavigateBack}
                 className="self-start"
+            />
+            <TitleWithBack
+                title="Questions"
+                currentLevel={currentLevel}
+                onNavigateBack={onNavigateBack}
+                className="mb-4"
             />
             <div className="flex-1 overflow-y-auto pr-1">
                 <QuestionList

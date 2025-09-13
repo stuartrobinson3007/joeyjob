@@ -25,10 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/
 export const Route = createFileRoute('/_authenticated/select-organization')({
   staticData: {
     sidebar: false,
-  },
-  beforeLoad: () => {
-    console.log('🔄 [DEBUG] Select organization beforeLoad - no special requirements')
-    // No additional requirements - just inherits authentication from /_authenticated
+    skipOrgCheck: true, // Organization selection can't require org access (selecting which org to use)
   },
   component: SelectOrganizationPage,
 })
@@ -39,22 +36,14 @@ function SelectOrganizationPage() {
   const { t: tNotifications } = useTranslation('notifications')
   const { showError, showSuccess } = useErrorHandler()
 
-  console.log('[SelectOrganizationPage] Component rendering')
 
   const { data: organizations, isPending: isLoading, refetch: refetchOrganizations, error } = useListOrganizations()
 
-  console.log('[SelectOrganizationPage] Organizations query state:', {
-    organizations,
-    isLoading,
-    error,
-    organizationsCount: organizations?.length
-  })
 
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
-  const [hasAutoSelected, setHasAutoSelected] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -71,11 +60,6 @@ function SelectOrganizationPage() {
   // }, [isLoading, organizations, navigate, isSelecting, hasAutoSelected])
 
   useEffect(() => {
-    console.log('[SelectOrganizationPage] useEffect - Component mounted/updated', {
-      isLoading,
-      organizationsCount: organizations?.length,
-      error
-    })
   }, [isLoading, organizations, error])
 
   const handleSelectOrganization = async (organizationId: string) => {
@@ -154,7 +138,6 @@ function SelectOrganizationPage() {
   }
 
   if (isLoading) {
-    console.log('[SelectOrganizationPage] Showing loading state')
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -165,7 +148,6 @@ function SelectOrganizationPage() {
     )
   }
 
-  console.log('[SelectOrganizationPage] Rendering main content with organizations:', organizations)
 
   return (
     <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

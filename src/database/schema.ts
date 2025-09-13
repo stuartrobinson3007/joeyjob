@@ -82,7 +82,8 @@ export const organization = pgTable('organization', {
   currency: text('currency'),
   
   // Address fields
-  addressStreet: text('address_street'),
+  addressLine1: text('address_line1'),
+  addressLine2: text('address_line2'),
   addressCity: text('address_city'),
   addressState: text('address_state'),
   addressPostalCode: text('address_postal_code'),
@@ -351,7 +352,8 @@ export const organizationEmployees = pgTable('organization_employees', {
   simproEmployeeId: integer('simpro_employee_id').notNull(),
   simproEmployeeName: text('simpro_employee_name').notNull(),
   simproEmployeeEmail: text('simpro_employee_email'),
-  isActive: boolean('is_active').default(true).notNull(),
+  isEnabled: boolean('is_enabled').default(false).notNull(), // Available for bookings in JoeyJob
+  isRemoved: boolean('is_removed').default(false).notNull(), // No longer exists in Simpro
   // Sync metadata
   lastSyncAt: timestamp('last_sync_at'),
   syncError: text('sync_error'),

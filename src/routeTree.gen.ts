@@ -15,23 +15,24 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as Oauth2AccessCodeRouteImport } from './routes/oauth2/accessCode'
 import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
 import { Route as EmbedFormIdRouteImport } from './routes/embed.$formId'
+import { Route as AuthUpdateConnectionRouteImport } from './routes/auth/update-connection'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as AuthenticatedSelectOrganizationRouteImport } from './routes/_authenticated/select-organization'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedOrgRequiredRouteImport } from './routes/_authenticated/_org-required'
 import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
 import { Route as AuthenticatedOrgRequiredIndexRouteImport } from './routes/_authenticated/_org-required/index'
 import { Route as FOrgSlugFormSlugRouteImport } from './routes/f.$orgSlug.$formSlug'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
-import { Route as AuthenticatedOnboardingCompanySyncRouteImport } from './routes/_authenticated/onboarding/company-sync'
+import { Route as AuthenticatedCompanySetupEmployeesRouteImport } from './routes/_authenticated/company-setup/employees'
+import { Route as AuthenticatedCompanySetupCompanyInfoRouteImport } from './routes/_authenticated/company-setup/company-info'
 import { Route as AuthenticatedOrgRequiredTeamRouteImport } from './routes/_authenticated/_org-required/team'
 import { Route as AuthenticatedOrgRequiredSettingsRouteImport } from './routes/_authenticated/_org-required/settings'
 import { Route as AuthenticatedOrgRequiredPaymentErrorRouteImport } from './routes/_authenticated/_org-required/payment-error'
-import { Route as AuthenticatedOrgRequiredFormsRouteImport } from './routes/_authenticated/_org-required/forms'
 import { Route as AuthenticatedOrgRequiredChoosePlanRouteImport } from './routes/_authenticated/_org-required/choose-plan'
+import { Route as AuthenticatedOrgRequiredBookingsRouteImport } from './routes/_authenticated/_org-required/bookings'
 import { Route as AuthenticatedOrgRequiredBillingRouteImport } from './routes/_authenticated/_org-required/billing'
 import { Route as AuthenticatedOrgRequiredTodosIdEditRouteImport } from './routes/_authenticated/_org-required/todos.$id.edit'
 import { Route as AuthenticatedOrgRequiredFormFormIdEditRouteImport } from './routes/_authenticated/_org-required/form.$formId.edit'
@@ -70,6 +71,11 @@ const EmbedFormIdRoute = EmbedFormIdRouteImport.update({
   path: '/embed/$formId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthUpdateConnectionRoute = AuthUpdateConnectionRouteImport.update({
+  id: '/auth/update-connection',
+  path: '/auth/update-connection',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthSigninRoute = AuthSigninRouteImport.update({
   id: '/auth/signin',
   path: '/auth/signin',
@@ -96,11 +102,6 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedOrgRequiredRoute =
-  AuthenticatedOrgRequiredRouteImport.update({
-    id: '/_org-required',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedSuperadminIndexRoute =
   AuthenticatedSuperadminIndexRouteImport.update({
     id: '/',
@@ -109,9 +110,9 @@ const AuthenticatedSuperadminIndexRoute =
   } as any)
 const AuthenticatedOrgRequiredIndexRoute =
   AuthenticatedOrgRequiredIndexRouteImport.update({
-    id: '/',
+    id: '/_org-required/',
     path: '/',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const FOrgSlugFormSlugRoute = FOrgSlugFormSlugRouteImport.update({
   id: '/f/$orgSlug/$formSlug',
@@ -130,59 +131,65 @@ const AuthenticatedSuperadminUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSuperadminRoute,
   } as any)
-const AuthenticatedOnboardingCompanySyncRoute =
-  AuthenticatedOnboardingCompanySyncRouteImport.update({
-    id: '/company-sync',
-    path: '/company-sync',
-    getParentRoute: () => AuthenticatedOnboardingRoute,
+const AuthenticatedCompanySetupEmployeesRoute =
+  AuthenticatedCompanySetupEmployeesRouteImport.update({
+    id: '/company-setup/employees',
+    path: '/company-setup/employees',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCompanySetupCompanyInfoRoute =
+  AuthenticatedCompanySetupCompanyInfoRouteImport.update({
+    id: '/company-setup/company-info',
+    path: '/company-setup/company-info',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredTeamRoute =
   AuthenticatedOrgRequiredTeamRouteImport.update({
-    id: '/team',
+    id: '/_org-required/team',
     path: '/team',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredSettingsRoute =
   AuthenticatedOrgRequiredSettingsRouteImport.update({
-    id: '/settings',
+    id: '/_org-required/settings',
     path: '/settings',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredPaymentErrorRoute =
   AuthenticatedOrgRequiredPaymentErrorRouteImport.update({
-    id: '/payment-error',
+    id: '/_org-required/payment-error',
     path: '/payment-error',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
-  } as any)
-const AuthenticatedOrgRequiredFormsRoute =
-  AuthenticatedOrgRequiredFormsRouteImport.update({
-    id: '/forms',
-    path: '/forms',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredChoosePlanRoute =
   AuthenticatedOrgRequiredChoosePlanRouteImport.update({
-    id: '/choose-plan',
+    id: '/_org-required/choose-plan',
     path: '/choose-plan',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedOrgRequiredBookingsRoute =
+  AuthenticatedOrgRequiredBookingsRouteImport.update({
+    id: '/_org-required/bookings',
+    path: '/bookings',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredBillingRoute =
   AuthenticatedOrgRequiredBillingRouteImport.update({
-    id: '/billing',
+    id: '/_org-required/billing',
     path: '/billing',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredTodosIdEditRoute =
   AuthenticatedOrgRequiredTodosIdEditRouteImport.update({
-    id: '/todos/$id/edit',
+    id: '/_org-required/todos/$id/edit',
     path: '/todos/$id/edit',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedOrgRequiredFormFormIdEditRoute =
   AuthenticatedOrgRequiredFormFormIdEditRouteImport.update({
-    id: '/form/$formId/edit',
+    id: '/_org-required/form/$formId/edit',
     path: '/form/$formId/edit',
-    getParentRoute: () => AuthenticatedOrgRequiredRoute,
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const ApiHealthServerRoute = ApiHealthServerRouteImport.update({
   id: '/api/health',
@@ -255,21 +262,23 @@ const ApiPublicServicesServiceIdAvailabilityServerRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/auth/signin': typeof AuthSigninRoute
+  '/auth/update-connection': typeof AuthUpdateConnectionRoute
   '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/billing': typeof AuthenticatedOrgRequiredBillingRoute
+  '/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
   '/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
-  '/forms': typeof AuthenticatedOrgRequiredFormsRoute
   '/payment-error': typeof AuthenticatedOrgRequiredPaymentErrorRoute
   '/settings': typeof AuthenticatedOrgRequiredSettingsRoute
   '/team': typeof AuthenticatedOrgRequiredTeamRoute
-  '/onboarding/company-sync': typeof AuthenticatedOnboardingCompanySyncRoute
+  '/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
+  '/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
@@ -279,20 +288,22 @@ export interface FileRoutesByFullPath {
   '/todos/$id/edit': typeof AuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/auth/signin': typeof AuthSigninRoute
+  '/auth/update-connection': typeof AuthUpdateConnectionRoute
   '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/billing': typeof AuthenticatedOrgRequiredBillingRoute
+  '/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
   '/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
-  '/forms': typeof AuthenticatedOrgRequiredFormsRoute
   '/payment-error': typeof AuthenticatedOrgRequiredPaymentErrorRoute
   '/settings': typeof AuthenticatedOrgRequiredSettingsRoute
   '/team': typeof AuthenticatedOrgRequiredTeamRoute
-  '/onboarding/company-sync': typeof AuthenticatedOnboardingCompanySyncRoute
+  '/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
+  '/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
@@ -304,22 +315,23 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/_authenticated/_org-required': typeof AuthenticatedOrgRequiredRouteWithChildren
-  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
   '/auth/signin': typeof AuthSigninRoute
+  '/auth/update-connection': typeof AuthUpdateConnectionRoute
   '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
   '/_authenticated/_org-required/billing': typeof AuthenticatedOrgRequiredBillingRoute
+  '/_authenticated/_org-required/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
   '/_authenticated/_org-required/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
-  '/_authenticated/_org-required/forms': typeof AuthenticatedOrgRequiredFormsRoute
   '/_authenticated/_org-required/payment-error': typeof AuthenticatedOrgRequiredPaymentErrorRoute
   '/_authenticated/_org-required/settings': typeof AuthenticatedOrgRequiredSettingsRoute
   '/_authenticated/_org-required/team': typeof AuthenticatedOrgRequiredTeamRoute
-  '/_authenticated/onboarding/company-sync': typeof AuthenticatedOnboardingCompanySyncRoute
+  '/_authenticated/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
+  '/_authenticated/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
   '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
@@ -336,16 +348,18 @@ export interface FileRouteTypes {
     | '/select-organization'
     | '/superadmin'
     | '/auth/signin'
+    | '/auth/update-connection'
     | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/billing'
+    | '/bookings'
     | '/choose-plan'
-    | '/forms'
     | '/payment-error'
     | '/settings'
     | '/team'
-    | '/onboarding/company-sync'
+    | '/company-setup/company-info'
+    | '/company-setup/employees'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/f/$orgSlug/$formSlug'
@@ -359,16 +373,18 @@ export interface FileRouteTypes {
     | '/profile'
     | '/select-organization'
     | '/auth/signin'
+    | '/auth/update-connection'
     | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/billing'
+    | '/bookings'
     | '/choose-plan'
-    | '/forms'
     | '/payment-error'
     | '/settings'
     | '/team'
-    | '/onboarding/company-sync'
+    | '/company-setup/company-info'
+    | '/company-setup/employees'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/f/$orgSlug/$formSlug'
@@ -379,22 +395,23 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
-    | '/_authenticated/_org-required'
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/_authenticated/select-organization'
     | '/_authenticated/superadmin'
     | '/auth/signin'
+    | '/auth/update-connection'
     | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/_authenticated/_org-required/billing'
+    | '/_authenticated/_org-required/bookings'
     | '/_authenticated/_org-required/choose-plan'
-    | '/_authenticated/_org-required/forms'
     | '/_authenticated/_org-required/payment-error'
     | '/_authenticated/_org-required/settings'
     | '/_authenticated/_org-required/team'
-    | '/_authenticated/onboarding/company-sync'
+    | '/_authenticated/company-setup/company-info'
+    | '/_authenticated/company-setup/employees'
     | '/_authenticated/superadmin/users'
     | '/_authenticated/superadmin/workspaces'
     | '/f/$orgSlug/$formSlug'
@@ -407,6 +424,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthSigninRoute: typeof AuthSigninRoute
+  AuthUpdateConnectionRoute: typeof AuthUpdateConnectionRoute
   EmbedFormIdRoute: typeof EmbedFormIdRoute
   InviteInvitationIdRoute: typeof InviteInvitationIdRoute
   Oauth2AccessCodeRoute: typeof Oauth2AccessCodeRoute
@@ -552,6 +570,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmbedFormIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/update-connection': {
+      id: '/auth/update-connection'
+      path: '/auth/update-connection'
+      fullPath: '/auth/update-connection'
+      preLoaderRoute: typeof AuthUpdateConnectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/signin': {
       id: '/auth/signin'
       path: '/auth/signin'
@@ -587,13 +612,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/_org-required': {
-      id: '/_authenticated/_org-required'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof AuthenticatedOrgRequiredRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/superadmin/': {
       id: '/_authenticated/superadmin/'
       path: '/'
@@ -606,7 +624,7 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedOrgRequiredIndexRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/f/$orgSlug/$formSlug': {
       id: '/f/$orgSlug/$formSlug'
@@ -629,68 +647,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperadminUsersRouteImport
       parentRoute: typeof AuthenticatedSuperadminRoute
     }
-    '/_authenticated/onboarding/company-sync': {
-      id: '/_authenticated/onboarding/company-sync'
-      path: '/company-sync'
-      fullPath: '/onboarding/company-sync'
-      preLoaderRoute: typeof AuthenticatedOnboardingCompanySyncRouteImport
-      parentRoute: typeof AuthenticatedOnboardingRoute
+    '/_authenticated/company-setup/employees': {
+      id: '/_authenticated/company-setup/employees'
+      path: '/company-setup/employees'
+      fullPath: '/company-setup/employees'
+      preLoaderRoute: typeof AuthenticatedCompanySetupEmployeesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/company-setup/company-info': {
+      id: '/_authenticated/company-setup/company-info'
+      path: '/company-setup/company-info'
+      fullPath: '/company-setup/company-info'
+      preLoaderRoute: typeof AuthenticatedCompanySetupCompanyInfoRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/team': {
       id: '/_authenticated/_org-required/team'
       path: '/team'
       fullPath: '/team'
       preLoaderRoute: typeof AuthenticatedOrgRequiredTeamRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/settings': {
       id: '/_authenticated/_org-required/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedOrgRequiredSettingsRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/payment-error': {
       id: '/_authenticated/_org-required/payment-error'
       path: '/payment-error'
       fullPath: '/payment-error'
       preLoaderRoute: typeof AuthenticatedOrgRequiredPaymentErrorRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
-    }
-    '/_authenticated/_org-required/forms': {
-      id: '/_authenticated/_org-required/forms'
-      path: '/forms'
-      fullPath: '/forms'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredFormsRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/choose-plan': {
       id: '/_authenticated/_org-required/choose-plan'
       path: '/choose-plan'
       fullPath: '/choose-plan'
       preLoaderRoute: typeof AuthenticatedOrgRequiredChoosePlanRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/_org-required/bookings': {
+      id: '/_authenticated/_org-required/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AuthenticatedOrgRequiredBookingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/billing': {
       id: '/_authenticated/_org-required/billing'
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof AuthenticatedOrgRequiredBillingRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/todos/$id/edit': {
       id: '/_authenticated/_org-required/todos/$id/edit'
       path: '/todos/$id/edit'
       fullPath: '/todos/$id/edit'
       preLoaderRoute: typeof AuthenticatedOrgRequiredTodosIdEditRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/_org-required/form/$formId/edit': {
       id: '/_authenticated/_org-required/form/$formId/edit'
       path: '/form/$formId/edit'
       fullPath: '/form/$formId/edit'
       preLoaderRoute: typeof AuthenticatedOrgRequiredFormFormIdEditRouteImport
-      parentRoute: typeof AuthenticatedOrgRequiredRoute
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
@@ -790,56 +815,6 @@ declare module '@tanstack/react-start/server' {
   }
 }
 
-interface AuthenticatedOrgRequiredRouteChildren {
-  AuthenticatedOrgRequiredBillingRoute: typeof AuthenticatedOrgRequiredBillingRoute
-  AuthenticatedOrgRequiredChoosePlanRoute: typeof AuthenticatedOrgRequiredChoosePlanRoute
-  AuthenticatedOrgRequiredFormsRoute: typeof AuthenticatedOrgRequiredFormsRoute
-  AuthenticatedOrgRequiredPaymentErrorRoute: typeof AuthenticatedOrgRequiredPaymentErrorRoute
-  AuthenticatedOrgRequiredSettingsRoute: typeof AuthenticatedOrgRequiredSettingsRoute
-  AuthenticatedOrgRequiredTeamRoute: typeof AuthenticatedOrgRequiredTeamRoute
-  AuthenticatedOrgRequiredIndexRoute: typeof AuthenticatedOrgRequiredIndexRoute
-  AuthenticatedOrgRequiredFormFormIdEditRoute: typeof AuthenticatedOrgRequiredFormFormIdEditRoute
-  AuthenticatedOrgRequiredTodosIdEditRoute: typeof AuthenticatedOrgRequiredTodosIdEditRoute
-}
-
-const AuthenticatedOrgRequiredRouteChildren: AuthenticatedOrgRequiredRouteChildren =
-  {
-    AuthenticatedOrgRequiredBillingRoute: AuthenticatedOrgRequiredBillingRoute,
-    AuthenticatedOrgRequiredChoosePlanRoute:
-      AuthenticatedOrgRequiredChoosePlanRoute,
-    AuthenticatedOrgRequiredFormsRoute: AuthenticatedOrgRequiredFormsRoute,
-    AuthenticatedOrgRequiredPaymentErrorRoute:
-      AuthenticatedOrgRequiredPaymentErrorRoute,
-    AuthenticatedOrgRequiredSettingsRoute:
-      AuthenticatedOrgRequiredSettingsRoute,
-    AuthenticatedOrgRequiredTeamRoute: AuthenticatedOrgRequiredTeamRoute,
-    AuthenticatedOrgRequiredIndexRoute: AuthenticatedOrgRequiredIndexRoute,
-    AuthenticatedOrgRequiredFormFormIdEditRoute:
-      AuthenticatedOrgRequiredFormFormIdEditRoute,
-    AuthenticatedOrgRequiredTodosIdEditRoute:
-      AuthenticatedOrgRequiredTodosIdEditRoute,
-  }
-
-const AuthenticatedOrgRequiredRouteWithChildren =
-  AuthenticatedOrgRequiredRoute._addFileChildren(
-    AuthenticatedOrgRequiredRouteChildren,
-  )
-
-interface AuthenticatedOnboardingRouteChildren {
-  AuthenticatedOnboardingCompanySyncRoute: typeof AuthenticatedOnboardingCompanySyncRoute
-}
-
-const AuthenticatedOnboardingRouteChildren: AuthenticatedOnboardingRouteChildren =
-  {
-    AuthenticatedOnboardingCompanySyncRoute:
-      AuthenticatedOnboardingCompanySyncRoute,
-  }
-
-const AuthenticatedOnboardingRouteWithChildren =
-  AuthenticatedOnboardingRoute._addFileChildren(
-    AuthenticatedOnboardingRouteChildren,
-  )
-
 interface AuthenticatedSuperadminRouteChildren {
   AuthenticatedSuperadminUsersRoute: typeof AuthenticatedSuperadminUsersRoute
   AuthenticatedSuperadminWorkspacesRoute: typeof AuthenticatedSuperadminWorkspacesRoute
@@ -860,19 +835,45 @@ const AuthenticatedSuperadminRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedOrgRequiredRoute: typeof AuthenticatedOrgRequiredRouteWithChildren
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRouteWithChildren
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSelectOrganizationRoute: typeof AuthenticatedSelectOrganizationRoute
   AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRouteWithChildren
+  AuthenticatedOrgRequiredBillingRoute: typeof AuthenticatedOrgRequiredBillingRoute
+  AuthenticatedOrgRequiredBookingsRoute: typeof AuthenticatedOrgRequiredBookingsRoute
+  AuthenticatedOrgRequiredChoosePlanRoute: typeof AuthenticatedOrgRequiredChoosePlanRoute
+  AuthenticatedOrgRequiredPaymentErrorRoute: typeof AuthenticatedOrgRequiredPaymentErrorRoute
+  AuthenticatedOrgRequiredSettingsRoute: typeof AuthenticatedOrgRequiredSettingsRoute
+  AuthenticatedOrgRequiredTeamRoute: typeof AuthenticatedOrgRequiredTeamRoute
+  AuthenticatedCompanySetupCompanyInfoRoute: typeof AuthenticatedCompanySetupCompanyInfoRoute
+  AuthenticatedCompanySetupEmployeesRoute: typeof AuthenticatedCompanySetupEmployeesRoute
+  AuthenticatedOrgRequiredIndexRoute: typeof AuthenticatedOrgRequiredIndexRoute
+  AuthenticatedOrgRequiredFormFormIdEditRoute: typeof AuthenticatedOrgRequiredFormFormIdEditRoute
+  AuthenticatedOrgRequiredTodosIdEditRoute: typeof AuthenticatedOrgRequiredTodosIdEditRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedOrgRequiredRoute: AuthenticatedOrgRequiredRouteWithChildren,
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRouteWithChildren,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSelectOrganizationRoute: AuthenticatedSelectOrganizationRoute,
   AuthenticatedSuperadminRoute: AuthenticatedSuperadminRouteWithChildren,
+  AuthenticatedOrgRequiredBillingRoute: AuthenticatedOrgRequiredBillingRoute,
+  AuthenticatedOrgRequiredBookingsRoute: AuthenticatedOrgRequiredBookingsRoute,
+  AuthenticatedOrgRequiredChoosePlanRoute:
+    AuthenticatedOrgRequiredChoosePlanRoute,
+  AuthenticatedOrgRequiredPaymentErrorRoute:
+    AuthenticatedOrgRequiredPaymentErrorRoute,
+  AuthenticatedOrgRequiredSettingsRoute: AuthenticatedOrgRequiredSettingsRoute,
+  AuthenticatedOrgRequiredTeamRoute: AuthenticatedOrgRequiredTeamRoute,
+  AuthenticatedCompanySetupCompanyInfoRoute:
+    AuthenticatedCompanySetupCompanyInfoRoute,
+  AuthenticatedCompanySetupEmployeesRoute:
+    AuthenticatedCompanySetupEmployeesRoute,
+  AuthenticatedOrgRequiredIndexRoute: AuthenticatedOrgRequiredIndexRoute,
+  AuthenticatedOrgRequiredFormFormIdEditRoute:
+    AuthenticatedOrgRequiredFormFormIdEditRoute,
+  AuthenticatedOrgRequiredTodosIdEditRoute:
+    AuthenticatedOrgRequiredTodosIdEditRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -882,6 +883,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthSigninRoute: AuthSigninRoute,
+  AuthUpdateConnectionRoute: AuthUpdateConnectionRoute,
   EmbedFormIdRoute: EmbedFormIdRoute,
   InviteInvitationIdRoute: InviteInvitationIdRoute,
   Oauth2AccessCodeRoute: Oauth2AccessCodeRoute,

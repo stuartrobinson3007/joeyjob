@@ -69,18 +69,10 @@ const getAuthConfig = serverOnly(() =>
       account: {
         create: {
           after: async (account) => {
-            console.log('🔄 [DEBUG] Account created hook triggered!')
-            console.log('🔄 [DEBUG] Account data:', {
-              userId: account.userId,
-              providerId: account.providerId,
-              hasAccessToken: !!account.accessToken,
-              hasRefreshToken: !!account.refreshToken
-            })
             
             // Set up organizations for new Simpro OAuth users
             if (account.providerId === 'simpro' && account.accessToken && account.refreshToken) {
               try {
-                console.log(`🚀 [DEBUG] Starting organization setup for Simpro user ${account.userId}`)
                 
                 const buildConfig = {
                   buildName: 'joeyjob',
@@ -88,31 +80,21 @@ const getAuthConfig = serverOnly(() =>
                   baseUrl: 'https://joeyjob.simprosuite.com'
                 }
                 
-                console.log('🔄 [DEBUG] Build config:', buildConfig)
 
-                const { setupUserOrganizations } = await import('@/lib/providers/oauth-organization-setup')
+                const { organizationSetupService } = await import('@/lib/providers/organization-setup.service')
                 
-                const result = await setupUserOrganizations(
-                  account.userId,
-                  {
-                    accessToken: account.accessToken,
-                    refreshToken: account.refreshToken
-                  },
-                  buildConfig,
-                  'simpro'
-                )
-                
-                console.log(`✅ [DEBUG] Organizations set up successfully for user ${account.userId}:`, result)
-              } catch (error) {
-                console.error(`❌ [DEBUG] Failed to set up organizations for user ${account.userId}:`, error)
-                console.error('❌ [DEBUG] Error details:', {
-                  message: error instanceof Error ? error.message : 'Unknown error',
-                  stack: error instanceof Error ? error.stack : undefined
+                const result = await organizationSetupService.setupOrganizationsFromProvider({
+                  userId: account.userId,
+                  providerType: 'simpro',
+                  accessToken: account.accessToken,
+                  refreshToken: account.refreshToken,
+                  buildConfig
                 })
+                
+              } catch (error) {
                 // Don't throw - allow account creation to complete
               }
             } else {
-              console.log('⏭️ [DEBUG] Skipping organization setup - not a Simpro account or missing tokens')
             }
           }
         }
@@ -376,6 +358,80 @@ const getAuthConfig = serverOnly(() =>
                 input: true,
                 required: false,
                 defaultValue: "America/New_York"
+              },
+              // Contact information
+              phone: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              email: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              website: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              currency: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              // Address fields
+              addressLine1: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              addressLine2: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              addressCity: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              addressState: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              addressPostalCode: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              addressCountry: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              // Provider integration
+              providerType: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              providerCompanyId: {
+                type: "string",
+                input: true,
+                required: false
+              },
+              providerData: {
+                type: "string", // JSON stored as string
+                input: true,
+                required: false
+              },
+              onboardingCompleted: {
+                type: "boolean",
+                input: true,
+                required: false,
+                defaultValue: false
               }
             }
           }

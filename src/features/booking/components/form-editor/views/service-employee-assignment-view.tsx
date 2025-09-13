@@ -2,6 +2,10 @@ import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from '@tanstack/react-query'
 import { Users, GripVertical } from "lucide-react";
+import { getEmployeesForOrganization } from '@/lib/employees/server'
+import type { MergedEmployee } from '@/lib/employees/employee-sync.service'
+
+import { TitleWithBack } from "../components/title-with-back";
 import {
     DndContext,
     closestCenter,
@@ -41,27 +45,11 @@ interface ServiceEmployeeAssignmentViewProps {
     onUpdateNode: (nodeId: string, updates: Partial<FlowNode>) => void;
 }
 
-interface OrganizationEmployee {
-    id: string
-    simproEmployeeId: number
-    simproEmployeeName: string
-    simproEmployeeEmail?: string | null
-    isActive: boolean
-}
-
-interface EmployeeWithState extends OrganizationEmployee {
+interface EmployeeWithState extends MergedEmployee {
     isAssigned: boolean
     order: number
 }
 
-async function fetchOrganizationEmployees(organizationId: string): Promise<OrganizationEmployee[]> {
-    const response = await fetch(`/api/employees?organizationId=${organizationId}`)
-    if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to fetch employees')
-    }
-    return response.json()
-}
 
 // Sortable Employee Item Component
 interface SortableEmployeeItemProps {
@@ -127,10 +115,10 @@ const SortableEmployeeItem: React.FC<SortableEmployeeItemProps> = ({
                 
                 {/* Employee Info */}
                 <div className="flex-1 text-sm font-medium">
-                    {employee.simproEmployeeName}
-                    {employee.simproEmployeeEmail && (
+                    {employee.name}
+                    {employee.email && (
                         <div className="text-xs text-muted-foreground font-normal">
-                            {employee.simproEmployeeEmail}
+                            {employee.email}
                         </div>
                     )}
                 </div>
@@ -166,13 +154,28 @@ export function ServiceEmployeeAssignmentView({
     
     // Fetch organization employees
     const { 
-        data: orgEmployees = [], 
-        isLoading: orgEmployeesLoading 
+        data: employeeData, 
+        isLoading: orgEmployeesLoading,
+        error: queryError 
     } = useQuery({
-        queryKey: ['employees', activeOrganization?.id],
-        queryFn: () => activeOrganization ? fetchOrganizationEmployees(activeOrganization.id) : [],
+        queryKey: ['organization-employees'],
+        queryFn: () => {
+            console.log('🔍 [EmployeeAssignment] Fetching employees for org:', activeOrganization?.id)
+            return getEmployeesForOrganization()
+        },
         enabled: !!activeOrganization?.id,
     })
+    
+    // Debug logging
+    console.log('👥 [EmployeeAssignment] Query state:', {
+        isLoading: orgEmployeesLoading,
+        hasError: !!queryError,
+        employeeData,
+        activeOrg: activeOrganization?.id
+    })
+    
+    const orgEmployees = employeeData?.employees || []
+    console.log('👥 [EmployeeAssignment] orgEmployees:', orgEmployees)
 
     // Initialize employee state with assignment status and order
     const [employeesWithState, setEmployeesWithState] = useState<EmployeeWithState[]>([])
@@ -184,7 +187,7 @@ export function ServiceEmployeeAssignmentView({
             const employeeOrder = node.assignedEmployeeIds || []
             
             const newEmployeesWithState = orgEmployees
-                .filter(emp => emp.isActive)
+                .filter(emp => emp.isEnabled)
                 .map(emp => ({
                     ...emp,
                     isAssigned: assignedIds.has(emp.id),
@@ -348,7 +351,13 @@ export function ServiceEmployeeAssignmentView({
 
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-2xl font-bold mb-2">Employees</h2>
+                    <TitleWithBack
+                        title="Employees"
+                        currentLevel={currentLevel}
+                        selectedNode={node}
+                        onNavigateBack={onNavigateBack}
+                        className="mb-2"
+                    />
                     <p className="text-muted-foreground">
                         Employees will be assigned to incoming jobs based on the order of the list.
                     </p>
@@ -380,12 +389,28 @@ export function ServiceEmployeeAssignmentView({
                                     </div>
                                 ))}
                             </div>
-                        ) : employeesWithState.length === 0 ? (
+                        ) : queryError ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p className="text-lg font-medium mb-2">Error loading employees</p>
+                                <p className="text-sm">
+                                    {(queryError as Error)?.message || 'Failed to fetch employees. Please try again.'}
+                                </p>
+                            </div>
+                        ) : orgEmployees.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
                                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                                 <p className="text-lg font-medium mb-2">No employees available</p>
                                 <p className="text-sm">
                                     Sync employees from Simpro in your organization settings to assign them to services.
+                                </p>
+                            </div>
+                        ) : employeesWithState.length === 0 && orgEmployees.length > 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p className="text-lg font-medium mb-2">No active employees</p>
+                                <p className="text-sm">
+                                    All synced employees are currently inactive. Enable employees in your organization settings.
                                 </p>
                             </div>
                         ) : (
@@ -455,7 +480,7 @@ export function ServiceEmployeeAssignmentView({
                         </p>
                         {activeEmployees[0] && (
                             <p className="text-sm text-muted-foreground">
-                                {activeEmployees[0].simproEmployeeName} will be assigned by default
+                                {activeEmployees[0].name} will be assigned by default
                             </p>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">

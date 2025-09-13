@@ -94,18 +94,18 @@ export function AppSidebar() {
     fetchMemberRole()
   }, [activeOrganizationId, user?.id])
 
-  // Navigation with Bookings as homepage, Forms as primary tool
+  // Navigation with Forms as homepage, Bookings moved to /bookings
   const navigationItems = [
     {
-      title: 'Bookings',
+      title: 'Forms',
       url: '/',
-      icon: Calendar,
+      icon: FileText,
       requiresPermission: null, // Everyone can access
     },
     {
-      title: 'Forms',
-      url: '/forms',
-      icon: FileText,
+      title: 'Bookings',
+      url: '/bookings',
+      icon: Calendar,
       requiresPermission: null, // Everyone can access
     },
     {
