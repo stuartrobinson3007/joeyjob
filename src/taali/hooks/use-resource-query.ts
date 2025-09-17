@@ -10,6 +10,7 @@ interface UseResourceQueryOptions<TData> {
   retry?: number
   staleTime?: number
   refetchOnWindowFocus?: boolean
+  gcTime?: number
 }
 
 /**
@@ -30,6 +31,7 @@ export function useResourceQuery<TData>({
   retry = 1,
   staleTime = 1000 * 60 * 5, // 5 minutes
   refetchOnWindowFocus = false,
+  gcTime,
 }: UseResourceQueryOptions<TData>) {
   const navigate = useNavigate()
 
@@ -40,6 +42,7 @@ export function useResourceQuery<TData>({
     retry,
     staleTime,
     refetchOnWindowFocus,
+    gcTime,
     onError: (error: unknown) => {
       // Call custom error handler if provided
       onError?.(error)

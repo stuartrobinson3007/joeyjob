@@ -2,11 +2,9 @@ import { useCallback, useRef } from 'react';
 import { useFormStore } from '../stores/form-store';
 import { eventBus } from '../core/events/event-bus';
 import { FormState } from '../core/models/types';
-import { migrateFromOldFormat } from '../core/migration/migrate';
-import { BookingFlowData } from '../../form-editor/types/form-editor-state';
 
 export interface OptimisticUpdateOptions {
-  onServerSync?: (serverData: BookingFlowData) => Promise<void>;
+  onServerSync?: (serverData: FormState) => Promise<void>;
   onConflict?: (localData: FormState, serverData: FormState) => FormState;
   syncIntervalMs?: number;
 }
@@ -23,7 +21,7 @@ export function useOptimisticUpdates({
   onConflict,
   syncIntervalMs = 30000 // 30 seconds
 }: OptimisticUpdateOptions = {}) {
-  const { reset } = useFormStore();
+  const reset = useFormStore(state => state.reset);
   const pendingUpdatesRef = useRef<Map<string, PendingUpdate>>(new Map());
   const lastSyncRef = useRef<Date>(new Date());
   const syncTimeoutRef = useRef<NodeJS.Timeout>();
@@ -103,22 +101,21 @@ export function useOptimisticUpdates({
   }, []);
 
   // Sync with server data
-  const syncWithServer = useCallback(async (serverData: BookingFlowData) => {
+  const syncWithServer = useCallback(async (serverData: FormState) => {
     const currentState = useFormStore.getState();
-    const baseState = migrateFromOldFormat(serverData);
-    
+
     // If no pending updates, just update to server state
     if (pendingUpdatesRef.current.size === 0) {
-      reset(baseState);
+      reset(serverData);
       lastSyncRef.current = new Date();
       return;
     }
 
     // Perform three-way merge
     const mergedState = mergeStates(
-      baseState, // base (server state)
+      serverData, // base (server state)
       currentState, // local (current state with optimistic updates)
-      baseState // server (same as base in this case)
+      serverData // server (same as base in this case)
     );
 
     // Apply merged state
@@ -155,7 +152,7 @@ export function useOptimisticUpdates({
 
     const sync = async () => {
       try {
-        await onServerSync();
+        await onServerSync(useFormStore.getState());
       } catch (error) {
         console.error('Periodic sync failed:', error);
       } finally {
@@ -169,7 +166,7 @@ export function useOptimisticUpdates({
   const stopPeriodicSync = useCallback(() => {
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);
-      syncTimeoutRef.current = undefined;
+      syncTimeoutRef.current = undefined as any;
     }
   }, []);
 

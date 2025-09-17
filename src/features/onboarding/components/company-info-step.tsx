@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle, ExternalLink } from 'lucide-react'
+import { AlertCircle, ExternalLink, AlertTriangle, ArrowLeft } from 'lucide-react'
 
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/card'
@@ -27,14 +27,16 @@ interface CompanyInfoStepProps {
   }
   onContinue: () => void
   onRefresh?: () => Promise<void>
+  onBack?: () => void
   isLoading?: boolean
 }
 
-export function CompanyInfoStep({ 
-  organization, 
-  onContinue, 
+export function CompanyInfoStep({
+  organization,
+  onContinue,
   onRefresh,
-  isLoading = false 
+  onBack,
+  isLoading = false
 }: CompanyInfoStepProps) {
   const [showUpdateModal, setShowUpdateModal] = useState(false)
 
@@ -47,7 +49,7 @@ export function CompanyInfoStep({
       organization.addressPostalCode,
       organization.addressCountry
     ].filter(Boolean)
-    
+
     return parts.length > 0 ? parts.join(', ') : null
   }
 
@@ -63,13 +65,24 @@ export function CompanyInfoStep({
     <>
       <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center relative">
+            {onBack && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onBack}
+                className="absolute left-4 top-4"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <CardTitle className="text-2xl font-bold">Company Information</CardTitle>
             <CardDescription className="text-base">
               Let's confirm your business details from {providerDisplayName}.
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {/* Information Notice */}
             <Alert>
@@ -98,10 +111,13 @@ export function CompanyInfoStep({
 
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Business Address</h3>
-                {formattedAddress ? (
+                {isAddressValid ? (
                   <p className="text-base">{formattedAddress}</p>
                 ) : (
-                  <p className="text-base text-muted-foreground italic">No address provided</p>
+                  <div className="flex items-center gap-2 text-warning">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-base">Missing</span>
+                  </div>
                 )}
               </div>
 
@@ -109,8 +125,8 @@ export function CompanyInfoStep({
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Timezone</h3>
                   <p className="text-base">
-                    {organization.timezone 
-                      ? organization.timezone.replace('_', ' ') 
+                    {organization.timezone
+                      ? organization.timezone.replace('_', ' ')
                       : 'Not specified'
                     }
                   </p>
@@ -143,9 +159,9 @@ export function CompanyInfoStep({
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Website</h3>
                       <p className="text-base">
-                        <a 
-                          href={organization.website} 
-                          target="_blank" 
+                        <a
+                          href={organization.website}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1"
                         >
@@ -160,22 +176,24 @@ export function CompanyInfoStep({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button 
-                onClick={onContinue} 
-                disabled={isLoading || !isAddressValid}
-                loading={isLoading}
-                className="flex-1"
-              >
-                {isAddressValid ? 'Continue to Employee Setup' : 'Address Required'}
-              </Button>
-              <Button 
-                variant="outline" 
+            <div className="flex flex-col sm:flex-row-reverse gap-3 pt-4">
+              {isAddressValid && (
+                <Button
+                  onClick={onContinue}
+                  disabled={isLoading}
+                  loading={isLoading}
+                  className="flex-1"
+                >
+                  Continue to Employee Setup
+                </Button>
+              )}
+              <Button
+                variant="outline"
                 onClick={handleReportIssue}
                 disabled={isLoading}
                 className="flex-1"
               >
-                Something is wrong - Refresh
+                Refresh from Simpro
               </Button>
             </div>
           </CardContent>

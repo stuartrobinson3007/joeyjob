@@ -22,13 +22,13 @@ interface EmployeeSelectionStepProps {
   isLoading?: boolean
 }
 
-export function EmployeeSelectionStep({ 
-  organization, 
+export function EmployeeSelectionStep({
+  organization,
   employees,
   onComplete,
   onSkip,
   onRefresh,
-  isLoading = false 
+  isLoading = false
 }: EmployeeSelectionStepProps) {
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(
@@ -66,7 +66,7 @@ export function EmployeeSelectionStep({
             Select which employees from {providerDisplayName} can receive bookings.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Progress indicator */}
           <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
@@ -94,14 +94,14 @@ export function EmployeeSelectionStep({
                   Select employees ({selectedEmployees.size} of {employees.length} selected)
                 </h3>
               </div>
-              
+
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {employees.map((employee) => {
                   const employeeId = employee.id.toString()
                   const isSelected = selectedEmployees.has(employeeId)
-                  
+
                   return (
-                    <div 
+                    <div
                       key={employeeId}
                       className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors"
                     >
@@ -111,7 +111,7 @@ export function EmployeeSelectionStep({
                           <p className="text-sm text-muted-foreground">{employee.email}</p>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-3">
                         <span className="text-sm text-muted-foreground">
                           {isSelected ? 'Available for bookings' : 'Not available'}
@@ -136,23 +136,14 @@ export function EmployeeSelectionStep({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button 
-              onClick={handleComplete} 
+            <Button
+              onClick={handleComplete}
               disabled={isLoading}
               loading={isLoading}
               className="flex-1"
             >
               <ArrowRight className="h-4 w-4 mr-2" />
               Complete Setup
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={onSkip}
-              disabled={isLoading}
-              className="flex-1"
-            >
-              <SkipForward className="h-4 w-4 mr-2" />
-              Skip for Now
             </Button>
           </div>
 

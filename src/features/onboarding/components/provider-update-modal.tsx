@@ -31,14 +31,16 @@ export function ProviderUpdateModal({
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleRefresh = async () => {
-    if (!onRefresh) return
+    
+    if (!onRefresh) {
+      return
+    }
 
     setIsRefreshing(true)
     try {
       await onRefresh()
       onClose()
     } catch (error) {
-      console.error('Error refreshing data:', error)
       // Error will be handled by the parent component
     } finally {
       setIsRefreshing(false)
@@ -51,9 +53,10 @@ export function ProviderUpdateModal({
         // Build the correct Simpro settings URL using the user's actual domain
         let settingsUrl = null
         if (organizationData?.providerData) {
-          // Check if we have build config in provider data
-          const buildName = 'joeyjob' // Default, could be extracted from provider data if stored
-          const domain = 'simprosuite.com' // Default, could be extracted from provider data if stored
+          // Extract build config from provider data
+          const providerData = organizationData.providerData as any
+          const buildName = providerData?.buildName || 'joeyjob' // Fallback to default
+          const domain = providerData?.domain || 'simprosuite.com' // Fallback to default
           settingsUrl = `https://${buildName}.${domain}/staff/configCompany.php`
         }
         
@@ -67,7 +70,7 @@ export function ProviderUpdateModal({
                     href={settingsUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 underline"
+                    className="text-primary hover:text-primary/80 underline"
                   >
                     SimPro Settings
                   </a>
@@ -101,30 +104,22 @@ export function ProviderUpdateModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle>
             How to update your business settings in JoeyJob
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Follow the instructions below to update your company information in {providerInfo.displayName}.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
-          <DialogDescription className="text-base">
-            {typeof providerInfo.instructions === 'string' 
-              ? providerInfo.instructions 
-              : <div>{providerInfo.instructions}</div>
-            }
-          </DialogDescription>
+          <div className="text-base text-muted-foreground">
+            {providerInfo.instructions}
+          </div>
           
-          <DialogDescription className="text-base">
+          <div className="text-base text-muted-foreground">
             {providerInfo.settingsNote}
-          </DialogDescription>
+          </div>
 
           {/* Action Button */}
           <div className="flex justify-end pt-2">
@@ -137,26 +132,16 @@ export function ProviderUpdateModal({
                 Refresh
               </Button>
             ) : (
-              <Button onClick={onClose}>
-                Got it
+              <Button 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                loading={isRefreshing}
+              >
+                Refresh
               </Button>
             )}
           </div>
 
-          {/* Optional external link for provider settings */}
-          {providerInfo.settingsUrl && (
-            <div className="pt-2 border-t">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="w-full"
-                onClick={() => window.open(providerInfo.settingsUrl, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open {providerInfo.displayName} Settings
-              </Button>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

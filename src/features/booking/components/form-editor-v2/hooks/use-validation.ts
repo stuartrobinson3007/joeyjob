@@ -39,7 +39,7 @@ export function useValidation(customRules: ValidationRule[] = []) {
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const workerRef = useRef<Worker | null>(null);
-  const validationTimeoutRef = useRef<NodeJS.Timeout>();
+  const validationTimeoutRef = useRef<NodeJS.Timeout | undefined>();
   
   const rules = [...defaultValidationRules, ...customRules];
 
@@ -251,10 +251,7 @@ export function useValidation(customRules: ValidationRule[] = []) {
 
   // Subscribe to form changes
   useEffect(() => {
-    const unsubscribe = useFormStore.subscribe(
-      (state) => state,
-      debouncedValidation
-    );
+    const unsubscribe = useFormStore.subscribe(debouncedValidation);
 
     // Initial validation
     debouncedValidation();

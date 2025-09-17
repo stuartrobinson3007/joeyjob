@@ -2,7 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 
 import { db } from '@/lib/db/db'
-import { organization, member } from '@/database/schema'
+import { organization, member, simproCompanies } from '@/database/schema'
 import type { CompanyInfo } from './provider-info.interface'
 import { createProviderInfoService } from './provider-registry'
 
@@ -11,7 +11,7 @@ import { createProviderInfoService } from './provider-registry'
  * Handles both single and multi-company scenarios
  */
 export class OrganizationSetupService {
-  
+
   /**
    * Set up organizations for a user based on their provider data
    * This is called after successful OAuth authentication
@@ -40,13 +40,13 @@ export class OrganizationSetupService {
     }>
     defaultOrganizationId?: string
   }> {
-    const { 
-      userId, 
-      providerType, 
-      accessToken, 
-      refreshToken, 
+    const {
+      userId,
+      providerType,
+      accessToken,
+      refreshToken,
       buildConfig,
-      onTokenRefresh 
+      onTokenRefresh
     } = params
 
     console.log(`Setting up organizations for user ${userId} with provider ${providerType}`)
@@ -77,17 +77,17 @@ export class OrganizationSetupService {
         )
 
         let orgId: string
-        
+
         if (existingOrg) {
           console.log(`Organization already exists for ${providerType} company ${company.id}: ${existingOrg.id}`)
           orgId = existingOrg.id
-          
+
           // Update organization with latest company data
           await this.updateOrganizationFromCompanyInfo(existingOrg.id, company)
         } else {
           // Create new organization
           console.log(`Creating new organization for ${providerType} company ${company.id}`)
-          orgId = await this.createOrganizationFromCompanyInfo(company, providerType)
+          orgId = await this.createOrganizationFromCompanyInfo(company, providerType, accessToken)
         }
 
         // Ensure user is a member (owner) of this organization
@@ -106,7 +106,7 @@ export class OrganizationSetupService {
       }
 
       console.log(`Successfully set up ${createdOrganizations.length} organizations for user ${userId}`)
-      
+
       return {
         organizations: createdOrganizations,
         defaultOrganizationId
@@ -143,7 +143,8 @@ export class OrganizationSetupService {
    */
   private async createOrganizationFromCompanyInfo(
     companyInfo: CompanyInfo,
-    providerType: string
+    providerType: string,
+    accessToken: string
   ): Promise<string> {
     const orgId = nanoid()
     const slug = this.generateSlug(companyInfo.name)
@@ -155,7 +156,7 @@ export class OrganizationSetupService {
       phone: companyInfo.phone,
       email: companyInfo.email,
       website: companyInfo.website,
-      timezone: companyInfo.timezone || 'America/New_York',
+      timezone: companyInfo.timezone,
       currency: companyInfo.currency,
       addressLine1: companyInfo.address?.line1,
       addressLine2: companyInfo.address?.line2,
@@ -164,12 +165,35 @@ export class OrganizationSetupService {
       addressPostalCode: companyInfo.address?.postalCode,
       addressCountry: companyInfo.address?.country,
       providerType,
-      providerCompanyId: companyInfo.id,
-      providerData: companyInfo.providerData,
-      onboardingCompleted: false, // Will be set to true after user confirms data
+      providerCompanyId: companyInfo.id
     })
 
+    // Create provider-specific configuration if needed
+    if (providerType === 'simpro' && companyInfo.providerData) {
+      await this.createSimproConfiguration(orgId, companyInfo.providerData, accessToken)
+    }
+
     return orgId
+  }
+
+  /**
+   * Create Simpro company configuration
+   */
+  private async createSimproConfiguration(
+    organizationId: string,
+    providerData: any,
+    accessToken: string
+  ): Promise<void> {
+    if (providerData.buildName && providerData.domain) {
+      await db.insert(simproCompanies).values({
+        id: nanoid(),
+        organizationId,
+        accessToken,
+        buildName: providerData.buildName,
+        domain: providerData.domain,
+        companyId: '0', // Default company ID
+      })
+    }
   }
 
   /**
@@ -187,7 +211,7 @@ export class OrganizationSetupService {
         phone: companyInfo.phone,
         email: companyInfo.email,
         website: companyInfo.website,
-        timezone: companyInfo.timezone || 'America/New_York',
+        timezone: companyInfo.timezone,
         currency: companyInfo.currency,
         addressLine1: companyInfo.address?.line1,
         addressLine2: companyInfo.address?.line2,
@@ -195,7 +219,6 @@ export class OrganizationSetupService {
         addressState: companyInfo.address?.state,
         addressPostalCode: companyInfo.address?.postalCode,
         addressCountry: companyInfo.address?.country,
-        providerData: companyInfo.providerData,
         updatedAt: new Date(),
       })
       .where(eq(organization.id, organizationId))
@@ -256,20 +279,18 @@ export class OrganizationSetupService {
    * Get organizations for a user by provider type
    */
   async getOrganizationsByProvider(
-    userId: string, 
+    userId: string,
     providerType: string
   ): Promise<Array<{
     id: string
     name: string
     providerCompanyId: string
-    onboardingCompleted: boolean
   }>> {
     const orgs = await db
       .select({
         id: organization.id,
         name: organization.name,
         providerCompanyId: organization.providerCompanyId,
-        onboardingCompleted: organization.onboardingCompleted,
       })
       .from(organization)
       .innerJoin(member, eq(member.organizationId, organization.id))

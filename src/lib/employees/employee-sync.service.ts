@@ -31,31 +31,49 @@ export class EmployeeSyncService {
     organizationId: string,
     providerType: string,
     accessToken: string,
-    refreshToken: string,
+    refreshToken: string, // Kept for compatibility but unused
     buildConfig: {
       buildName: string
       domain: string  
       baseUrl: string
     },
-    userId: string
+    userId?: string // Now optional, not used
   ): Promise<MergedEmployee[]> {
+    console.log('🔍 [EmployeeSyncService] Starting sync:', {
+      organizationId,
+      providerType,
+      buildConfig,
+      hasAccessToken: !!accessToken
+    })
+
     try {
       // 1. Fetch current employees from provider API
+      console.log('🔍 [EmployeeSyncService] Creating provider service for:', providerType)
       const providerService = createProviderInfoService(
         providerType,
         accessToken,
         refreshToken,
-        buildConfig,
-        userId
+        buildConfig
       )
       
+      console.log('🔍 [EmployeeSyncService] Fetching employees from provider API...')
       const providerEmployees = await providerService.getEmployees()
+      console.log('🔍 [EmployeeSyncService] Provider returned employees:', {
+        count: providerEmployees.length,
+        sample: providerEmployees[0] || null
+      })
       
       // 2. Get existing local preferences
+      console.log('🔍 [EmployeeSyncService] Fetching local employees from DB...')
       const localEmployees = await db
         .select()
         .from(organizationEmployees)
         .where(eq(organizationEmployees.organizationId, organizationId))
+      
+      console.log('🔍 [EmployeeSyncService] Local employees found:', {
+        count: localEmployees.length,
+        sample: localEmployees[0] || null
+      })
       
       // 3. Track which provider employees we've seen
       const currentProviderIds = new Set(
@@ -107,7 +125,7 @@ export class EmployeeSyncService {
             isEnabled: false, // Default to disabled
             isRemoved: false,
             lastSyncAt: new Date(),
-            createdBy: userId,
+            createdBy: userId || 'system', // Use 'system' if no userId
           })
           
           mergedEmployees.push({
@@ -162,10 +180,18 @@ export class EmployeeSyncService {
    * Get employees for organization (from local DB with current sync status)
    */
   async getEmployeesForOrganization(organizationId: string): Promise<MergedEmployee[]> {
+    console.log('🔍 [EmployeeSyncService.getEmployees] Fetching for org:', organizationId)
+    
     const employees = await db
       .select()
       .from(organizationEmployees)
       .where(eq(organizationEmployees.organizationId, organizationId))
+    
+    console.log('🔍 [EmployeeSyncService.getEmployees] Found in DB:', {
+      count: employees.length,
+      organizationId,
+      sample: employees[0] || null
+    })
     
     return employees.map(emp => ({
       id: emp.id,

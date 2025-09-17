@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 
-import { BookingFlowData } from '../form-editor/types/form-editor-state';
+import { FormState } from './core/models/types';
 
 import { useFormStore } from './stores/form-store';
 import { useUIStore } from './stores/ui-store';
@@ -10,7 +10,6 @@ import { useAutosave } from './hooks/use-autosave';
 import { useOptimisticUpdates } from './hooks/use-optimistic-updates';
 import { useValidation } from './hooks/use-validation';
 import { eventBus } from './core/events/event-bus';
-import { migrateFromOldFormat } from './core/migration/migrate';
 import { TreeView } from './ui/views/TreeView';
 import { ViewRouter } from './ui/layouts/ViewRouter';
 import { FormEditorHeader } from './ui/widgets/FormEditorHeader';
@@ -18,9 +17,9 @@ import { FormPreview } from './ui/widgets/FormPreview';
 
 interface FormEditorProps {
   formId: string;
-  initialData?: BookingFlowData;
+  initialData?: FormState;
   onSave?: (data: any) => Promise<void>;
-  onServerSync?: (data: BookingFlowData) => Promise<void>;
+  onServerSync?: (data: FormState) => Promise<void>;
   enableAutosave?: boolean;
   enableOptimisticUpdates?: boolean;
 }
@@ -70,9 +69,9 @@ export function FormEditor({
   useEffect(() => {
     if (initialData) {
       eventBus.emit('form.loaded', { formId });
-      const migratedData = migrateFromOldFormat(initialData);
-      reset(migratedData);
-      
+      // Use initialData directly - it should already be in the new format
+      reset(initialData);
+
       // Start periodic sync if enabled
       if (enableOptimisticUpdates && onServerSync) {
         startPeriodicSync();

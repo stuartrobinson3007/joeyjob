@@ -32,11 +32,12 @@ export const account = pgTable('account', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  // Better Auth requires these fields for OAuth providers
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
-  idToken: text('id_token'),
   accessTokenExpiresAt: timestamp('access_token_expires_at'),
   refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  idToken: text('id_token'),
   scope: text('scope'),
   password: text('password'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -92,8 +93,7 @@ export const organization = pgTable('organization', {
   // Provider integration
   providerType: text('provider_type'), // 'simpro', 'minuba', etc.
   providerCompanyId: text('provider_company_id'), // Company ID from provider
-  providerData: json('provider_data'), // Provider-specific data
-  onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
+  // providerData removed - now stored in provider-specific tables
 
   // Billing fields
   currentPlan: text('current_plan').default('pro').notNull(), // Cached from Stripe for quick access
@@ -399,6 +399,24 @@ export const bookingEmployees = pgTable('booking_employees', {
   simproStatus: text('simpro_status'), // pending, scheduled, completed, cancelled
   simproSyncError: text('simpro_sync_error'),
   lastSimproSync: timestamp('last_simpro_sync'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// Provider-specific configuration tables
+
+// Simpro company configuration
+export const simproCompanies = pgTable('simpro_companies', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token').notNull(), // Permanent, non-expiring token
+  buildName: text('build_name').notNull(),
+  domain: text('domain').notNull(),
+  companyId: text('company_id').notNull().default('0'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

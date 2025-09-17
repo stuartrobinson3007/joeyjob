@@ -197,7 +197,7 @@ function SelectOrganizationPage() {
 
             <Card
               className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50 border-dashed"
-              onClick={() => setShowCreateDialog(true)}
+              onClick={() => navigate({ to: '/company-setup/select-company' })}
             >
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
@@ -227,7 +227,7 @@ function SelectOrganizationPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
-                <Button onClick={() => setShowCreateDialog(true)} size="lg">
+                <Button onClick={() => navigate({ to: '/company-setup/select-company' })} size="lg">
                   <Plus />
                   {t('organization.createFirstWorkspace')}
                 </Button>

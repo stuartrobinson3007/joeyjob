@@ -328,7 +328,7 @@ function SuperAdminUsers() {
         size: 150,
         cell: ({ row }) => {
           const user = row.original
-          return <span className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</span>
+          return <span className="text-sm text-muted-foreground">{formatDate(user.createdAt, 'MMM d, yyyy', undefined, 'UTC')}</span>
         },
         meta: {
           filterConfig: {
@@ -510,7 +510,7 @@ function SuperAdminUsers() {
                           <div className="text-sm font-medium">{t('tables.created')}</div>
                           <div className="text-sm text-muted-foreground">
                             {session.createdAt
-                              ? formatDateTime(session.createdAt)
+                              ? formatDateTime(session.createdAt, 'MMM d, yyyy h:mm a', 'UTC')
                               : t('users.unknown')}
                           </div>
                         </div>
@@ -519,7 +519,7 @@ function SuperAdminUsers() {
                           <div className="grid gap-1">
                             <div className="text-sm font-medium">{t('tables.expires')}</div>
                             <div className="text-sm text-muted-foreground">
-                              {formatDateTime(session.expiresAt)}
+                              {formatDateTime(session.expiresAt, 'MMM d, yyyy h:mm a', 'UTC')}
                             </div>
                           </div>
                         )}

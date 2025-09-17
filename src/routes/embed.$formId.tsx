@@ -1,13 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 
-import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer'
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
-import { Button } from '@/ui/button'
-import { Form } from '@/ui/form'
-import { toast } from 'sonner'
-import { formatServicePrice } from '@/lib/utils/price-formatting'
+import { Card, CardContent, CardHeader } from '@/ui/card'
+import BookingFlow, { BookingState, BookingSubmitData } from '@/features/booking/components/form-editor/booking-flow'
 
 // Note: Server function will be called dynamically in the loader
 // to avoid bundling server code into client
@@ -23,16 +18,15 @@ export const Route = createFileRoute('/embed/$formId')({
         name: 'robots',
         content: 'noindex, nofollow',
       },
-      // Security headers via meta tags (limited effectiveness, ideally set at server level)
-      {
-        'http-equiv': 'X-Frame-Options',
-        content: 'ALLOWALL', // Allow embedding in iframes
-      },
-      {
-        'http-equiv': 'X-Content-Type-Options',
-        content: 'nosniff',
-      },
     ],
+  }),
+  // Configure headers for iframe embedding
+  headers: () => ({
+    // Allow this page to be embedded in iframes from any origin
+    // Remove X-Frame-Options entirely to allow embedding
+    // (setting ALLOWALL is not a valid value)
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
   }),
   component: EmbedBookingPage,
   loader: async ({ params }) => {
@@ -41,13 +35,14 @@ export const Route = createFileRoute('/embed/$formId')({
       // Dynamically import and call the server function
       const { getBookingForm } = await import('@/features/booking/lib/forms.server')
       const formData = await getBookingForm({ data: { id: params.formId } })
-      
+
       if (!formData || !formData.form.isActive) {
         throw new Error('Booking form not found or inactive')
       }
 
       return {
         form: formData.form,
+        organization: formData.organization,
         service: formData.service, // Service info embedded in form
       }
     } catch (error) {
@@ -74,87 +69,182 @@ export const Route = createFileRoute('/embed/$formId')({
 })
 
 function EmbedBookingPage() {
-  const { form, service } = Route.useLoaderData()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { form, organization, service } = Route.useLoaderData()
   const containerRef = useRef<HTMLDivElement>(null)
-  
-  const formHook = useForm()
 
-  // Theme from form config
+  // Theme and styling from form config
   const theme = form.theme || 'light'
+  const primaryColor = form.primaryColor || '#3B82F6'
 
-  // Prepare form fields from the form configuration
-  const formFields = Array.isArray(form.fields) ? form.fields : []
+  // Extract services and questions from form config
+  const services = form.formConfig?.serviceTree?.children || []
+  const baseQuestions = form.formConfig?.baseQuestions || []
+
+  // BookingFlow state management
+  const [bookingState, setBookingState] = useState<BookingState>({
+    stage: 'selection',
+    navigationPath: [],
+    selectedService: null,
+    selectedEmployee: null,
+    selectedDate: null,
+    selectedTime: null,
+  })
 
   // Auto-resize functionality for iframe
   useEffect(() => {
-    const resizeIframe = () => {
+    const isDev = process.env.NODE_ENV === 'development'
+    const debugLog = (message: string, data?: any) => {
+      if (isDev) {
+        console.log(`[EmbedResize] ${message}`, data || '')
+      }
+    }
+
+    let lastHeight = 0
+    let resizeCount = 0
+    let pollingCount = 0
+    let observerCount = 0
+
+    debugLog('🚀 Initializing embed autoresize system', {
+      isInIframe: window.parent !== window,
+      containerExists: !!containerRef.current,
+      formId: form.id
+    })
+
+    const resizeIframe = (source = 'unknown') => {
       if (containerRef.current && window.parent !== window) {
         const height = containerRef.current.scrollHeight
-        window.parent.postMessage({
-          type: 'iframeResize',
-          payload: { height: height + 20 } // Add small buffer for padding
-        }, '*')
+        const adjustedHeight = height + 20 // Add small buffer for padding
+
+        // Only log if height actually changed or this is initial/significant event
+        const heightChanged = height !== lastHeight
+        const shouldLog = heightChanged || source === 'initial' || resizeCount % 50 === 0 // Log every 50th call
+
+        if (shouldLog) {
+          debugLog(`📏 Height ${heightChanged ? 'changed' : 'unchanged'}`, {
+            source,
+            oldHeight: lastHeight,
+            newHeight: height,
+            adjustedHeight,
+            resizeCount,
+            pollingCount,
+            observerCount
+          })
+        }
+
+        if (heightChanged) {
+          window.parent.postMessage({
+            type: 'iframeResize',
+            payload: { height: adjustedHeight }
+          }, '*')
+
+          debugLog('📤 PostMessage sent to parent', {
+            type: 'iframeResize',
+            height: adjustedHeight,
+            source
+          })
+
+          lastHeight = height
+        }
+
+        resizeCount++
+        if (source === 'polling') pollingCount++
+        if (source === 'observer') observerCount++
+      } else {
+        if (resizeCount === 0) { // Only log this once
+          debugLog('❌ Resize skipped', {
+            containerExists: !!containerRef.current,
+            isInIframe: window.parent !== window,
+            reason: !containerRef.current ? 'No container' : 'Not in iframe'
+          })
+        }
       }
     }
 
     // Initial resize
-    resizeIframe()
+    debugLog('🎯 Triggering initial resize')
+    resizeIframe('initial')
 
     // Set up ResizeObserver to watch for content changes
-    const resizeObserver = new ResizeObserver(() => {
-      resizeIframe()
+    debugLog('👀 Setting up ResizeObserver')
+    const resizeObserver = new ResizeObserver((entries) => {
+      debugLog('🔍 ResizeObserver triggered', {
+        entriesCount: entries.length,
+        entry: entries[0] ? {
+          contentRect: entries[0].contentRect,
+          borderBoxSize: entries[0].borderBoxSize?.[0]
+        } : null
+      })
+      resizeIframe('observer')
     })
 
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current)
+      debugLog('✅ ResizeObserver attached to container')
+    } else {
+      debugLog('❌ Container not available for ResizeObserver')
     }
 
     // Also listen for form changes that might affect height
-    const timer = setInterval(resizeIframe, 100)
+    debugLog('⏰ Starting polling timer (100ms interval)')
+    const timer = setInterval(() => resizeIframe('polling'), 100)
 
     return () => {
+      debugLog('🧹 Cleaning up resize system', {
+        finalStats: {
+          totalResizes: resizeCount,
+          pollingTriggers: pollingCount,
+          observerTriggers: observerCount,
+          finalHeight: lastHeight
+        }
+      })
       clearInterval(timer)
       resizeObserver.disconnect()
     }
   }, [])
 
-  const handleSubmit = async (data: any) => {
-    setIsSubmitting(true)
+  const handleBookingSubmit = async (data: BookingSubmitData) => {
     try {
-      // TODO: Submit booking data to server
-      console.log('Form submission:', data)
-      
-      // Simulate submission
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
+      console.log('Submitting booking:', data)
+
+      const response = await fetch('/api/bookings/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId: organization.id,
+          bookingData: data
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit booking')
+      }
+
       // Notify parent window of successful submission
       if (window.parent !== window) {
         window.parent.postMessage({
           type: 'bookingSubmitted',
-          payload: { 
+          payload: {
             formId: form.id,
             data: data,
-            success: true 
+            success: true
           }
         }, '*')
       }
-      
-      toast.success('Booking Request Submitted!', {
-        description: 'We will contact you shortly to confirm your appointment.',
-        duration: 10000,
-      })
-      
-      // Reset form
-      formHook.reset()
+
+      return result
+
     } catch (error) {
       console.error('Booking submission error:', error)
-      
+
       // Notify parent window of submission error
       if (window.parent !== window) {
         window.parent.postMessage({
           type: 'bookingSubmitted',
-          payload: { 
+          payload: {
             formId: form.id,
             data: data,
             success: false,
@@ -162,84 +252,40 @@ function EmbedBookingPage() {
           }
         }, '*')
       }
-      
-      toast.error('Submission Failed', {
-        description: 'An unexpected error occurred. Please try again.',
-      })
-    } finally {
-      setIsSubmitting(false)
+
+      throw error // Re-throw so BookingFlow can handle the error
     }
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className={`${theme} min-h-screen bg-background p-4`}
+      className={`${theme} bg-background text-foreground`}
       style={{
         margin: 0,
+        padding: 0,
         boxSizing: 'border-box',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}
     >
-      {/* Header */}
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-2">{form.name}</h1>
-        {form.formConfig?.serviceTree?.description && (
-          <p className="text-muted-foreground">{form.formConfig.serviceTree.description}</p>
-        )}
-        {service && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Book your {service.name} appointment
-          </p>
-        )}
-      </div>
-
-      {/* Booking Form */}
-      <div className="max-w-2xl mx-auto">
-        <Card className="shadow-sm border">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Complete Your Information</CardTitle>
-            {service && (
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p><strong>Service:</strong> {service.name}</p>
-                <p><strong>Duration:</strong> {service.duration} minutes</p>
-                <p><strong>Price:</strong> {formatServicePrice(service.price)}</p>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            <Form {...formHook}>
-              <form onSubmit={formHook.handleSubmit(handleSubmit)} className="space-y-6">
-                {formFields.map((fieldConfig) => (
-                  <FormFieldRenderer
-                    key={fieldConfig.id}
-                    field={fieldConfig}
-                    control={formHook.control}
-                  />
-                ))}
-                
-                <div className="flex justify-center pt-4">
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting} 
-                    className="min-w-[200px]"
-                    size="lg"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Footer */}
-      <footer className="mt-8 text-center">
-        <p className="text-xs text-muted-foreground">
-          Powered by JoeyJob
-        </p>
-      </footer>
+      {/* BookingFlow Component - same as hosted form but without header/footer/padding */}
+      <BookingFlow
+        id="embed-booking-flow"
+        startTitle={form.formConfig?.serviceTree?.label || form.name}
+        startDescription={form.formConfig?.serviceTree?.description || 'Select a service to get started'}
+        services={services}
+        baseQuestions={baseQuestions}
+        primaryColor={primaryColor}
+        darkMode={theme === 'dark'}
+        bookingState={bookingState}
+        onBookingStateChange={setBookingState}
+        onBookingSubmit={handleBookingSubmit}
+        organizationId={organization.id}
+        organizationName={organization.name}
+        organizationPhone={organization.phone}
+        organizationTimezone={organization.timezone}
+        className="bg-background rounded-lg p-4 lg:p-6"
+      />
     </div>
   )
 }

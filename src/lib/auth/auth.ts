@@ -63,39 +63,34 @@ const getAuthConfig = serverOnly(() =>
     database: drizzleAdapter(db, {
       provider: 'pg',
       schema: schema,
+      transform: {
+        date: {
+          input: (value) => {
+            return value
+          },
+          output: (value) => {
+            return value
+          }
+        }
+      }
     }),
 
     databaseHooks: {
       account: {
         create: {
           after: async (account) => {
-            
-            // Set up organizations for new Simpro OAuth users
-            if (account.providerId === 'simpro' && account.accessToken && account.refreshToken) {
-              try {
-                
-                const buildConfig = {
-                  buildName: 'joeyjob',
-                  domain: 'simprosuite.com',
-                  baseUrl: 'https://joeyjob.simprosuite.com'
-                }
-                
-
-                const { organizationSetupService } = await import('@/lib/providers/organization-setup.service')
-                
-                const result = await organizationSetupService.setupOrganizationsFromProvider({
-                  userId: account.userId,
-                  providerType: 'simpro',
-                  accessToken: account.accessToken,
-                  refreshToken: account.refreshToken,
-                  buildConfig
-                })
-                
-              } catch (error) {
-                // Don't throw - allow account creation to complete
-              }
-            } else {
+            // Simpro OAuth is now just for user authentication
+            // Organization setup and API tokens are handled separately
+            if (account.providerId === 'simpro') {
+              console.log('Simpro user authenticated:', account.userId)
+              // No automatic organization setup - admin will configure Simpro access
             }
+          }
+        }
+      },
+      session: {
+        create: {
+          after: async (session) => {
           }
         }
       }
@@ -167,29 +162,29 @@ const getAuthConfig = serverOnly(() =>
             scopes: [], // SimPro doesn't use scopes
             // Use Better Auth's expected callback pattern
             redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/oauth2/callback/simpro`,
-            
+
             getUserInfo: async (tokens) => {
               // Get build config from session storage (passed via state parameter)
-              const buildConfig = { 
-                buildName: 'joeyjob', 
+              const buildConfig = {
+                buildName: 'joeyjob',
                 domain: 'simprosuite.com',
                 baseUrl: 'https://joeyjob.simprosuite.com'
               }
-              
+
               const response = await fetch(`${buildConfig.baseUrl}/api/v1.0/currentUser/`, {
                 headers: {
                   Authorization: `Bearer ${tokens.accessToken}`,
                   Accept: 'application/json',
                 },
               })
-              
+
               if (!response.ok) {
                 throw new Error(`SimPro API error: ${response.status}`)
               }
-              
+
               const simproUser = await response.json()
               const placeholderEmail = `simpro${simproUser.ID}@${buildConfig.buildName}.joeyjob.com`
-              
+
               return {
                 id: simproUser.ID,
                 name: simproUser.Name,
@@ -197,7 +192,7 @@ const getAuthConfig = serverOnly(() =>
                 emailVerified: false, // SimPro doesn't provide email verification
               }
             },
-            
+
             mapProfileToUser: async (profile) => {
               return {
                 name: profile.name,
@@ -244,7 +239,7 @@ const getAuthConfig = serverOnly(() =>
 
           if (userMembership.length > 0) {
             organizationId = userMembership[0].organizationId
-            
+
             // Get organization email
             const org = await db
               .select({
@@ -356,8 +351,7 @@ const getAuthConfig = serverOnly(() =>
               timezone: {
                 type: "string",
                 input: true,
-                required: false,
-                defaultValue: "America/New_York"
+                required: true,
               },
               // Contact information
               phone: {
@@ -427,12 +421,6 @@ const getAuthConfig = serverOnly(() =>
                 input: true,
                 required: false
               },
-              onboardingCompleted: {
-                type: "boolean",
-                input: true,
-                required: false,
-                defaultValue: false
-              }
             }
           }
         },

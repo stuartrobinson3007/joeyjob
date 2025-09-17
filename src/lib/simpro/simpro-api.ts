@@ -20,162 +20,22 @@ import { AppError, ERROR_CODES } from '@/taali/utils/errors'
  */
 export class SimproApi {
   private accessToken: string
-  private refreshToken: string
-  private tokenExpiry: number = 0
   private config: SimproConfig
-  private userId?: string
-  private onTokenRefresh?: (
-    accessToken: string, 
-    refreshToken: string, 
-    accessTokenExpiresAt: number,
-    refreshTokenExpiresAt: number
-  ) => Promise<void>
 
   constructor(
     accessToken: string, 
-    refreshToken: string, 
-    config: SimproConfig,
-    userId?: string,
-    onTokenRefresh?: (
-      accessToken: string, 
-      refreshToken: string, 
-      accessTokenExpiresAt: number,
-      refreshTokenExpiresAt: number
-    ) => Promise<void>
+    config: SimproConfig
   ) {
     this.accessToken = accessToken
-    this.refreshToken = refreshToken
     this.config = config
-    this.userId = userId
-    this.onTokenRefresh = onTokenRefresh
-
-    // Log warning if token refresh callback is missing
-    if (!onTokenRefresh && userId) {
-      console.warn(`⚠️ [SIMPRO_API] Token refresh callback not provided for user ${userId}. Refreshed tokens will not be persisted to database!`)
-    }
   }
 
-  /**
-   * Refresh the access token using the refresh token
-   */
-  private async refreshAccessToken(): Promise<void> {
-    console.log('Starting token refresh...')
-    
-    try {
-      if (!this.refreshToken) {
-        throw new AppError(
-          ERROR_CODES.SYS_TOKEN_INVALID,
-          401,
-          { userId: this.userId },
-          'No refresh token available for token refresh'
-        )
-      }
-
-      console.log('Using refresh token for:', this.config.baseUrl)
-      
-      const response = await fetch(this.config.tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: this.refreshToken,
-          client_id: this.config.clientId,
-          client_secret: this.config.clientSecret,
-        }),
-      })
-
-      console.log('Token refresh response status:', response.status)
-
-      let responseData
-      try {
-        const responseText = await response.text()
-        console.log('Token refresh response text:', responseText)
-        responseData = responseText ? JSON.parse(responseText) : {}
-      } catch (error) {
-        console.error('Failed to parse response:', error)
-        responseData = {}
-      }
-
-      if (!response.ok) {
-        const errorData = responseData as TokenErrorResponse
-        throw new AppError(
-          ERROR_CODES.SYS_TOKEN_REFRESH_FAILED,
-          response.status,
-          { 
-            userId: this.userId, 
-            error: errorData.error, 
-            errorDescription: errorData.error_description,
-            statusCode: response.status 
-          },
-          `Failed to refresh token: ${errorData.error_description || errorData.error || response.statusText}`
-        )
-      }
-
-      const data = responseData as TokenResponse
-      console.log('Token refresh response data:', data)
-
-      if (!data.access_token || !data.refresh_token) {
-        throw new AppError(
-          ERROR_CODES.SYS_TOKEN_INVALID,
-          502,
-          { 
-            userId: this.userId, 
-            hasAccessToken: !!data.access_token, 
-            hasRefreshToken: !!data.refresh_token 
-          },
-          'Invalid token response: missing access_token or refresh_token'
-        )
-      }
-
-      this.accessToken = data.access_token
-      this.refreshToken = data.refresh_token
-      this.tokenExpiry = Date.now() + (data.expires_in * 1000)
-      
-      // Calculate refresh token expiry (14 days from now according to SimPro docs)
-      const refreshTokenExpiresAt = Date.now() + (14 * 24 * 60 * 60 * 1000)
-
-      console.log('Token refresh successful. New tokens state:', {
-        accessToken: this.accessToken ? 'Present' : 'Missing',
-        refreshToken: this.refreshToken ? 'Present' : 'Missing',
-        tokenExpiry: new Date(this.tokenExpiry).toISOString(),
-        refreshTokenExpiry: new Date(refreshTokenExpiresAt).toISOString()
-      })
-      
-      // Persist the new tokens to database if callback provided
-      if (this.onTokenRefresh && this.userId) {
-        console.log('Persisting new tokens to database for user:', this.userId)
-        try {
-          await this.onTokenRefresh(
-            this.accessToken,
-            this.refreshToken,
-            this.tokenExpiry,
-            refreshTokenExpiresAt
-          )
-          console.log('✅ Tokens successfully persisted to database')
-        } catch (error) {
-          console.error('❌ Failed to persist tokens to database:', error)
-          // Continue anyway - at least we have the tokens in memory for this request
-        }
-      } else {
-        console.warn('⚠️ [SIMPRO_API] Token refresh callback not provided - tokens not persisted to database!', {
-          userId: this.userId,
-          hasUserId: !!this.userId,
-          hasCallback: !!this.onTokenRefresh,
-          tokenExpiry: new Date(this.tokenExpiry).toISOString()
-        })
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error)
-      throw error
-    }
-  }
+  // Token refresh removed - using permanent tokens
 
   /**
    * Make an authenticated request to the Simpro API
    */
-  private async makeRequest(endpoint: string, options: RequestInit = {}, retryCount: number = 0): Promise<ApiResponse> {
+  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<ApiResponse> {
     // Check if endpoint already includes the base URL
     const url = endpoint.startsWith('http') 
       ? endpoint 
@@ -193,18 +53,12 @@ export class SimproApi {
         headers,
       })
 
-      if (response.status === 401 && retryCount === 0) {
-        await this.refreshAccessToken()
-        // Retry the request with new token (only once)
-        return this.makeRequest(endpoint, options, retryCount + 1)
-      }
-
-      if (response.status === 401 && retryCount > 0) {
+      if (response.status === 401) {
         throw new AppError(
           ERROR_CODES.AUTH_SESSION_EXPIRED,
           401,
-          { userId: this.userId, retryCount, provider: 'simpro' },
-          'Authentication failed: Unable to refresh access token',
+          { provider: 'simpro' },
+          'Authentication failed: Invalid or expired access token',
           [{ action: 'updateConnection', label: 'Update Connection', data: { provider: 'simpro' } }]
         )
       }
@@ -215,7 +69,6 @@ export class SimproApi {
           ERROR_CODES.SYS_SERVER_ERROR,
           response.status,
           { 
-            userId: this.userId, 
             endpoint, 
             statusCode: response.status, 
             statusText: response.statusText,
@@ -248,11 +101,18 @@ export class SimproApi {
    * Get list of employees from Simpro
    */
   async getEmployees(): Promise<Employee[]> {
+    console.log('🔍 [SimproAPI] Fetching employees from Simpro...')
     try {
       const response = await this.makeRequest('/companies/0/employees/')
-      return response as Employee[]
+      const employees = response as Employee[]
+      console.log('🔍 [SimproAPI] Simpro returned employees:', {
+        count: employees.length,
+        sample: employees[0] || null,
+        baseUrl: this.config.baseUrl
+      })
+      return employees
     } catch (error) {
-      console.error('Error fetching employees:', error)
+      console.error('🔍 [SimproAPI] Error fetching employees:', error)
       throw error
     }
   }
@@ -340,7 +200,6 @@ export class SimproApi {
    * Create a job in Simpro
    */
   async createJob(jobData: CreateJobRequest): Promise<Job> {
-    console.log('Original job data received:', jobData)
     
     // Check if properties are lowercase and create normalized version
     const normalizedData = {
@@ -349,9 +208,12 @@ export class SimproApi {
       Description: jobData.Description,
       Customer: jobData.Customer,
       Site: jobData.Site
-    }
+    } as any
     
-    console.log('Normalized job data:', normalizedData)
+    // Include Notes field if present
+    if ('Notes' in jobData && (jobData as any).Notes) {
+      normalizedData.Notes = (jobData as any).Notes
+    }
     
     // According to the documentation, valid job types are: "Service", "Project", "Prepaid"
     const validJobTypes = ['Service', 'Project', 'Prepaid'] as const
@@ -361,14 +223,10 @@ export class SimproApi {
       throw new Error(`Invalid job type. Must be one of: ${validJobTypes.join(', ')}`)
     }
     
-    // Log the exact structure being sent
-    const requestBody = JSON.stringify(normalizedData)
-    console.log('Final request body:', requestBody)
-    console.log('Request body parsed back:', JSON.parse(requestBody))
     
     const response = await this.makeRequest('/companies/0/jobs/', {
       method: 'POST',
-      body: requestBody,
+      body: JSON.stringify(normalizedData),
     })
 
     return response as Job
@@ -478,7 +336,8 @@ export class SimproApi {
    */
   async getCompanies() {
     try {
-      return this.makeRequest('/companies/')
+      const response = await this.makeRequest('/companies/')
+      return response
     } catch (error) {
       console.error('Error fetching companies:', error)
       throw error
@@ -490,7 +349,8 @@ export class SimproApi {
    */
   async getCompanyDetails(companyId: string = '0') {
     try {
-      return this.makeRequest(`/companies/${companyId}`)
+      const response = await this.makeRequest(`/companies/${companyId}`)
+      return response
     } catch (error) {
       console.error(`Error fetching company details for ${companyId}:`, error)
       throw error
@@ -498,10 +358,118 @@ export class SimproApi {
   }
 
   /**
-   * Get current refresh token (for storage)
+   * Find customer by email with pagination support
    */
-  getRefreshToken(): string {
-    return this.refreshToken
+  async findCustomerByEmail(email: string): Promise<Customer | null> {
+    try {
+      let page = 1
+      let hasMorePages = true
+      
+      while (hasMorePages) {
+        const response = await this.makeRequest(
+          `/companies/0/customers/?columns=ID,Email,GivenName,FamilyName,CompanyName&pageSize=250&page=${page}`
+        )
+        
+        const customers = response as any[]
+        
+        // Find exact email match
+        const customer = customers.find(c => c.Email === email)
+        
+        if (customer) {
+          console.log(`Found customer ID ${customer.ID} with email: ${email} on page ${page}`)
+          
+          // Get full customer details - try individual first, then company
+          try {
+            const details = await this.makeRequest(`/companies/0/customers/individuals/${customer.ID}`)
+            return details as Customer
+          } catch (error) {
+            // If not individual, try company
+            const details = await this.makeRequest(`/companies/0/customers/companies/${customer.ID}`)
+            return details as Customer
+          }
+        }
+        
+        // Check if there are more pages
+        // If we got less than 250 results, we're on the last page
+        hasMorePages = customers.length === 250
+        page++
+        
+        // Safety limit to prevent infinite loops while still handling large customer bases
+        // 100 pages = 25,000 customers
+        if (page > 100) {
+          console.warn(`Reached pagination limit of 100 pages while searching for ${email}`)
+          break
+        }
+      }
+      
+      console.log(`No customer found with email: ${email} after searching ${page - 1} pages`)
+      return null
+    } catch (error) {
+      console.error('Error finding customer by email:', error)
+      return null
+    }
+  }
+
+  /**
+   * Find or create site for customer at address
+   */
+  async findOrCreateSiteForCustomer(
+    customerId: number,
+    address: {
+      line1: string
+      city: string
+      state: string
+      postalCode: string
+      country: string
+    }
+  ): Promise<number> {
+    try {
+      // Get customer details to check existing sites
+      let customerDetails: any
+      try {
+        customerDetails = await this.makeRequest(`/companies/0/customers/individuals/${customerId}`)
+      } catch {
+        customerDetails = await this.makeRequest(`/companies/0/customers/companies/${customerId}`)
+      }
+      
+      // Check if any existing site matches the address
+      if (customerDetails.Sites && customerDetails.Sites.length > 0) {
+        console.log(`Customer ${customerId} has ${customerDetails.Sites.length} existing sites`)
+        
+        for (const site of customerDetails.Sites) {
+          const siteDetails = await this.makeRequest(`/companies/0/sites/${site.ID}`)
+          
+          // Simple address matching using line1 (can be enhanced later)
+          if (siteDetails.Address?.Address?.toLowerCase() === address.line1.toLowerCase()) {
+            console.log(`Found matching site ${site.ID} with address: ${address.line1}`)
+            return site.ID
+          }
+        }
+      }
+      
+      // Create new site
+      console.log(`Creating new site for customer ${customerId} at: ${address.line1}`)
+      const newSite = await this.makeRequest('/companies/0/sites/', {
+        method: 'POST',
+        body: JSON.stringify({
+          Name: address.line1,
+          Address: {
+            Address: address.line1,
+            City: address.city,
+            State: address.state,
+            PostalCode: address.postalCode,
+            Country: address.country
+          },
+          Customers: [customerId]
+        })
+      })
+      
+      console.log(`Created new site with ID: ${newSite.ID}`)
+      return newSite.ID
+    } catch (error) {
+      console.error('Error finding or creating site:', error)
+      throw error
+    }
   }
 
   /**
@@ -513,20 +481,13 @@ export class SimproApi {
 }
 
 /**
- * Factory function to create a Simpro API instance from user credentials
+ * Factory function to create a Simpro API instance
  */
 export function createSimproApi(
   accessToken: string, 
-  refreshToken: string, 
+  refreshToken: string, // Kept for compatibility but unused
   buildName: string, 
-  domain: string,
-  userId?: string,
-  onTokenRefresh?: (
-    accessToken: string, 
-    refreshToken: string, 
-    accessTokenExpiresAt: number,
-    refreshTokenExpiresAt: number
-  ) => Promise<void>
+  domain: string
 ): SimproApi {
   const baseUrl = `https://${buildName}.${domain}`
   const config: SimproConfig = {
@@ -536,5 +497,5 @@ export function createSimproApi(
     clientSecret: process.env.SIMPRO_CLIENT_SECRET || '',
   }
 
-  return new SimproApi(accessToken, refreshToken, config, userId, onTokenRefresh)
+  return new SimproApi(accessToken, config)
 }

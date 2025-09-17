@@ -68,20 +68,29 @@ export const createForm = createServerFn({ method: 'POST' })
 
     try {
       console.log('📝 Creating default form configuration...')
-      // Create default form configuration
+      // Create default form configuration in normalized format
       const defaultConfig = {
-        serviceTree: {
-          id: 'root',
-          type: 'start',
-          label: 'Book your service',
-          children: []
+        id: '', // Will be set to the form ID after creation
+        name: data.name,
+        slug: '', // Will be set to the form ID after creation
+        theme: 'light' as const,
+        primaryColor: '#3B82F6',
+        nodes: {
+          'root': {
+            id: 'root',
+            type: 'root' as const,
+            parentId: null,
+            title: 'Book your service',
+            childIds: []
+          }
         },
+        questions: {},
         baseQuestions: [
           {
             id: 'contact-info-field',
             name: 'contact_info',
             label: 'Contact Information',
-            type: 'contact-info',
+            type: 'contact-info' as const,
             fieldConfig: {
               firstNameRequired: true,
               lastNameRequired: true,
@@ -91,8 +100,9 @@ export const createForm = createServerFn({ method: 'POST' })
             }
           }
         ],
-        theme: 'light',
-        primaryColor: '#3B82F6'
+        rootId: 'root',
+        isDirty: false,
+        lastSaved: new Date()
       }
 
       console.log('📝 Creating form in database with transaction...')
@@ -114,18 +124,28 @@ export const createForm = createServerFn({ method: 'POST' })
             createdBy: user.id,
           })
           .returning()
-        
-        // Update the slug to match the generated ID
+
+        // Update the slug and formConfig with the generated ID
         if (form[0]) {
+          // Update the config with the actual form ID
+          const updatedConfig = {
+            ...defaultConfig,
+            id: form[0].id,
+            slug: form[0].id
+          }
+
           const updatedForm = await tx
             .update(bookingForms)
-            .set({ slug: form[0].id })
+            .set({
+              slug: form[0].id,
+              formConfig: updatedConfig
+            })
             .where(eq(bookingForms.id, form[0].id))
             .returning()
-          
+
           return updatedForm[0]
         }
-        
+
         return form[0]
       })
       
@@ -476,9 +496,21 @@ export const getBookingForm = createServerFn({ method: 'GET' })
   })
   .handler(async ({ data }) => {
     // This is for the public booking form - no organization middleware needed
-    const form = await db
-      .select()
+    // Join with organization table to get organization data like the hosted form
+    const result = await db
+      .select({
+        form: bookingForms,
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          logo: organization.logo,
+          phone: organization.phone,
+          timezone: organization.timezone
+        }
+      })
       .from(bookingForms)
+      .innerJoin(organization, eq(bookingForms.organizationId, organization.id))
       .where(and(
         eq(bookingForms.id, data.id),
         eq(bookingForms.isActive, true),
@@ -486,7 +518,7 @@ export const getBookingForm = createServerFn({ method: 'GET' })
       ))
       .limit(1)
 
-    if (!form.length) {
+    if (!result.length) {
       throw new AppError(
         ERROR_CODES.BIZ_FORM_NOT_FOUND,
         404,
@@ -496,7 +528,8 @@ export const getBookingForm = createServerFn({ method: 'GET' })
     }
 
     return {
-      form: form[0],
+      form: result[0].form,
+      organization: result[0].organization,
       service: null // Legacy compatibility
     }
   })

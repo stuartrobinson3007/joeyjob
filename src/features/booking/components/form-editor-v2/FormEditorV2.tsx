@@ -17,7 +17,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/taali/components/ui/alert';
 import { Button } from '@/taali/components/ui/button';
 
-import { BookingFlowData } from '../form-editor/types/form-editor-state';
+import { FormState } from './core/models/types';
 
 import { FormEditor } from './FormEditor';
 import { withTreePerformance } from './ui/components/MemoizedTreeView';
@@ -30,9 +30,9 @@ const PerformantFormEditor = withTreePerformance(FormEditor);
 
 interface FormEditorV2Props {
   formId: string;
-  initialData?: BookingFlowData;
+  initialData?: FormState;
   onSave?: (data: any) => Promise<void>;
-  onServerSync?: (data: BookingFlowData) => Promise<void>;
+  onServerSync?: (data: FormState) => Promise<void>;
   
   // Configuration options
   config?: {
@@ -188,7 +188,6 @@ export { useAutosave } from './hooks/use-autosave';
 export { useValidation } from './hooks/use-validation';
 export { usePerformance } from './hooks/use-performance';
 export { eventBus } from './core/events/event-bus';
-export { migrateFromOldFormat, migrateToOldFormat } from './core/migration/migrate';
 
 // Type exports
 export type * from './core/models/types';

@@ -45,7 +45,7 @@ function FormEditorPage() {
   // Optimistic state for isActive toggle
   const [optimisticIsActive, setOptimisticIsActive] = useState<boolean | null>(null)
 
-  // Load form using resource query
+  // Load form using resource query with no caching
   const { data: form, isLoading, isError, error, refetch } = useResourceQuery({
     queryKey: ['form', activeOrganizationId, formId],
     queryFn: async () => {
@@ -73,7 +73,9 @@ function FormEditorPage() {
       return result;
     },
     enabled: !!formId && !!activeOrganizationId,
-    redirectOnError: '/forms'
+    redirectOnError: '/forms',
+    staleTime: 0, // Always consider data stale
+    gcTime: 0  // Don't cache the data (immediately garbage collect)
   })
 
   // Enhanced state management with proper loading states
@@ -121,14 +123,15 @@ function FormEditorPage() {
     return formData;
   }, [formId]);
 
-  // Effect to load form data when backend responds
+  // Effect to load form data when backend responds (only on initial load)
   useEffect(() => {
-    if (form && formEditorState.status === 'loading') {
-      console.log('📥 [FormEdit] Backend data loaded, dispatching FORM_LOADED');
+    // Only load if we don't have data yet and the form is available
+    if (form && formEditorState.status === 'loading' && !formEditorState.data) {
+      console.log('📥 [FormEdit] Initial backend data loaded, dispatching FORM_LOADED');
       const formData = createFormDataFromBackend(form);
       stateDispatch({ type: 'FORM_LOADED', payload: formData });
     }
-  }, [form, formEditorState.status, createFormDataFromBackend]);
+  }, [form, formEditorState.status, formEditorState.data, createFormDataFromBackend]);
 
   // Effect to handle loading errors
   useEffect(() => {
@@ -193,13 +196,14 @@ function FormEditorPage() {
       const result = await updateForm({ data: serverPayload });
       console.log('💾 [FormEdit] updateForm success:', result);
       
-      // Invalidate forms list (but not current form to prevent preview reset)
+      // Only invalidate forms list, not current form (to prevent page refresh)
+      // The current form doesn't need refreshing since we just saved it
       if (activeOrganizationId) {
-        console.log('💾 [FormEdit] Invalidating forms cache...');
+        console.log('💾 [FormEdit] Invalidating forms list cache...');
         await queryClient.invalidateQueries({
           queryKey: ['forms', activeOrganizationId],
         });
-        console.log('💾 [FormEdit] Cache invalidated');
+        console.log('💾 [FormEdit] Forms list cache invalidated');
       }
     } catch (error) {
       console.error('💾 [FormEdit] updateForm failed:', error);

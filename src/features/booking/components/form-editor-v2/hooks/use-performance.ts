@@ -126,7 +126,6 @@ export function usePerformance(thresholds: Partial<PerformanceThresholds> = {}) 
         };
       } catch (error) {
         // longtask observer might not be supported
-        console.warn('Long task monitoring not supported');
       }
     }
   }, []);
@@ -145,18 +144,7 @@ export function usePerformance(thresholds: Partial<PerformanceThresholds> = {}) 
   // Performance logging utility
   const logMetrics = useCallback(() => {
     const memory = getMemoryUsage();
-    if (process.env.NODE_ENV === 'development') {
-      console.group('🚀 Performance Metrics');
-      console.log('Render time:', `${metricsRef.current.renderTime.toFixed(2)}ms`);
-      console.log('Update time:', `${metricsRef.current.updateTime.toFixed(2)}ms`);
-      console.log('Validation time:', `${metricsRef.current.validationTime.toFixed(2)}ms`);
-      console.log('Save time:', `${metricsRef.current.saveTime.toFixed(2)}ms`);
-      
-      if (memory) {
-        console.log('Memory usage:', `${memory.used.toFixed(2)}MB / ${memory.limit.toFixed(2)}MB`);
-      }
-      console.groupEnd();
-    }
+    // Metrics logging removed for production
   }, [getMemoryUsage]);
 
   return {

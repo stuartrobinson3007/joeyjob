@@ -28,6 +28,7 @@ import {
 import { Separator } from '@/ui/separator'
 import { ScrollArea } from '@/ui/scroll-area'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { formatDate, formatTime, formatDateTime } from '@/taali/utils/date'
 import { useLanguage } from '@/i18n/hooks/useLanguage'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
@@ -42,19 +43,18 @@ interface Booking {
   customerPhone: string | null
   bookingStartAt: Date
   bookingEndAt: Date
-  duration: number
-  price: string
+  serviceDuration: number // This is the actual field name from server
+  servicePrice: string // This is the actual field name from server
   status: string
-  notes: string | null
+  customerNotes: string | null
   internalNotes: string | null
-  formData: unknown
-  source: string
+  formResponses: unknown
+  bookingSource: string
   confirmationCode: string
   createdAt: Date
   updatedAt: Date
   serviceName: string | null
-  servicePrice: string | null
-  formName: string | null
+  serviceDescription: string | null
 }
 
 export const Route = createFileRoute('/_authenticated/_org-required/bookings')({ 
@@ -62,7 +62,7 @@ export const Route = createFileRoute('/_authenticated/_org-required/bookings')({
 })
 
 function BookingsPage() {
-  const { activeOrganizationId } = useActiveOrganization()
+  const { activeOrganizationId, activeOrganization } = useActiveOrganization()
   const { t } = useTranslation('bookings')
   const { t: tCommon } = useTranslation('common')
   const { language } = useLanguage()
@@ -116,7 +116,15 @@ function BookingsPage() {
   }
 
   const formatPrice = (price: string | number) => {
+    console.log('formatPrice input:', { price, type: typeof price })
     const numPrice = typeof price === 'string' ? parseFloat(price) : price
+    console.log('formatPrice parsed:', { numPrice, isNaN: isNaN(numPrice) })
+    
+    if (isNaN(numPrice)) {
+      console.warn('Price is NaN, returning fallback')
+      return '$0.00'
+    }
+    
     const locale = language === 'es' ? 'es-ES' : 'en-US'
     const currency = 'USD' // This could come from org settings
     return new Intl.NumberFormat(locale, {
@@ -126,11 +134,19 @@ function BookingsPage() {
   }
 
   const formatDuration = (minutes: number) => {
+    console.log('formatDuration input:', { minutes, type: typeof minutes, isNaN: isNaN(minutes) })
+    
+    if (isNaN(minutes) || minutes === null || minutes === undefined) {
+      console.warn('Duration is invalid, returning fallback')
+      return '0 minutes'
+    }
+    
     if (minutes < 60) {
       return t('duration.minutes', { count: minutes })
     }
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
+    console.log('formatDuration calculated:', { hours, mins })
     return t('duration.hours', { hours, minutes: mins })
   }
 
@@ -144,17 +160,24 @@ function BookingsPage() {
       ),
       cell: ({ row }) => {
         const booking = row.original
+        console.log('Booking time data:', {
+          booking: booking.id,
+          startAt: booking.bookingStartAt,
+          endAt: booking.bookingEndAt,
+          serviceDuration: booking.serviceDuration,
+          servicePrice: booking.servicePrice,
+          timezone: activeOrganization?.timezone,
+          startType: typeof booking.bookingStartAt,
+          endType: typeof booking.bookingEndAt
+        })
+        
         return (
           <div className="flex flex-col">
             <span className="font-medium">
-              {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              }).format(new Date(booking.bookingStartAt))}
+              {formatDate(booking.bookingStartAt, 'MMM d, yyyy', language, activeOrganization?.timezone)}
             </span>
             <span className="text-sm text-muted-foreground">
-              {formatInTimezone(booking.bookingStartAt, organization?.timezone || 'America/New_York', 'h:mm a')} - {formatInTimezone(booking.bookingEndAt, organization?.timezone || 'America/New_York', 'h:mm a')}
+              {formatTime(booking.bookingStartAt, 'h:mm a', activeOrganization?.timezone)} - {formatTime(booking.bookingEndAt, 'h:mm a', activeOrganization?.timezone)}
             </span>
           </div>
         )
@@ -244,25 +267,25 @@ function BookingsPage() {
       } as DataTableColumnMeta,
     },
     {
-      accessorKey: 'duration',
+      accessorKey: 'serviceDuration',
       header: ({ column }) => (
         <DataTableHeader column={column} sortable>
           {t('fields.duration')}
         </DataTableHeader>
       ),
-      cell: ({ row }) => formatDuration(row.original.duration),
+      cell: ({ row }) => formatDuration(row.original.serviceDuration),
       enableColumnFilter: false,
       enableSorting: true,
       size: 100,
     },
     {
-      accessorKey: 'price',
+      accessorKey: 'servicePrice',
       header: ({ column }) => (
         <DataTableHeader column={column} sortable>
           {t('fields.price')}
         </DataTableHeader>
       ),
-      cell: ({ row }) => formatPrice(row.original.price),
+      cell: ({ row }) => formatPrice(row.original.servicePrice),
       enableColumnFilter: false,
       size: 100,
     },
@@ -378,22 +401,18 @@ function BookingsPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.date')}</span>
                       <span className="font-medium">
-                        {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        }).format(new Date(selectedBooking.bookingStartAt))}
+                        {formatDate(selectedBooking.bookingStartAt, 'MMMM d, yyyy', language, activeOrganization?.timezone)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.time')}</span>
                       <span className="font-medium">
-                        {formatInTimezone(selectedBooking.bookingStartAt, organization?.timezone || 'America/New_York', 'h:mm a')} - {formatInTimezone(selectedBooking.bookingEndAt, organization?.timezone || 'America/New_York', 'h:mm a')}
+                        {formatTime(selectedBooking.bookingStartAt, 'h:mm a', activeOrganization?.timezone)} - {formatTime(selectedBooking.bookingEndAt, 'h:mm a', activeOrganization?.timezone)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.duration')}</span>
-                      <span className="font-medium">{formatDuration(selectedBooking.duration)}</span>
+                      <span className="font-medium">{formatDuration(selectedBooking.serviceDuration)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.status')}</span>
@@ -401,7 +420,7 @@ function BookingsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.price')}</span>
-                      <span className="font-medium">{formatPrice(selectedBooking.price)}</span>
+                      <span className="font-medium">{formatPrice(selectedBooking.servicePrice)}</span>
                     </div>
                   </div>
                 </div>
@@ -486,27 +505,13 @@ function BookingsPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.created')}</span>
                       <span className="font-medium">
-                        {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        }).format(new Date(selectedBooking.createdAt))}
+                        {formatDateTime(selectedBooking.createdAt, 'MMM d, yyyy h:mm a', activeOrganization?.timezone)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('details.labels.lastUpdated')}</span>
                       <span className="font-medium">
-                        {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        }).format(new Date(selectedBooking.updatedAt))}
+                        {formatDateTime(selectedBooking.updatedAt, 'MMM d, yyyy h:mm a', activeOrganization?.timezone)}
                       </span>
                     </div>
                     {selectedBooking.form && (

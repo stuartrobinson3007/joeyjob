@@ -7,10 +7,13 @@ import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 export const authMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
   const request = getWebRequest()
+  
+  
   const session = await auth.api.getSession({
     headers: request.headers,
     query: { disableCookieCache: true }, // Always fetch fresh session data
   })
+  
 
 
   if (!session) {

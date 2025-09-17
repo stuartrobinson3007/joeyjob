@@ -12,30 +12,26 @@ import type { SimproApi } from '../simpro/simpro-api'
  */
 export class SimproInfoService implements ProviderInfoService {
   private simproApi: SimproApi
+  private buildConfig: {
+    buildName: string
+    domain: string
+    baseUrl: string
+  }
 
   constructor(
     accessToken: string,
-    refreshToken: string,
     buildConfig: {
       buildName: string
       domain: string
       baseUrl: string
-    },
-    userId?: string,
-    onTokenRefresh?: (
-      accessToken: string,
-      refreshToken: string,
-      accessTokenExpiresAt: number,
-      refreshTokenExpiresAt: number
-    ) => Promise<void>
+    }
   ) {
+    this.buildConfig = buildConfig
     this.simproApi = createSimproApi(
       accessToken,
-      refreshToken,
+      '', // No refresh token needed
       buildConfig.buildName,
-      buildConfig.domain,
-      userId,
-      onTokenRefresh
+      buildConfig.domain
     )
   }
 
@@ -103,34 +99,15 @@ export class SimproInfoService implements ProviderInfoService {
         address: response.Address ? {
           line1: response.Address.Line1 || undefined,
           line2: response.Address.Line2 || undefined,
-          city: undefined, // Not provided by Simpro API
-          state: undefined, // Not provided by Simpro API
-          postalCode: undefined, // Not provided by Simpro API
+          city: response.Address.City || undefined,
+          state: response.Address.State || undefined,
+          postalCode: response.Address.PostalCode || undefined,
           country: response.Country || undefined, // From root level
         } : undefined,
         providerData: {
-          // Store Simpro-specific fields that don't map to standard fields
-          ein: response.EIN,
-          companyNo: response.CompanyNo,
-          licence: response.Licence,
-          banking: response.Banking,
-          cisertNo: response.CISCertNo,
-          employerTaxRefNo: response.EmployerTaxRefNo,
-          timezoneOffset: response.TimezoneOffset,
-          defaultLanguage: response.DefaultLanguage,
-          template: response.Template,
-          multiCompanyLabel: response.MultiCompanyLabel,
-          multiCompanyColor: response.MultiCompanyColor,
-          country: response.Country,
-          taxName: response.TaxName,
-          uiDateFormat: response.UIDateFormat,
-          uiTimeFormat: response.UITimeFormat,
-          scheduleFormat: response.ScheduleFormat,
-          singleCostCenterMode: response.SingleCostCenterMode,
-          dateModified: response.DateModified,
-          defaultCostCenter: response.DefaultCostCenter,
-          // Also store billing address if different
-          billingAddress: response.BillingAddress,
+          // Only store build configuration needed for API access
+          buildName: this.buildConfig.buildName,
+          domain: this.buildConfig.domain,
         }
       }
       
@@ -143,8 +120,14 @@ export class SimproInfoService implements ProviderInfoService {
   }
 
   async getEmployees(companyId: string = '0'): Promise<Employee[]> {
+    console.log('🔍 [SimproInfoService] Getting employees for company:', companyId)
     try {
       const employees = await this.simproApi.getEmployees()
+      
+      console.log('🔍 [SimproInfoService] Mapping employees:', {
+        rawCount: employees.length,
+        sample: employees[0] || null
+      })
       
       return employees.map(emp => ({
         id: emp.ID,
@@ -169,25 +152,17 @@ export class SimproInfoService implements ProviderInfoService {
  */
 export function createSimproInfoService(
   accessToken: string,
-  refreshToken: string,
+  refreshToken: string, // Kept for compatibility but unused
   buildConfig: {
     buildName: string
     domain: string
     baseUrl: string
   },
-  userId?: string,
-  onTokenRefresh?: (
-    accessToken: string,
-    refreshToken: string,
-    accessTokenExpiresAt: number,
-    refreshTokenExpiresAt: number
-  ) => Promise<void>
+  userId?: string, // Kept for compatibility but unused
+  onTokenRefresh?: any // Kept for compatibility but unused
 ): SimproInfoService {
   return new SimproInfoService(
     accessToken,
-    refreshToken,
-    buildConfig,
-    userId,
-    onTokenRefresh
+    buildConfig
   )
 }

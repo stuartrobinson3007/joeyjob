@@ -7,15 +7,22 @@ import { Label } from '@/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/ui/radio-group'
 import { Alert, AlertDescription } from '@/ui/alert'
 import { getSimProBaseUrl, validateSimProBuild, type SimProBuildConfig } from '@/lib/auth/simpro-oauth'
+import { authClient } from '@/lib/auth/auth-client'
 
 interface SimProBuildSelectorProps {
-  onBuildSelected: (buildConfig: SimProBuildConfig) => void
+  redirectTo?: string
   isLoading?: boolean
 }
 
-export function SimProBuildSelector({ onBuildSelected, isLoading }: SimProBuildSelectorProps) {
-  const [buildName, setBuildName] = useState('')
-  const [domain, setDomain] = useState<'simprosuite.com' | 'simprocloud.com'>('simprosuite.com')
+export function SimProBuildSelector({ redirectTo, isLoading }: SimProBuildSelectorProps) {
+  // Load saved build config from localStorage
+  const savedConfig = localStorage.getItem('simpro_build_config')
+  const parsedConfig = savedConfig ? JSON.parse(savedConfig) : null
+  
+  const [buildName, setBuildName] = useState(parsedConfig?.buildName || '')
+  const [domain, setDomain] = useState<'simprosuite.com' | 'simprocloud.com'>(
+    parsedConfig?.domain || 'simprosuite.com'
+  )
   const [isValidating, setIsValidating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,14 +51,18 @@ export function SimProBuildSelector({ onBuildSelected, isLoading }: SimProBuildS
         return
       }
 
-      // Store build config in session storage for the OAuth callback
+      // Store build config in both localStorage (for persistence) and sessionStorage (for OAuth callback)
+      localStorage.setItem('simpro_build_config', JSON.stringify(buildConfig))
       sessionStorage.setItem('simpro_build_config', JSON.stringify(buildConfig))
       
-      onBuildSelected(buildConfig)
+      // Directly initiate OAuth flow instead of calling onBuildSelected
+      await authClient.signIn.oauth2({
+        providerId: 'simpro',
+        callbackURL: redirectTo || '/',
+      })
     } catch (error) {
-      setError('Failed to validate SimPro build. Please try again.')
-      console.error('Build validation error:', error)
-    } finally {
+      setError('Failed to connect to SimPro. Please try again.')
+      console.error('SimPro connection error:', error)
       setIsValidating(false)
     }
   }
@@ -142,7 +153,7 @@ export function SimProBuildSelector({ onBuildSelected, isLoading }: SimProBuildS
           disabled={!buildName.trim() || isValidating || isLoading}
           className="w-full"
         >
-          {isValidating ? 'Validating...' : 'Connect to SimPro'}
+          {isValidating ? 'Connecting...' : 'Sign in with SimPro'}
         </Button>
       </div>
 

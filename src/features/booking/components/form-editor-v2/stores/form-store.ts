@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { nanoid } from 'nanoid';
 import { Node, Question, FormState, TreeNode, NodeWithDetails, ServiceNode, GroupNode } from '../core/models/types';
@@ -33,8 +33,7 @@ interface FormStore extends FormState {
 
 export const useFormStore = create<FormStore>()(
   devtools(
-    persist(
-      immer((set, get) => ({
+    immer((set, get) => ({
         // Initial state
         id: '',
         name: '',
@@ -303,21 +302,6 @@ export const useFormStore = create<FormStore>()(
           lastSaved: new Date()
         }))
       })),
-      { 
-        name: 'form-editor-v2',
-        partialize: (state) => ({
-          id: state.id,
-          name: state.name,
-          slug: state.slug,
-          theme: state.theme,
-          primaryColor: state.primaryColor,
-          nodes: state.nodes,
-          questions: state.questions,
-          baseQuestions: state.baseQuestions,
-          rootId: state.rootId,
-        })
-      }
-    ),
     { name: 'form-store' }
   )
 );

@@ -12,11 +12,13 @@ import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as SuperadminSigninRouteImport } from './routes/superadmin/signin'
 import { Route as Oauth2AccessCodeRouteImport } from './routes/oauth2/accessCode'
 import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
 import { Route as EmbedFormIdRouteImport } from './routes/embed.$formId'
 import { Route as AuthUpdateConnectionRouteImport } from './routes/auth/update-connection'
 import { Route as AuthSigninRouteImport } from './routes/auth/signin'
+import { Route as AdminSimproConfigRouteImport } from './routes/admin/simpro-config'
 import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
 import { Route as AuthenticatedSelectOrganizationRouteImport } from './routes/_authenticated/select-organization'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
@@ -26,6 +28,7 @@ import { Route as AuthenticatedOrgRequiredIndexRouteImport } from './routes/_aut
 import { Route as FOrgSlugFormSlugRouteImport } from './routes/f.$orgSlug.$formSlug'
 import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
 import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
+import { Route as AuthenticatedCompanySetupSelectCompanyRouteImport } from './routes/_authenticated/company-setup/select-company'
 import { Route as AuthenticatedCompanySetupEmployeesRouteImport } from './routes/_authenticated/company-setup/employees'
 import { Route as AuthenticatedCompanySetupCompanyInfoRouteImport } from './routes/_authenticated/company-setup/company-info'
 import { Route as AuthenticatedOrgRequiredTeamRouteImport } from './routes/_authenticated/_org-required/team'
@@ -56,6 +59,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperadminSigninRoute = SuperadminSigninRouteImport.update({
+  id: '/superadmin/signin',
+  path: '/superadmin/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Oauth2AccessCodeRoute = Oauth2AccessCodeRouteImport.update({
   id: '/oauth2/accessCode',
   path: '/oauth2/accessCode',
@@ -79,6 +87,11 @@ const AuthUpdateConnectionRoute = AuthUpdateConnectionRouteImport.update({
 const AuthSigninRoute = AuthSigninRouteImport.update({
   id: '/auth/signin',
   path: '/auth/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSimproConfigRoute = AdminSimproConfigRouteImport.update({
+  id: '/admin/simpro-config',
+  path: '/admin/simpro-config',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
@@ -130,6 +143,12 @@ const AuthenticatedSuperadminUsersRoute =
     id: '/users',
     path: '/users',
     getParentRoute: () => AuthenticatedSuperadminRoute,
+  } as any)
+const AuthenticatedCompanySetupSelectCompanyRoute =
+  AuthenticatedCompanySetupSelectCompanyRouteImport.update({
+    id: '/company-setup/select-company',
+    path: '/company-setup/select-company',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedCompanySetupEmployeesRoute =
   AuthenticatedCompanySetupEmployeesRouteImport.update({
@@ -266,11 +285,13 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
+  '/admin/simpro-config': typeof AdminSimproConfigRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/update-connection': typeof AuthUpdateConnectionRoute
   '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
+  '/superadmin/signin': typeof SuperadminSigninRoute
   '/billing': typeof AuthenticatedOrgRequiredBillingRoute
   '/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
   '/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
@@ -279,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/team': typeof AuthenticatedOrgRequiredTeamRoute
   '/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
   '/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
+  '/company-setup/select-company': typeof AuthenticatedCompanySetupSelectCompanyRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
@@ -291,11 +313,13 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/select-organization': typeof AuthenticatedSelectOrganizationRoute
+  '/admin/simpro-config': typeof AdminSimproConfigRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/update-connection': typeof AuthUpdateConnectionRoute
   '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
+  '/superadmin/signin': typeof SuperadminSigninRoute
   '/billing': typeof AuthenticatedOrgRequiredBillingRoute
   '/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
   '/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
@@ -304,6 +328,7 @@ export interface FileRoutesByTo {
   '/team': typeof AuthenticatedOrgRequiredTeamRoute
   '/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
   '/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
+  '/company-setup/select-company': typeof AuthenticatedCompanySetupSelectCompanyRoute
   '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
@@ -319,11 +344,13 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/select-organization': typeof AuthenticatedSelectOrganizationRoute
   '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
+  '/admin/simpro-config': typeof AdminSimproConfigRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/update-connection': typeof AuthUpdateConnectionRoute
   '/embed/$formId': typeof EmbedFormIdRoute
   '/invite/$invitationId': typeof InviteInvitationIdRoute
   '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
+  '/superadmin/signin': typeof SuperadminSigninRoute
   '/_authenticated/_org-required/billing': typeof AuthenticatedOrgRequiredBillingRoute
   '/_authenticated/_org-required/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
   '/_authenticated/_org-required/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
@@ -332,6 +359,7 @@ export interface FileRoutesById {
   '/_authenticated/_org-required/team': typeof AuthenticatedOrgRequiredTeamRoute
   '/_authenticated/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
   '/_authenticated/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
+  '/_authenticated/company-setup/select-company': typeof AuthenticatedCompanySetupSelectCompanyRoute
   '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
   '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
   '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
@@ -347,11 +375,13 @@ export interface FileRouteTypes {
     | '/profile'
     | '/select-organization'
     | '/superadmin'
+    | '/admin/simpro-config'
     | '/auth/signin'
     | '/auth/update-connection'
     | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
+    | '/superadmin/signin'
     | '/billing'
     | '/bookings'
     | '/choose-plan'
@@ -360,6 +390,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/company-setup/company-info'
     | '/company-setup/employees'
+    | '/company-setup/select-company'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/f/$orgSlug/$formSlug'
@@ -372,11 +403,13 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/select-organization'
+    | '/admin/simpro-config'
     | '/auth/signin'
     | '/auth/update-connection'
     | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
+    | '/superadmin/signin'
     | '/billing'
     | '/bookings'
     | '/choose-plan'
@@ -385,6 +418,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/company-setup/company-info'
     | '/company-setup/employees'
+    | '/company-setup/select-company'
     | '/superadmin/users'
     | '/superadmin/workspaces'
     | '/f/$orgSlug/$formSlug'
@@ -399,11 +433,13 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/select-organization'
     | '/_authenticated/superadmin'
+    | '/admin/simpro-config'
     | '/auth/signin'
     | '/auth/update-connection'
     | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
+    | '/superadmin/signin'
     | '/_authenticated/_org-required/billing'
     | '/_authenticated/_org-required/bookings'
     | '/_authenticated/_org-required/choose-plan'
@@ -412,6 +448,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_org-required/team'
     | '/_authenticated/company-setup/company-info'
     | '/_authenticated/company-setup/employees'
+    | '/_authenticated/company-setup/select-company'
     | '/_authenticated/superadmin/users'
     | '/_authenticated/superadmin/workspaces'
     | '/f/$orgSlug/$formSlug'
@@ -423,11 +460,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AdminSimproConfigRoute: typeof AdminSimproConfigRoute
   AuthSigninRoute: typeof AuthSigninRoute
   AuthUpdateConnectionRoute: typeof AuthUpdateConnectionRoute
   EmbedFormIdRoute: typeof EmbedFormIdRoute
   InviteInvitationIdRoute: typeof InviteInvitationIdRoute
   Oauth2AccessCodeRoute: typeof Oauth2AccessCodeRoute
+  SuperadminSigninRoute: typeof SuperadminSigninRoute
   FOrgSlugFormSlugRoute: typeof FOrgSlugFormSlugRoute
 }
 export interface FileServerRoutesByFullPath {
@@ -549,6 +588,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/superadmin/signin': {
+      id: '/superadmin/signin'
+      path: '/superadmin/signin'
+      fullPath: '/superadmin/signin'
+      preLoaderRoute: typeof SuperadminSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/oauth2/accessCode': {
       id: '/oauth2/accessCode'
       path: '/oauth2/accessCode'
@@ -582,6 +628,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/signin'
       fullPath: '/auth/signin'
       preLoaderRoute: typeof AuthSigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/simpro-config': {
+      id: '/admin/simpro-config'
+      path: '/admin/simpro-config'
+      fullPath: '/admin/simpro-config'
+      preLoaderRoute: typeof AdminSimproConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/superadmin': {
@@ -646,6 +699,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/superadmin/users'
       preLoaderRoute: typeof AuthenticatedSuperadminUsersRouteImport
       parentRoute: typeof AuthenticatedSuperadminRoute
+    }
+    '/_authenticated/company-setup/select-company': {
+      id: '/_authenticated/company-setup/select-company'
+      path: '/company-setup/select-company'
+      fullPath: '/company-setup/select-company'
+      preLoaderRoute: typeof AuthenticatedCompanySetupSelectCompanyRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/company-setup/employees': {
       id: '/_authenticated/company-setup/employees'
@@ -847,6 +907,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOrgRequiredTeamRoute: typeof AuthenticatedOrgRequiredTeamRoute
   AuthenticatedCompanySetupCompanyInfoRoute: typeof AuthenticatedCompanySetupCompanyInfoRoute
   AuthenticatedCompanySetupEmployeesRoute: typeof AuthenticatedCompanySetupEmployeesRoute
+  AuthenticatedCompanySetupSelectCompanyRoute: typeof AuthenticatedCompanySetupSelectCompanyRoute
   AuthenticatedOrgRequiredIndexRoute: typeof AuthenticatedOrgRequiredIndexRoute
   AuthenticatedOrgRequiredFormFormIdEditRoute: typeof AuthenticatedOrgRequiredFormFormIdEditRoute
   AuthenticatedOrgRequiredTodosIdEditRoute: typeof AuthenticatedOrgRequiredTodosIdEditRoute
@@ -869,6 +930,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedCompanySetupCompanyInfoRoute,
   AuthenticatedCompanySetupEmployeesRoute:
     AuthenticatedCompanySetupEmployeesRoute,
+  AuthenticatedCompanySetupSelectCompanyRoute:
+    AuthenticatedCompanySetupSelectCompanyRoute,
   AuthenticatedOrgRequiredIndexRoute: AuthenticatedOrgRequiredIndexRoute,
   AuthenticatedOrgRequiredFormFormIdEditRoute:
     AuthenticatedOrgRequiredFormFormIdEditRoute,
@@ -882,11 +945,13 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AdminSimproConfigRoute: AdminSimproConfigRoute,
   AuthSigninRoute: AuthSigninRoute,
   AuthUpdateConnectionRoute: AuthUpdateConnectionRoute,
   EmbedFormIdRoute: EmbedFormIdRoute,
   InviteInvitationIdRoute: InviteInvitationIdRoute,
   Oauth2AccessCodeRoute: Oauth2AccessCodeRoute,
+  SuperadminSigninRoute: SuperadminSigninRoute,
   FOrgSlugFormSlugRoute: FOrgSlugFormSlugRoute,
 }
 export const routeTree = rootRouteImport

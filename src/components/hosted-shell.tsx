@@ -17,21 +17,11 @@ interface HostedShellProps {
 }
 
 export function HostedShell({ children, assets, loaderData }: HostedShellProps) {
-  console.log('🏠 [HOSTED SHELL] Called with props:', {
-    hasChildren: !!children,
-    hasAssets: !!assets,
-    hasLoaderData: !!loaderData,
-    loaderDataKeys: loaderData ? Object.keys(loaderData) : [],
-    formTheme: loaderData?.form?.theme,
-    formName: loaderData?.form?.name,
-    orgName: loaderData?.organization?.name
-  })
 
   const theme = loaderData?.form?.theme || 'light'
   const title = `${loaderData?.form?.name || 'Book Now'} - ${loaderData?.organization?.name || 'JoeyJob'}`
   const description = loaderData?.form?.description || `Book your appointment with ${loaderData?.organization?.name || 'us'}`
 
-  console.log('🏠 [HOSTED SHELL] Applying theme to HTML:', theme)
 
   return (
     <html lang="en" className={theme} suppressHydrationWarning>

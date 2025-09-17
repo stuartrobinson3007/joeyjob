@@ -1155,6 +1155,9 @@ function FormEditorLayoutInner({
                         handleOptionValueChange(questionId, eventType, oldValue, newValue)
                     }
                     organizationId={activeOrganization?.id}
+                    organizationTimezone={activeOrganization?.timezone}
+                    organizationName={activeOrganization?.name}
+                    organizationPhone={activeOrganization?.phone}
                 />
             </FormEditorPreview>
         );

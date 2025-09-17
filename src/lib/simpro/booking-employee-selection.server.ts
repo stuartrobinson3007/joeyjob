@@ -9,7 +9,7 @@
  * Uses shared availability utilities - minimal additional API calls
  */
 
-import { getSimproApiForUser } from './simpro.server'
+import { getSimproApiForOrganization } from './simpro.server'
 import { 
     fetchEmployeesInBulk, 
     fetchSchedulesInBulk, 
@@ -56,7 +56,7 @@ export async function selectEmployeeForBooking(
     
     
     try {
-        const simproApi = await getSimproApiForUser(userId)
+        const simproApi = await getSimproApiForOrganization(organizationId)
         
         // STEP 1: Fetch employee details (reuse shared logic)
         const employeeDataMap = await fetchEmployeesInBulk(simproApi, assignedEmployeeIds)

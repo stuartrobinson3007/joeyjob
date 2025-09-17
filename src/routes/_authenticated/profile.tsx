@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { formatDate, formatDateTime } from '@/taali/utils/date'
 import {
   ArrowLeft,
   Mail,
@@ -78,6 +80,7 @@ function ProfileScreen() {
   } = useListSessions()
   const revokeSessionMutation = useRevokeSession()
   const revokeOtherSessionsMutation = useRevokeOtherSessions()
+  const { activeOrganization } = useActiveOrganization()
   const { t } = useTranslation('profile')
   const { t: tCommon } = useTranslation('common')
   const { t: tAdmin } = useTranslation('admin')
@@ -372,7 +375,7 @@ function ProfileScreen() {
                   </div>
                   <p>
                     {user.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString()
+                      ? formatDate(user.createdAt, 'MMM d, yyyy', undefined, activeOrganization?.timezone)
                       : tCommon('table.notAvailable')}
                   </p>
                 </div>
@@ -517,7 +520,7 @@ function ProfileScreen() {
                                     {tAdmin('sessions.created')}
                                     {': '}
                                     {sessionItem.createdAt
-                                      ? new Date(sessionItem.createdAt).toLocaleString()
+                                      ? formatDateTime(sessionItem.createdAt, 'MMM d, yyyy h:mm a', activeOrganization?.timezone)
                                       : t('sessions.unknown')}
                                   </span>
                                 </div>
@@ -525,7 +528,7 @@ function ProfileScreen() {
                               {sessionItem.expiresAt && (
                                 <p className="text-xs text-muted-foreground">
                                   {t('sessions.expiresLabel')}{' '}
-                                  {new Date(sessionItem.expiresAt).toLocaleString()}
+                                  {formatDateTime(sessionItem.expiresAt, 'MMM d, yyyy h:mm a', activeOrganization?.timezone)}
                                 </p>
                               )}
                             </div>

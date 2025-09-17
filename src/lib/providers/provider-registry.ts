@@ -36,21 +36,11 @@ class ProviderInfoRegistry {
       baseUrl: string
     },
     userId?: string,
-    onTokenRefresh?: (
-      accessToken: string,
-      refreshToken: string,
-      accessTokenExpiresAt: number,
-      refreshTokenExpiresAt: number
-    ) => Promise<void>
+    onTokenRefresh?: any // Kept for compatibility but unused
   ): ProviderInfoService {
     const factory = this.factories.get(providerType)
     if (!factory) {
       throw new Error(`Unknown provider type: ${providerType}`)
-    }
-
-    // Log warning if token refresh callback is missing
-    if (!onTokenRefresh && userId) {
-      console.warn(`⚠️ [PROVIDER_REGISTRY] Token refresh callback not provided for ${providerType} service (userId: ${userId}). Refreshed tokens will not be persisted to database!`)
     }
 
     return factory(accessToken, refreshToken, buildConfig, userId, onTokenRefresh)
@@ -80,25 +70,15 @@ export const providerInfoRegistry = new ProviderInfoRegistry()
 export function createProviderInfoService(
   providerType: string,
   accessToken: string,
-  refreshToken: string,
+  refreshToken: string, // Kept for compatibility but unused
   buildConfig: {
     buildName: string
     domain: string
     baseUrl: string
   },
-  userId?: string,
-  onTokenRefresh?: (
-    accessToken: string,
-    refreshToken: string,
-    accessTokenExpiresAt: number,
-    refreshTokenExpiresAt: number
-  ) => Promise<void>
+  userId?: string, // Kept for compatibility but unused
+  onTokenRefresh?: any // Kept for compatibility but unused
 ): ProviderInfoService {
-  // Log warning if token refresh callback is missing
-  if (!onTokenRefresh && userId) {
-    console.warn(`⚠️ [CREATE_PROVIDER_SERVICE] Token refresh callback not provided for ${providerType} service (userId: ${userId}). Refreshed tokens will not be persisted to database!`)
-  }
-
   return providerInfoRegistry.createService(
     providerType,
     accessToken,

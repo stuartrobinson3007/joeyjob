@@ -1,6 +1,9 @@
 import { createServerFileRoute } from '@tanstack/react-start/server'
-import { getEmployeesForUser } from '@/lib/simpro/simpro.server'
+import { getEmployeesForOrganization } from '@/lib/simpro/simpro.server'
 import { auth } from '@/lib/auth/auth'
+import { db } from '@/lib/db/db'
+import { member } from '@/database/schema'
+import { eq } from 'drizzle-orm'
 
 export const ServerRoute = createServerFileRoute('/api/debug/simpro-employees').methods({
     GET: async ({ request }) => {
@@ -9,22 +12,36 @@ export const ServerRoute = createServerFileRoute('/api/debug/simpro-employees').
         try {
             // Get authenticated user
             const session = await auth.api.getSession({ headers: request.headers })
-            if (!session?.userId) {
+            if (!session?.user?.id) {
                 return Response.json(
                     { error: 'Unauthorized - no session found' },
                     { status: 401 }
                 )
             }
             
-            const userId = session.userId
-            console.log('🔍 [DEBUG] Fetching SimPro employees for user:', userId)
+            const userId = session.user.id
+            
+            // Get user's organization
+            const members = await db
+                .select({ organizationId: member.organizationId })
+                .from(member)
+                .where(eq(member.userId, userId))
+                .limit(1)
+            
+            if (!members.length) {
+                return Response.json(
+                    { error: 'User not a member of any organization' },
+                    { status: 400 }
+                )
+            }
+            
+            const organizationId = members[0].organizationId
             
             // Get raw employees data from SimPro API
-            const simproEmployees = await getEmployeesForUser(userId)
+            const simproEmployees = await getEmployeesForOrganization(organizationId)
             
             // Log the first employee to see structure
             if (simproEmployees.length > 0) {
-                console.log('🔍 [DEBUG] First employee raw data:', JSON.stringify(simproEmployees[0], null, 2))
             }
             
             const debugInfo = {

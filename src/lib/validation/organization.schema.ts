@@ -22,3 +22,10 @@ export type UpdateOrganizationData = z.infer<typeof updateOrganizationSchema>
 export const createOrganizationSchema = organizationFormSchema
 
 export type CreateOrganizationData = z.infer<typeof createOrganizationSchema>
+
+// Schema for organization settings page (only editable fields)
+export const organizationSettingsSchema = z.object({
+  slug: validationRules.organization.slug
+})
+
+export type OrganizationSettingsData = z.infer<typeof organizationSettingsSchema>

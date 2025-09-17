@@ -1,10 +1,9 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { User, Building2 } from 'lucide-react'
+import { User } from 'lucide-react'
 
 import { useListOrganizations, useSession } from '@/lib/auth/auth-hooks'
 import { completeOnboarding } from '@/features/organization/lib/onboarding.server'
-import { setActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { AppError } from '@/taali/utils/errors'
@@ -15,11 +14,10 @@ import { Input } from '@/ui/input'
 import { Label } from '@/ui/label'
 
 interface OnboardingFormProps {
-  invitationId?: string
-  organizationName?: string
+  // No invitation support in JoeyJob
 }
 
-function OnboardingFormInner({ invitationId, organizationName }: OnboardingFormProps) {
+function OnboardingFormInner(_props: OnboardingFormProps) {
   const { data: session, refetch: refetchSession } = useSession()
   const { refetch: refetchOrganizations } = useListOrganizations()
 
@@ -57,42 +55,27 @@ function OnboardingFormInner({ invitationId, organizationName }: OnboardingFormP
         data: {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
-          invitationId,
         },
       })
 
       if (result.success) {
-        // Set the active organization for regular/invite users (not OAuth users)
-        if (!result.isOAuthUser && result.organizationId !== 'oauth-user') {
-          setActiveOrganizationId(result.organizationId)
-        }
-
-        // Show appropriate success message based on user type
-        let successMessage
-        if (result.isInvite) {
-          successMessage = t('welcome.organizationInvite', { organizationName })
-        } else if (result.isOAuthUser) {
-          successMessage = result.userType === 'simpro' 
-            ? 'Profile completed! Ready to select your company.'
-            : 'Profile completed! Ready to select your organization.'
-        } else {
-          successMessage = t('welcome.workspaceCreated')
-        }
-        
-        showSuccess(successMessage)
+        // Show success message
+        showSuccess('Profile completed successfully!')
 
         // Refetch session to get updated user data
         await refetchSession()
         await refetchOrganizations()
 
         // Navigate based on user type
-        if (result.isInvite) {
-          // Invitation users go directly to plan selection
-          await navigate({ to: '/choose-plan' })
-        } else {
-          // For new users, go to organization selection first
-          // The authenticated layout will handle redirecting to company sync if needed
+        if (result.userType === 'simpro') {
+          // Simpro users go to organization selection
           await navigate({ to: '/select-organization' })
+        } else if (session?.user?.role === 'superadmin') {
+          // Superadmin users go to admin panel
+          await navigate({ to: '/superadmin' })
+        } else {
+          // Regular users go to app (subscription check will handle redirects)
+          await navigate({ to: '/' })
         }
       }
     } catch (error) {
@@ -112,16 +95,6 @@ function OnboardingFormInner({ invitationId, organizationName }: OnboardingFormP
         <p className="text-muted-foreground mt-2">{t('onboarding.setupProfile')}</p>
       </div>
 
-      {invitationId && organizationName && (
-        <div className="mb-6 p-4 bg-info/10 border border-info/20 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Building2 className="w-5 h-5 text-info flex-shrink-0" />
-            <p className="text-info text-sm">
-              {t('onboarding.joinOrganization', { organizationName })}
-            </p>
-          </div>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">

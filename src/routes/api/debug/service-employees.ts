@@ -17,7 +17,6 @@ export const ServerRoute = createServerFileRoute('/api/debug/service-employees')
                 .from(serviceEmployees)
                 .limit(50)
                 
-            console.log('🔍 [DEBUG] All service-employee assignments:', allServiceEmployees)
             
             // Get all organization employees
             const allOrgEmployees = await db
@@ -25,7 +24,6 @@ export const ServerRoute = createServerFileRoute('/api/debug/service-employees')
                 .from(organizationEmployees)
                 .limit(50)
                 
-            console.log('🔍 [DEBUG] All organization employees:', allOrgEmployees)
             
             // Get all services
             const allServices = await db
@@ -37,7 +35,6 @@ export const ServerRoute = createServerFileRoute('/api/debug/service-employees')
                 .from(services)
                 .limit(50)
                 
-            console.log('🔍 [DEBUG] All services:', allServices)
             
             let specificServiceData = null
             if (serviceId) {
@@ -73,7 +70,6 @@ export const ServerRoute = createServerFileRoute('/api/debug/service-employees')
                     joinedEmployees: joinedData
                 }
                 
-                console.log('🔍 [DEBUG] Specific service data:', specificServiceData)
             }
             
             const debugInfo = {

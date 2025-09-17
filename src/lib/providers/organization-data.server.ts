@@ -5,12 +5,11 @@ import { z } from 'zod'
 
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
-import { organization, member, account } from '@/database/schema'
+import { organization, member, simproCompanies } from '@/database/schema'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { createProviderInfoService } from './provider-registry'
 import { setupOrganizationsFromOAuth } from './onboarding-setup.server'
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
-import { createTokenRefreshCallback } from '@/lib/simpro/simpro.server'
 
 /**
  * Get full organization data including provider information
@@ -60,8 +59,6 @@ export const getOrganizationWithProviderData = createServerFn({ method: 'GET' })
           addressCountry: organization.addressCountry,
           providerType: organization.providerType,
           providerCompanyId: organization.providerCompanyId,
-          providerData: organization.providerData,
-          onboardingCompleted: organization.onboardingCompleted,
           memberRole: member.role,
         })
         .from(organization)
@@ -152,55 +149,56 @@ export const getOrganizationEmployees = createServerFn({ method: 'GET' })
 
       const org = orgs[0]
       if (!org || !org.providerType || !org.providerCompanyId) {
-        return { employees: [] } // No provider data
+        return { employees: [] } // No provider configured
       }
 
-      // Get user's OAuth tokens for this provider
-      const accounts = await db
-        .select({ 
-          accessToken: account.accessToken,
-          refreshToken: account.refreshToken
-        })
-        .from(account)
-        .where(
-          and(
-            eq(account.userId, userId),
-            eq(account.providerId, org.providerType)
+      let employees = []
+
+      if (org.providerType === 'simpro') {
+        // Get Simpro configuration from simpro_companies table
+        const simproConfigs = await db
+          .select()
+          .from(simproCompanies)
+          .where(eq(simproCompanies.organizationId, organizationId))
+          .limit(1)
+
+        if (!simproConfigs.length) {
+          throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            400,
+            { organizationId, providerType: org.providerType },
+            'Simpro configuration not found for organization'
           )
+        }
+
+        const { accessToken, buildName, domain } = simproConfigs[0]
+
+        const buildConfig = {
+          buildName,
+          domain,
+          baseUrl: `https://${buildName}.${domain}`
+        }
+
+        const providerService = createProviderInfoService(
+          org.providerType,
+          accessToken,
+          '', // No refresh token needed
+          buildConfig
         )
-        .limit(1)
 
-      const userAccount = accounts[0]
 
-      if (!userAccount?.accessToken || !userAccount?.refreshToken) {
+        // Get fresh company info
+        const companyInfo = await providerService.getCompanyInfo(org.providerCompanyId)
+
+        employees = await providerService.getEmployees(org.providerCompanyId)
+      } else {
         throw new AppError(
           ERROR_CODES.BIZ_INVALID_STATE,
           400,
           { organizationId, providerType: org.providerType },
-          'Provider tokens not available'
+          `Provider type ${org.providerType} not supported`
         )
       }
-
-      // Create provider service and fetch employees
-      const buildConfig = {
-        buildName: 'joeyjob', // This should be configurable
-        domain: 'simprosuite.com',
-        baseUrl: 'https://joeyjob.simprosuite.com'
-      }
-
-      // Create token refresh callback to persist tokens after refresh
-      const tokenRefreshCallback = createTokenRefreshCallback(userId, 'GET_ORG_EMPLOYEES')
-
-      const providerService = createProviderInfoService(
-        org.providerType,
-        userAccount.accessToken,
-        userAccount.refreshToken,
-        buildConfig,
-        userId,
-        tokenRefreshCallback
-      )
-
-      const employees = await providerService.getEmployees(org.providerCompanyId)
 
       return { employees }
     } catch (error) {
@@ -214,7 +212,7 @@ export const getOrganizationEmployees = createServerFn({ method: 'GET' })
   })
 
 /**
- * Refresh organization data from provider
+ * Refresh organization data from provider using permanent tokens
  */
 export const refreshOrganizationFromProvider = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
@@ -241,14 +239,112 @@ export const refreshOrganizationFromProvider = createServerFn({ method: 'POST' }
     }
 
     try {
-      // Re-run organization setup to pull fresh data
-      const result = await setupOrganizationsFromOAuth({})
-      
-      return {
-        success: true,
-        refreshedOrganizations: result.organizations.length,
+      // Get organization data to determine provider
+      const orgs = await db
+        .select({
+          providerType: organization.providerType,
+          providerCompanyId: organization.providerCompanyId,
+        })
+        .from(organization)
+        .innerJoin(member, eq(member.organizationId, organization.id))
+        .where(
+          and(
+            eq(organization.id, organizationId),
+            eq(member.userId, userId)
+          )
+        )
+        .limit(1)
+
+      const org = orgs[0]
+      if (!org || !org.providerType || !org.providerCompanyId) {
+        throw new AppError(
+          ERROR_CODES.BIZ_INVALID_STATE,
+          400,
+          { organizationId },
+          'Organization has no provider configuration'
+        )
+      }
+
+      if (org.providerType === 'simpro') {
+        // Get Simpro configuration from simpro_companies table (permanent tokens)
+        const simproConfigs = await db
+          .select()
+          .from(simproCompanies)
+          .where(eq(simproCompanies.organizationId, organizationId))
+          .limit(1)
+
+        if (!simproConfigs.length) {
+          throw new AppError(
+            ERROR_CODES.BIZ_INVALID_STATE,
+            400,
+            { organizationId },
+            'Simpro configuration not found for organization'
+          )
+        }
+
+        const { accessToken, buildName, domain } = simproConfigs[0]
+        const buildConfig = {
+          buildName,
+          domain,
+          baseUrl: `https://${buildName}.${domain}`
+        }
+
+        // Create provider service with permanent token
+        const providerService = createProviderInfoService(
+          org.providerType,
+          accessToken, // Use permanent token
+          '',
+          buildConfig
+        )
+
+        // Fetch fresh company data from Simpro
+        const companyInfo = await providerService.getCompanyInfo(org.providerCompanyId)
+
+        // Update organization with fresh data
+        await db
+          .update(organization)
+          .set({
+            name: companyInfo.name,
+            phone: companyInfo.phone,
+            email: companyInfo.email,
+            website: companyInfo.website,
+            timezone: companyInfo.timezone || organization.timezone, // Keep existing if not provided
+            currency: companyInfo.currency,
+            addressLine1: companyInfo.address?.line1,
+            addressLine2: companyInfo.address?.line2,
+            addressCity: companyInfo.address?.city,
+            addressState: companyInfo.address?.state,
+            addressPostalCode: companyInfo.address?.postalCode,
+            addressCountry: companyInfo.address?.country,
+            updatedAt: new Date(),
+          })
+          .where(eq(organization.id, organizationId))
+
+        return {
+          success: true,
+          updatedAt: new Date().toISOString(),
+          organizationId
+        }
+      } else {
+        throw new AppError(
+          ERROR_CODES.BIZ_INVALID_STATE,
+          400,
+          { organizationId, providerType: org.providerType },
+          `Provider type ${org.providerType} not supported`
+        )
       }
     } catch (error) {
-      throw error
+      console.error(`Error refreshing organization ${organizationId} from provider:`, error)
+      
+      if (error instanceof AppError) {
+        throw error
+      }
+      
+      throw new AppError(
+        ERROR_CODES.SYS_INTERNAL_ERROR,
+        500,
+        { organizationId },
+        'Failed to refresh organization data from provider'
+      )
     }
   })

@@ -6,7 +6,7 @@ import { Form } from '@/ui/form';
 import { cn } from '@/taali/lib/utils';
 import { FormFieldRenderer } from '@/features/booking/components/form-field-renderer';
 import { FormFieldConfig as StandardFormFieldConfig } from '@/features/booking/lib/form-field-types';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import BookingCalendar from './booking-calendar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useErrorHandler } from '@/lib/errors/hooks';
@@ -107,6 +107,7 @@ export interface BookingSubmitData {
     formData: Record<string, any>;
     navigationPath: ItemId[];
     organizationTimezone: string;
+    questionLabels: { [fieldId: string]: string };
 }
 
 // Type for booking flow stages
@@ -139,7 +140,7 @@ const MAX_TOTAL_FILE_SIZE = 80 * 1024 * 1024;
 /**
  * Find the first available date from availability data
  */
-function findFirstAvailableDate(availabilityData: { [date: string]: string[] }): Date | null {
+export function findFirstAvailableDate(availabilityData: { [date: string]: string[] }): Date | null {
     if (!availabilityData || Object.keys(availabilityData).length === 0) {
         return null;
     }
@@ -198,7 +199,7 @@ export default function BookingFlow({
     const [totalFileSize, setTotalFileSize] = useState<number>(0);
     const [showValidation, setShowValidation] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { showError, showSuccess } = useErrorHandler();
+    const { showError } = useErrorHandler();
     const mainContainerRef = React.useRef<HTMLDivElement>(null); // Ref for the main container
     
     // Get current month/year for availability fetching
@@ -453,6 +454,13 @@ export default function BookingFlow({
             // Call the onBookingSubmit callback and wait for result
             if (onBookingSubmit && latestService && bookingState.selectedDate && bookingState.selectedTime) {
                 try {
+                    // Collect question labels for backend mapping
+                    const allQuestions = getActiveQuestions()
+                    const questionLabels = allQuestions.reduce((map, question) => {
+                        map[question.name] = question.label || question.name || question.id
+                        return map
+                    }, {} as { [fieldId: string]: string })
+
                     await onBookingSubmit({
                         service: latestService,
                         employee: bookingState.selectedEmployee,
@@ -460,7 +468,8 @@ export default function BookingFlow({
                         time: bookingState.selectedTime,
                         formData: data,
                         navigationPath: bookingState.navigationPath,
-                        organizationTimezone: organizationTimezone || 'UTC'
+                        organizationTimezone: organizationTimezone,
+                        questionLabels: questionLabels
                     });
 
                     // Only show confirmation after successful API response

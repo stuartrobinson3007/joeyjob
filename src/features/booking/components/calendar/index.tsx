@@ -35,12 +35,10 @@ export function Calendar({
 		
 		// Clear selection when navigating months
 		if (onChange) {
-			console.log('📅 [CALENDAR] Previous month - clearing selection');
 			onChange(null);
 		}
 		
 		if (onMonthChange) {
-			console.log('📅 [CALENDAR] Previous month clicked:', monthStart);
 			onMonthChange(monthStart);
 		}
 	};
@@ -52,12 +50,10 @@ export function Calendar({
 		
 		// Clear selection when navigating months
 		if (onChange) {
-			console.log('📅 [CALENDAR] Next month - clearing selection');
 			onChange(null);
 		}
 		
 		if (onMonthChange) {
-			console.log('📅 [CALENDAR] Next month clicked:', monthStart);
 			onMonthChange(monthStart);
 		}
 	};

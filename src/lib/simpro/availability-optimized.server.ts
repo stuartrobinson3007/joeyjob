@@ -51,7 +51,7 @@ export async function getServiceAvailability(
             return {} // Month is before booking window
         }
         
-        const simproApi = await getSimproApiForOrganization(organizationId, userId)
+        const simproApi = await getSimproApiForOrganization(organizationId)
         
         // STEP 1: Bulk fetch all employee details using shared utils
         const employeeDetailsMap = await fetchEmployeesInBulk(simproApi, assignedEmployeeIds)

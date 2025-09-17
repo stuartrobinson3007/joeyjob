@@ -149,6 +149,28 @@ export async function createOrganizationWithValidation(data: {
 }
 
 /**
+ * Update organization slug only
+ */
+export async function updateOrganizationSlug(data: { slug: string; organizationId: string }) {
+  console.log('🔍 [OrgWrapper] updateOrganizationSlug called with:', data)
+
+  // Update only the slug using Better Auth (it handles validation)
+  const result = await authClient.organization.update({
+    organizationId: data.organizationId,
+    slug: data.slug
+  })
+
+  console.log('🔍 [OrgWrapper] Better Auth result:', result)
+
+  if (result.error) {
+    console.error('🔍 [OrgWrapper] Better Auth error:', result.error)
+    throw transformBetterAuthError(result.error)
+  }
+
+  return result.data
+}
+
+/**
  * Check slug availability (delegate to server function)
  */
 export { checkSlugAvailability } from '@/lib/validation/validation.server'

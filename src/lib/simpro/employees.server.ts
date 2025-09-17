@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/db'
 import { organizationEmployees, serviceEmployees, bookingEmployees } from '@/database/schema'
-import { getEmployeesForUser } from './simpro.server'
+import { getSimproApiForOrganization } from './simpro.server'
 
 /**
  * Sync organization employees from Simpro
@@ -9,7 +9,8 @@ import { getEmployeesForUser } from './simpro.server'
 export async function syncOrganizationEmployees(organizationId: string, userId: string) {
   try {
     // Fetch employees from Simpro
-    const simproEmployees = await getEmployeesForUser(userId)
+    const simproApi = await getSimproApiForOrganization(organizationId)
+    const simproEmployees = await simproApi.getEmployees()
 
     // Get existing organization employees
     const existingEmployees = await db

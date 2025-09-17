@@ -18,6 +18,11 @@ export const setupOrganizationsFromOAuth = createServerFn({ method: 'POST' })
   .validator((data: unknown) => 
     z.object({
       providerId: z.string().optional(), // If not provided, will try to detect
+      buildConfig: z.object({
+        buildName: z.string(),
+        domain: z.string(),
+        baseUrl: z.string(),
+      }).optional(), // Build configuration for providers that need it
     }).parse(data || {}) // Handle null/undefined data
   )
   .handler(async ({ data }) => {
@@ -86,22 +91,24 @@ export const setupOrganizationsFromOAuth = createServerFn({ method: 'POST' })
         )
       }
 
-      // Determine build config based on provider
-      // For now, this is hardcoded for Simpro, but can be made dynamic later
-      let buildConfig
-      if (providerId === 'simpro') {
-        buildConfig = {
-          buildName: 'joeyjob',
-          domain: 'simprosuite.com',
-          baseUrl: 'https://joeyjob.simprosuite.com'
+      // Use provided build config or determine based on provider
+      let buildConfig = data.buildConfig
+      if (!buildConfig) {
+        // Fall back to default config if none provided (for backward compatibility)
+        if (providerId === 'simpro') {
+          buildConfig = {
+            buildName: 'joeyjob',
+            domain: 'simprosuite.com',
+            baseUrl: 'https://joeyjob.simprosuite.com'
+          }
+        } else {
+          throw new AppError(
+            ERROR_CODES.BIZ_UNSUPPORTED_OPERATION,
+            400,
+            { providerId },
+            `Unsupported provider: ${providerId}`
+          )
         }
-      } else {
-        throw new AppError(
-          ERROR_CODES.BIZ_UNSUPPORTED_OPERATION,
-          400,
-          { providerId },
-          `Unsupported provider: ${providerId}`
-        )
       }
 
       // Create token refresh callback to update database
@@ -156,8 +163,8 @@ export const setupOrganizationsFromOAuth = createServerFn({ method: 'POST' })
   })
 
 /**
- * Get organizations that need onboarding completion
- * Returns organizations where onboardingCompleted is false
+ * Get organizations for the user
+ * All organizations are ready to use immediately after creation
  */
 export const getPendingOnboardingOrganizations = createServerFn({ method: 'GET' })
   .handler(async () => {
@@ -182,7 +189,7 @@ export const getPendingOnboardingOrganizations = createServerFn({ method: 'GET' 
       )
 
       return {
-        organizations: orgs.filter(org => !org.onboardingCompleted),
+        organizations: orgs, // All organizations are ready to use
         hasProviderConnection: orgs.length > 0,
       }
     } catch (error) {
@@ -196,54 +203,4 @@ export const getPendingOnboardingOrganizations = createServerFn({ method: 'GET' 
     }
   })
 
-/**
- * Mark organization onboarding as complete
- */
-export const completeOrganizationOnboarding = createServerFn({ method: 'POST' })
-  .middleware([organizationMiddleware])
-  .handler(async ({ context }) => {
-    const organizationId = context.organizationId
-    const userId = context.user?.id
-
-    if (!organizationId) {
-      throw new AppError(
-        ERROR_CODES.BIZ_NOT_FOUND,
-        404,
-        { userId },
-        'No active organization selected'
-      )
-    }
-
-    if (!userId) {
-      throw new AppError(
-        ERROR_CODES.AUTH_NOT_AUTHENTICATED,
-        401,
-        undefined,
-        'Authentication required'
-      )
-    }
-
-    try {
-      // Update organization to mark onboarding as complete
-      await db
-        .update(organization)
-        .set({
-          onboardingCompleted: true,
-          updatedAt: new Date(),
-        })
-        .where(eq(organization.id, organizationId))
-
-      return {
-        success: true,
-        organizationId,
-      }
-    } catch (error) {
-      console.error(`Error completing onboarding for organization ${organizationId}:`, error)
-      throw new AppError(
-        ERROR_CODES.SYS_INTERNAL_ERROR,
-        500,
-        { organizationId },
-        'Failed to complete organization onboarding'
-      )
-    }
-  })
+// Organization onboarding completion removed - organizations are ready to use immediately after creation

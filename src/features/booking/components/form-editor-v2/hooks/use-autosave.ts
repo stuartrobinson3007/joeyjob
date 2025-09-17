@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useFormStore } from '../stores/form-store';
 import { eventBus } from '../core/events/event-bus';
-import { migrateToOldFormat } from '../core/migration/migrate';
 
 export interface AutosaveOptions {
   enabled?: boolean;
@@ -27,11 +26,13 @@ export function useAutosave({
   maxRetries = 3,
   retryDelayMs = 1000
 }: AutosaveOptions = {}) {
-  const isDirty = useFormStore(state => state.isDirty);
-  const markSaved = useFormStore(state => state.markSaved);
-  const formId = useFormStore(state => state.id);
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
+  const { isDirty, markSaved, id: formId } = useFormStore(state => ({
+    isDirty: state.isDirty,
+    markSaved: state.markSaved,
+    id: state.id
+  }));
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>();
+  const retryTimeoutRef = useRef<NodeJS.Timeout | undefined>();
   const stateRef = useRef<AutosaveState>({
     isSaving: false,
     lastSaved: null,
@@ -50,11 +51,9 @@ export function useAutosave({
     eventBus.emit('form.save.started', { formId });
 
     try {
-      // Convert to old format for API compatibility
-      const oldFormatData = migrateToOldFormat(formState);
-      
-      await onSave(oldFormatData);
-      
+      // Save the form state directly in new format
+      await onSave(formState);
+
       markSaved();
       stateRef.current.lastSaved = new Date();
       stateRef.current.retryCount = 0;
@@ -87,7 +86,6 @@ export function useAutosave({
           performSave();
         }, delay);
         
-        console.log(`Autosave failed, retrying in ${delay}ms (attempt ${stateRef.current.retryCount}/${maxRetries})`);
       }
     } finally {
       stateRef.current.isSaving = false;
@@ -110,14 +108,12 @@ export function useAutosave({
   useEffect(() => {
     if (!enabled || !onSave) return;
 
-    const unsubscribe = useFormStore.subscribe(
-      (state) => state.isDirty,
-      (isDirty: boolean) => {
-        if (isDirty) {
-          debouncedSave();
-        }
+    // Subscribe to isDirty changes
+    const unsubscribe = useFormStore.subscribe((state, prevState) => {
+      if (state.isDirty && !prevState.isDirty) {
+        debouncedSave();
       }
-    );
+    });
 
     return () => {
       unsubscribe();

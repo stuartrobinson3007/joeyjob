@@ -58,7 +58,7 @@ export const Route = createFileRoute('/_authenticated/_org-required/todos/$id/ed
 function EditTodoPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
-  const { activeOrganizationId } = useActiveOrganization()
+  const { activeOrganizationId, activeOrganization } = useActiveOrganization()
   const { canUpdateTodo, canDeleteTodo, isLoading: permissionsLoading } = useClientPermissions()
   const queryClient = useQueryClient()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -431,8 +431,8 @@ function EditTodoPage() {
               {/* Metadata */}
               <div className="pt-4 border-t">
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>{t('edit.created', { date: formatDateTime(todo.createdAt) })}</p>
-                  <p>{t('edit.lastUpdated', { date: formatDateTime(todo.updatedAt) })}</p>
+                  <p>{t('edit.created', { date: formatDateTime(todo.createdAt, 'MMM d, yyyy h:mm a', activeOrganization?.timezone) })}</p>
+                  <p>{t('edit.lastUpdated', { date: formatDateTime(todo.updatedAt, 'MMM d, yyyy h:mm a', activeOrganization?.timezone) })}</p>
                   {todo.completed && (
                     <p className="text-success font-medium">{t('edit.completedStatus')}</p>
                   )}

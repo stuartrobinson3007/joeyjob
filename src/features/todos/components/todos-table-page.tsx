@@ -65,7 +65,7 @@ interface Todo {
 }
 
 export function TodosTablePage() {
-  const { activeOrganizationId } = useActiveOrganization()
+  const { activeOrganizationId, activeOrganization } = useActiveOrganization()
   const navigate = useNavigate()
   const { canCreateTodo, canUpdateTodo, canDeleteTodo } = useClientPermissions()
   const { t } = useTranslation('todos')
@@ -387,7 +387,7 @@ export function TodosTablePage() {
           return (
             <div className="flex items-center gap-1">
               <Clock className="min-w-3 h-3" />
-              {formatDate(dueDate)}
+              {formatDate(dueDate, 'MMM d, yyyy', undefined, activeOrganization?.timezone)}
             </div>
           )
         },
@@ -410,7 +410,7 @@ export function TodosTablePage() {
         enableSorting: true,
         size: 120,
         cell: ({ row }) => {
-          return formatDate(row.getValue('createdAt'))
+          return formatDate(row.getValue('createdAt'), 'MMM d, yyyy', undefined, activeOrganization?.timezone)
         },
         meta: {
           filterConfig: {

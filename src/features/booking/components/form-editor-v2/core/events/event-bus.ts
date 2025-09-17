@@ -79,15 +79,11 @@ class EventBus {
     
     this.listeners.get(event)!.add(handler);
     
-    if (this.debugMode) {
-      console.log(`[EventBus] Subscribed to ${event}`, { handler: handler.name || 'anonymous' });
-    }
     
     // Return unsubscribe function
     return () => {
       this.listeners.get(event)?.delete(handler);
       if (this.debugMode) {
-        console.log(`[EventBus] Unsubscribed from ${event}`, { handler: handler.name || 'anonymous' });
       }
     };
   }
@@ -114,9 +110,6 @@ class EventBus {
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
     const listeners = this.listeners.get(event);
     
-    if (this.debugMode) {
-      console.log(`[EventBus] Emitting ${event}`, payload, { listenerCount: listeners?.size || 0 });
-    }
     
     if (listeners) {
       // Create a copy of listeners to avoid issues if handlers modify the set
@@ -147,9 +140,6 @@ class EventBus {
   off<K extends keyof EventMap>(event: K): void {
     this.listeners.delete(event);
     
-    if (this.debugMode) {
-      console.log(`[EventBus] Removed all listeners for ${event}`);
-    }
   }
 
   /**
@@ -158,9 +148,6 @@ class EventBus {
   clear(): void {
     this.listeners.clear();
     
-    if (this.debugMode) {
-      console.log('[EventBus] Cleared all listeners');
-    }
   }
 
   /**

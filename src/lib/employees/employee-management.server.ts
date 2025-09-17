@@ -4,9 +4,12 @@ import { z } from 'zod'
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { db } from '@/lib/db/db'
-import { account, organization } from '@/database/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { employeeSyncService } from './employee-sync.service'
+
+// Import tables separately to avoid potential issues
+import * as schema from '@/database/schema'
+const { organization, simproCompanies } = schema
 
 /**
  * Sync employees from provider and return merged list
@@ -17,7 +20,14 @@ export const syncEmployeesFromProvider = createServerFn({ method: 'POST' })
     const organizationId = context.organizationId
     const userId = context.user?.id
 
+    console.log('🔍 [syncEmployeesFromProvider] Starting sync with:', {
+      organizationId,
+      userId,
+      hasContext: !!context
+    })
+
     if (!organizationId || !userId) {
+      console.error('🔍 [syncEmployeesFromProvider] Missing required IDs:', { organizationId, userId })
       throw new AppError(
         ERROR_CODES.AUTH_NOT_AUTHENTICATED,
         401,
@@ -28,6 +38,8 @@ export const syncEmployeesFromProvider = createServerFn({ method: 'POST' })
 
     try {
       // Get organization to determine provider type
+      console.log('🔍 [syncEmployeesFromProvider] About to query organization table...')
+      
       const orgs = await db
         .select({
           providerType: organization.providerType,
@@ -38,7 +50,14 @@ export const syncEmployeesFromProvider = createServerFn({ method: 'POST' })
         .limit(1)
 
       const org = orgs[0]
+      console.log('🔍 [syncEmployeesFromProvider] Organization data:', {
+        hasOrg: !!org,
+        providerType: org?.providerType,
+        providerCompanyId: org?.providerCompanyId
+      })
+
       if (!org?.providerType) {
+        console.error('🔍 [syncEmployeesFromProvider] No provider type found for org:', organizationId)
         throw new AppError(
           ERROR_CODES.BIZ_INVALID_STATE,
           400,
@@ -47,47 +66,55 @@ export const syncEmployeesFromProvider = createServerFn({ method: 'POST' })
         )
       }
 
-      // Get user's OAuth tokens
-      const accounts = await db
-        .select({
-          accessToken: account.accessToken,
-          refreshToken: account.refreshToken,
-        })
-        .from(account)
-        .where(
-          and(
-            eq(account.userId, userId),
-            eq(account.providerId, org.providerType)
-          )
-        )
+      // Get Simpro configuration from simpro_companies table
+      console.log('🔍 [syncEmployeesFromProvider] Fetching Simpro config for org:', organizationId)
+      const simproConfigs = await db
+        .select()
+        .from(simproCompanies)
+        .where(eq(simproCompanies.organizationId, organizationId))
         .limit(1)
 
-      const userAccount = accounts[0]
-      if (!userAccount?.accessToken || !userAccount?.refreshToken) {
+      console.log('🔍 [syncEmployeesFromProvider] Simpro config result:', {
+        found: simproConfigs.length > 0,
+        buildName: simproConfigs[0]?.buildName,
+        domain: simproConfigs[0]?.domain,
+        hasAccessToken: !!simproConfigs[0]?.accessToken
+      })
+
+      if (!simproConfigs.length) {
+        console.error('🔍 [syncEmployeesFromProvider] No Simpro config found')
         throw new AppError(
           ERROR_CODES.BIZ_INVALID_STATE,
           400,
           { organizationId, providerType: org.providerType },
-          'Provider tokens not available'
+          'Simpro configuration not found for organization'
         )
       }
 
-      // Build config for provider API
+      const { accessToken, buildName, domain } = simproConfigs[0]
+
       const buildConfig = {
-        buildName: 'joeyjob', // TODO: Make configurable
-        domain: 'simprosuite.com',
-        baseUrl: 'https://joeyjob.simprosuite.com'
+        buildName,
+        domain,
+        baseUrl: `https://${buildName}.${domain}`
       }
 
       // Perform the actual sync using the service
+      console.log('🔍 [syncEmployeesFromProvider] Calling sync service with buildConfig:', buildConfig)
       const syncedEmployees = await employeeSyncService.syncEmployeesFromProvider(
         organizationId,
         org.providerType,
-        userAccount.accessToken,
-        userAccount.refreshToken,
+        accessToken,
+        '', // No refresh token needed
         buildConfig,
-        userId
+        userId // Pass the userId for created_by field
       )
+
+      console.log('🔍 [syncEmployeesFromProvider] Sync completed:', {
+        employeeCount: syncedEmployees.length,
+        organizationId,
+        providerType: org.providerType
+      })
 
       return {
         employees: syncedEmployees,
@@ -119,7 +146,14 @@ export const getEmployeesForOrganization = createServerFn({ method: 'GET' })
   .handler(async ({ context }) => {
     const organizationId = context.organizationId
 
+    console.log('🔍 [getEmployeesForOrganization] Fetching employees for org:', {
+      organizationId,
+      hasContext: !!context,
+      userId: context.user?.id
+    })
+
     if (!organizationId) {
+      console.error('🔍 [getEmployeesForOrganization] No organizationId in context')
       throw new AppError(
         ERROR_CODES.AUTH_NOT_AUTHENTICATED,
         401,
@@ -130,6 +164,12 @@ export const getEmployeesForOrganization = createServerFn({ method: 'GET' })
 
     try {
       const employees = await employeeSyncService.getEmployeesForOrganization(organizationId)
+      
+      console.log('🔍 [getEmployeesForOrganization] Found employees:', {
+        count: employees.length,
+        organizationId,
+        sampleEmployee: employees[0] || null
+      })
       
       return {
         employees,

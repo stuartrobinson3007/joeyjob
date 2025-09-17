@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getBookingForms, createForm, deleteForm, duplicateForm, undoDeleteForm } from '@/features/booking/lib/forms.server'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { formatDate } from '@/taali/utils/date'
 import { useLoadingItems } from '@/taali/hooks/use-loading-state'
 import { useConfirm } from '@/ui/confirm-dialog'
 import { Button } from '@/ui/button'
@@ -264,7 +265,7 @@ function FormsPage() {
 
                     {/* Last Modified */}
                     <div className="text-xs text-muted-foreground">
-                      Updated {new Date(form.updatedAt).toLocaleDateString()}
+                      Updated {formatDate(form.updatedAt, 'MMM d, yyyy', undefined, activeOrganization?.timezone)}
                     </div>
 
                     {/* Hosted URL */}

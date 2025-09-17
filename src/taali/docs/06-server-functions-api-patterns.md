@@ -74,6 +74,75 @@ try {
 }
 ```
 
+## 🚨 CRITICAL: Client-Side Calling Convention
+
+### The `data` Wrapper Requirement
+
+**ALL TanStack Start server functions with parameters MUST be called with those parameters wrapped in a `data` object.**
+
+This is a fundamental requirement of TanStack Start that is easy to miss and causes confusing errors.
+
+#### ❌ WRONG - Parameters sent directly (will arrive as null/undefined)
+```typescript
+// These will ALL fail silently with validation errors
+await validatePassword({ password: "secret123" })
+await createTodo({ title: "Fix bug", priority: "high" })
+await deleteTodo({ id: todoId })
+```
+
+#### ✅ CORRECT - Parameters wrapped in `data`
+```typescript
+// This is the ONLY correct way
+await validatePassword({ data: { password: "secret123" } })
+await createTodo({ data: { title: "Fix bug", priority: "high" } })
+await deleteTodo({ data: { id: todoId } })
+```
+
+#### Common Error Symptoms
+When you forget the `data` wrapper:
+- Server receives `null` or `undefined` instead of your parameters
+- Validator fails with "Required field missing" errors
+- Debug logs show data arriving as empty
+- The error seems mysterious because client logs show correct data
+
+#### Complete Working Example
+```typescript
+// ✅ Server Definition (todos.server.ts)
+export const updateTodo = createServerFn({ method: 'POST' })
+  .middleware([organizationMiddleware])
+  .validator((data: unknown) => updateTodoSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    // data is extracted from the wrapper
+    console.log(data.id, data.title) // Works!
+  })
+
+// ✅ Client Usage (TodoEdit.tsx)
+const handleUpdate = async () => {
+  const result = await updateTodo({ 
+    data: {  // REQUIRED wrapper
+      id: todoId,
+      title: newTitle,
+      priority: 'high'
+    }
+  })
+}
+```
+
+#### Functions Without Parameters
+GET functions without parameters are called without arguments:
+
+```typescript
+// Server
+export const getAllTodos = createServerFn({ method: 'GET' })
+  .middleware([organizationMiddleware])
+  .handler(async ({ context }) => { ... })
+
+// Client - no parameters needed
+const todos = await getAllTodos()
+```
+
+**Remember: If your server function has a validator expecting data, you MUST wrap the parameters in `{ data: {...} }` when calling from the client.**
+
 ## ✅ Established Patterns
 
 ### 1. **Standard Server Function Pattern**

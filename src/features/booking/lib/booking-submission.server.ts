@@ -1,13 +1,15 @@
 import { BookingSubmitData } from '@/features/booking/components/form-editor/booking-flow'
-import { createSimproBookingForUser } from '@/lib/simpro/simpro.server'
+import { createSimproBookingForOrganization } from '@/lib/simpro/simpro.server'
 import { assignEmployeeToBooking, updateBookingSimproStatus } from '@/lib/simpro/employees.server'
 import { db } from '@/lib/db/db'
 import { bookings, services, organizationEmployees, organization, bookingForms, bookingEmployees } from '@/database/schema'
 import { eq, and, isNull, inArray } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import { addMinutes } from 'date-fns'
+import { addMinutes, format } from 'date-fns'
 import { selectEmployeeForBooking } from '@/lib/simpro/booking-employee-selection.server'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
+import { combineDateAndTime } from '@/taali/utils/date'
+import { toZonedTime } from 'date-fns-tz'
 
 // Helper functions for time conversion
 function to24HourTime(time12h: string): string {
@@ -38,26 +40,6 @@ function calculateEndTime(startTime12h: string, durationMinutes: number): string
     return `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`
 }
 
-// Function to create question ID to label mapping
-function createQuestionMap(formConfig: any, serviceNode: any): Map<string, string> {
-    const questionMap = new Map<string, string>()
-    
-    // Add base questions
-    if (formConfig?.baseQuestions) {
-        formConfig.baseQuestions.forEach((question: any) => {
-            questionMap.set(question.id, question.label || question.name || question.id)
-        })
-    }
-    
-    // Add service-specific questions  
-    if (serviceNode?.additionalQuestions) {
-        serviceNode.additionalQuestions.forEach((question: any) => {
-            questionMap.set(question.id, question.label || question.name || question.id)
-        })
-    }
-    
-    return questionMap
-}
 
 // Function to format form responses as HTML for Simpro notes
 function formatFormResponsesAsHTML(formData: any, questionMap: Map<string, string>): string {
@@ -100,13 +82,6 @@ export async function submitBookingWithSimproIntegration({
     userId: string
     bookingData: BookingSubmitData
 }) {
-    // 📝 FORM DATA RECEIVED
-    console.log('Booking submission received:', {
-        service: bookingData.service.id,
-        date: bookingData.date,
-        time: bookingData.time,
-        formData: bookingData.formData
-    })
 
     // Use timezone passed from frontend (no DB fetch needed)
 
@@ -144,28 +119,19 @@ export async function submitBookingWithSimproIntegration({
         )
     }
 
-    // 🔍 DEBUG FORM CONFIG FOR QUESTION LABELS
-    console.log('Form configuration debug:', {
-        hasFormConfig: !!formConfig,
-        hasBaseQuestions: !!formConfig?.baseQuestions,
-        baseQuestionsCount: formConfig?.baseQuestions?.length || 0,
-        baseQuestionSample: formConfig?.baseQuestions?.[0],
-        hasServiceQuestions: !!serviceNode.additionalQuestions,
-        serviceQuestionsCount: serviceNode.additionalQuestions?.length || 0,
-        serviceQuestionSample: serviceNode.additionalQuestions?.[0]
-    });
 
-    // Extract date for database storage and Simpro scheduling
-    const dateOnly = bookingData.date.split('T')[0]  // Get '2025-09-17' from '2025-09-17T05:00:00.000Z'
-    
-    // For database storage, create UTC timestamps (simplified approach)
-    const [selectedYear, selectedMonth, selectedDay] = dateOnly.split('-').map(Number)
-    const startTime24h = to24HourTime(bookingData.time)
-    const [startHours, startMinutes] = startTime24h.split(':').map(Number)
-    
-    // Create UTC date for database storage
-    const bookingStartAt = new Date(Date.UTC(selectedYear, selectedMonth - 1, selectedDay, startHours, startMinutes))
+    // Convert booking date/time to UTC using organization timezone
+    const bookingStartAt = combineDateAndTime(
+        bookingData.date,
+        bookingData.time,
+        bookingData.organizationTimezone
+    )
     const bookingEndAt = addMinutes(bookingStartAt, serviceNode.duration)
+
+    // Extract date in organization timezone for Simpro API
+    // This ensures the date matches what the user intended in the org's timezone context
+    const orgZonedTime = toZonedTime(bookingStartAt, bookingData.organizationTimezone)
+    const dateOnly = format(orgZonedTime, 'yyyy-MM-dd')
 
 
     // Extract customer info from form data  
@@ -191,13 +157,6 @@ export async function submitBookingWithSimproIntegration({
         country: addressData.country || 'AUS'
     } : null
     
-    // 🔍 DEBUG ADDRESS HANDLING
-    console.log('Address data debug:', {
-        foundAddressField: addressEntry ? addressEntry[0] : null,
-        hasAddressData: !!addressData,
-        addressFields: addressData ? Object.keys(addressData) : [],
-        finalAddress: address
-    });
 
     const bookingId = nanoid()
     const confirmationCode = `JJ${Date.now().toString().slice(-8)}`
@@ -343,28 +302,14 @@ export async function submitBookingWithSimproIntegration({
         let simproData = null
         if (employeeRecord) {
             try {
-                // Create question mapping for proper labels
-                const questionMap = createQuestionMap(formConfig, serviceNode)
-                
-                // 🔍 DEBUG QUESTION MAPPING
-                console.log('Question mapping debug:', {
-                    questionMapEntries: Array.from(questionMap.entries()),
-                    formDataKeys: Object.keys(bookingData.formData)
-                });
+                // Use question labels passed from frontend (more reliable than reconstructing)
+                const questionMap = new Map(Object.entries(bookingData.questionLabels))
                 
                 // Format form responses as HTML for job notes (separate from description)
                 const formResponsesHTML = formatFormResponsesAsHTML(bookingData.formData, questionMap)
                 
-                // 🔍 DEBUG SERVICE DATA
-                console.log('Service data for Simpro job:', {
-                    serviceId: serviceNode.id,
-                    serviceName: serviceNode.label,
-                    serviceDescription: serviceNode.description || serviceNode.label,
-                    questionMapSize: questionMap.size,
-                    notesHTML: formResponsesHTML.substring(0, 200) + (formResponsesHTML.length > 200 ? '...' : '')
-                });
                 
-                simproData = await createSimproBookingForUser(userId, {
+                simproData = await createSimproBookingForOrganization(organizationId, {
                     customer: {
                         givenName: customer.firstName || 'Customer',
                         familyName: customer.lastName || 'Customer', // Simpro requires non-empty FamilyName

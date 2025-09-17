@@ -5,10 +5,10 @@ import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useConfirm } from '@/ui/confirm-dialog'
-import { organizationFormSchema, type OrganizationFormData } from '@/lib/validation/organization.schema'
+import { organizationSettingsSchema, type OrganizationSettingsData } from '@/lib/validation/organization.schema'
 import type { Organization } from '@/types/organization'
 import {
-  updateOrganizationWithValidation,
+  updateOrganizationSlug,
   deleteOrganizationWithValidation,
   checkSlugAvailability
 } from '@/lib/auth/organization-wrapper'
@@ -16,10 +16,13 @@ import { useFormMutation } from '@/taali/hooks/use-form-mutation'
 import { useAsyncFieldValidator } from '@/taali/hooks/use-async-field-validator'
 import { useFormSync } from '@/taali/hooks/use-form-sync'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
+import { getOrganizationWithProviderData, refreshOrganizationFromProvider } from '@/lib/providers/organization-data.server'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { clearActiveOrganizationId } from '@/features/organization/lib/organization-utils'
 import { PageHeader } from '@/components/page-header'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useErrorHandler } from '@/lib/errors/hooks'
+import { parseError } from '@/taali/errors/client-handler'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import {
@@ -52,30 +55,78 @@ export const Route = createFileRoute('/_authenticated/_org-required/settings')({
 function OrganizationSettingsForm() {
   const { activeOrganization, isLoading } = useActiveOrganization()
   const { refetch: refetchOrganizations } = useListOrganizations()
+  
+  // Get full organization data including provider info
+  const { 
+    data: orgData, 
+    isLoading: orgDataLoading,
+    refetch: refetchOrgData 
+  } = useQuery({
+    queryKey: ['organization-with-provider-data'],
+    queryFn: () => getOrganizationWithProviderData(),
+    enabled: !!activeOrganization,
+  })
+  
+  const fullOrganization = orgData?.organization || activeOrganization
   const navigate = useNavigate()
   const { t } = useTranslation('settings')
   const { t: tCommon } = useTranslation('common')
   const { t: tNotifications } = useTranslation('notifications')
-  const { showSuccess } = useErrorHandler()
+  const { showSuccess, showError } = useErrorHandler()
   const confirm = useConfirm()
 
-  // Initialize form with React Hook Form and Zod
-  const form = useForm<OrganizationFormData>({
-    resolver: zodResolver(organizationFormSchema),
+  // Helper function to format address
+  const formatAddress = (org: any) => {
+    const parts = [
+      org?.addressLine1,
+      org?.addressLine2,
+      org?.addressCity,
+      org?.addressState,
+      org?.addressPostalCode,
+      org?.addressCountry
+    ].filter(part => part && part.trim() !== '')
+    
+    return parts.length > 0 ? parts.join(', ') : 'No address set'
+  }
+
+  // Sync from provider mutation
+  const syncMutation = useMutation({
+    mutationFn: refreshOrganizationFromProvider,
+    onSuccess: async () => {
+      await refetchOrgData()
+      await refetchOrganizations()
+      showSuccess('Company information synced from Simpro')
+    },
+    onError: showError
+  })
+
+  // Handle Simpro settings link
+  const handleOpenSimproSettings = () => {
+    if (fullOrganization?.providerType === 'simpro') {
+      // Use the same URL pattern as in other components
+      const buildName = 'joeyjob' // Could get from provider data if needed
+      const domain = 'simprosuite.com'
+      const settingsUrl = `https://${buildName}.${domain}/staff/configCompany.php`
+      window.open(settingsUrl, '_blank')
+    }
+  }
+
+  // Initialize form with React Hook Form and Zod (only editable fields)
+  const form = useForm<OrganizationSettingsData>({
+    resolver: zodResolver(organizationSettingsSchema),
     defaultValues: {
-      name: '',
       slug: '',
-      timezone: 'America/New_York'
     },
     mode: 'onChange' // Enable real-time validation
   })
 
-  // Sync form with loaded organization data
-  useFormSync(form, activeOrganization ? {
-    name: activeOrganization.name || '',
+  // Sync form with loaded organization data (only slug is editable now)
+  const formSyncData = activeOrganization ? {
     slug: activeOrganization.slug || '',
-    timezone: activeOrganization.timezone
-  } : null, [activeOrganization])
+  } : null
+  
+  console.log('🔍 [Settings] Form sync data:', formSyncData)
+  useFormSync(form, formSyncData, [activeOrganization])
 
 
   // Setup async slug validation
@@ -115,9 +166,13 @@ function OrganizationSettingsForm() {
   )
 
   // Setup mutation with error handling
-  const updateMutation = useFormMutation<Organization, OrganizationFormData, OrganizationFormData>({
-    mutationFn: async (data: OrganizationFormData) => {
+  const updateMutation = useFormMutation<Organization, OrganizationSettingsData, OrganizationSettingsData>({
+    mutationFn: async (data: OrganizationSettingsData) => {
+      console.log('🔍 [Settings] Mutation starting with data:', data)
+      console.log('🔍 [Settings] Active organization:', activeOrganization?.id, activeOrganization?.name)
+      
       if (!activeOrganization) {
+        console.error('🔍 [Settings] No active organization found')
         throw new AppError(
           ERROR_CODES.VAL_REQUIRED_FIELD,
           400,
@@ -125,18 +180,41 @@ function OrganizationSettingsForm() {
           tCommon('organization.noActiveOrganization')
         )
       }
-      return updateOrganizationWithValidation({
-        ...data,
+      
+      console.log('🔍 [Settings] Calling updateOrganizationSlug with slug:', data.slug)
+      
+      const result = await updateOrganizationSlug({
+        slug: data.slug,
         organizationId: activeOrganization.id
       })
+      console.log('🔍 [Settings] Update result:', result)
+      return result
     },
     setError: form.setError,
     onSuccess: async () => {
-      showSuccess(t('organization.updateSuccess'))
+      console.log('🔍 [Settings] Update succeeded, refreshing data...')
+      showSuccess('Organization settings saved')
       // Refresh organizations list to update the sidebar
       await refetchOrganizations()
       // Mark form as clean after successful save
       form.reset(form.getValues())
+      console.log('🔍 [Settings] Form reset completed')
+    },
+    onError: (error) => {
+      console.error('🔍 [Settings] Update failed:', error)
+      
+      // Custom error handling for specific error types per Taali patterns
+      const parsedError = parseError(error)
+      console.log('🔍 [Settings] Parsed error:', parsedError)
+      
+      if (parsedError.code === ERROR_CODES.BIZ_DUPLICATE_ENTRY) {
+        // Handle slug already taken error specifically
+        showError(error, { context: 'Organization slug update failed' })
+        return
+      }
+      
+      // Let useFormMutation handle other errors
+      showError(error, { context: 'Organization settings update failed' })
     }
   })
 
@@ -171,12 +249,18 @@ function OrganizationSettingsForm() {
     }
   }
 
-  const onSubmit = (data: OrganizationFormData) => {
+  const onSubmit = (data: OrganizationSettingsData) => {
+    console.log('🔍 [Settings] Form submitted with data:', data)
+    console.log('🔍 [Settings] Form state:', {
+      isDirty: form.formState.isDirty,
+      isValid: form.formState.isValid,
+      errors: form.formState.errors
+    })
     updateMutation.mutate(data)
   }
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || orgDataLoading) {
     return (
       <div className="flex flex-col h-full">
         <PageHeader title={t('title')} />
@@ -211,16 +295,57 @@ function OrganizationSettingsForm() {
 
       {/* Main Content */}
       <div className="flex-1 p-6">
-        <div className="max-w-2xl mx-auto w-full">
+        <div className="max-w-2xl mx-auto w-full space-y-8">
+          
+          {/* Company Information (Read-only) */}
+          <div className="bg-card rounded-lg shadow-sm border p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Company Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Company Name</label>
+                <p className="text-sm">{fullOrganization?.name || 'Not set'}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Timezone</label>
+                <p className="text-sm">{fullOrganization?.timezone || 'Not set'}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Currency</label>
+                <p className="text-sm">{fullOrganization?.currency || 'Not set'}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                <p className="text-sm">{fullOrganization?.phone || 'Not set'}</p>
+              </div>
+              
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-muted-foreground">Address</label>
+                <p className="text-sm text-left">{formatAddress(fullOrganization)}</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button 
+                onClick={() => syncMutation.mutate()} 
+                loading={syncMutation.isPending}
+              >
+                Sync from Simpro
+              </Button>
+              <Button variant="outline" onClick={handleOpenSimproSettings}>
+                Simpro Settings
+              </Button>
+            </div>
+          </div>
+
+          {/* JoeyJob Settings (Editable) */}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="bg-card rounded-lg shadow-sm border p-6 space-y-6">
-              <TextField
-                control={form.control}
-                name="name"
-                label={t('organization.name')}
-                placeholder={t('organization.namePlaceholder')}
-              />
-
+              <h3 className="text-lg font-semibold">JoeyJob Settings</h3>
+              
               <TextField
                 control={form.control}
                 name="slug"
@@ -229,33 +354,6 @@ function OrganizationSettingsForm() {
                 description={t('organization.slugHelp')}
                 rules={{
                   validate: validateSlug
-                }}
-              />
-
-              <FormField
-                control={form.control}
-                name="timezone"
-                render={({ field }) => {
-                  console.log('field', field)
-                  return (
-                    <FormItem>
-                      <FormLabel>Timezone</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined} defaultValue='America/New_York'>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select timezone..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="America/New_York">New York (EST)</SelectItem>
-                          <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                          <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
-                          <SelectItem value="Australia/Melbourne">Melbourne (AEDT)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )
                 }}
               />
 

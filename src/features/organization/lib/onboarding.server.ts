@@ -1,20 +1,17 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getWebRequest } from '@tanstack/react-start/server'
-import { and, eq, gt } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { nanoid } from 'nanoid'
 
-import errorTranslations from '@/i18n/locales/en/errors.json'
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
-import { invitation, organization, user, account } from '@/database/schema'
+import { account } from '@/database/schema'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { validationRules } from '@/lib/validation/validation-registry'
 
 const completeOnboardingSchema = z.object({
   firstName: validationRules.user.firstName,
   lastName: validationRules.user.lastName,
-  invitationId: z.string().optional(),
 })
 
 export const completeOnboarding = createServerFn({ method: 'POST' })
@@ -45,9 +42,9 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
     const hasOAuthAccount = oauthAccounts.length > 0
     const isSimproUser = oauthAccounts.some(acc => acc.providerId === 'simpro')
 
-    // For OAuth users (like Simpro), complete user onboarding immediately
-    // For regular users, keep it false until payment is complete
-    const shouldCompleteOnboarding = hasOAuthAccount
+    // All users complete onboarding immediately
+    // Organization-level subscription checks happen separately
+    const shouldCompleteOnboarding = true
 
     // Update user profile
     await auth.api.updateUser({
@@ -60,59 +57,11 @@ export const completeOnboarding = createServerFn({ method: 'POST' })
       },
     })
 
-    let organizationId: string
-
-    if (data.invitationId) {
-      // Accept invitation instead of creating organization
-      const result = await auth.api.acceptInvitation({
-        headers: request.headers,
-        body: {
-          invitationId: data.invitationId,
-        },
-      })
-
-      if (!result || !result.invitation.organizationId) {
-        throw new AppError(
-          ERROR_CODES.BIZ_INVALID_STATE,
-          400,
-          { invitationId: data.invitationId },
-          errorTranslations.server.failedToAcceptInvitation
-        )
-      }
-
-      organizationId = result.invitation.organizationId
-    } else if (hasOAuthAccount) {
-      // OAuth users (like Simpro) don't need a personal workspace
-      // Their organizations are created during OAuth setup
-      // Return a placeholder - the user will select their organization next
-      organizationId = 'oauth-user'
-    } else {
-      // Create personal workspace for regular users
-      const slug = `${data.firstName.toLowerCase()}-workspace-${nanoid(8)}`
-      const org = await auth.api.createOrganization({
-        headers: request.headers,
-        body: {
-          name: `${data.firstName}'s Workspace`,
-          slug,
-        },
-      })
-
-      if (!org || !org.id) {
-        throw new AppError(
-          ERROR_CODES.BIZ_INVALID_STATE,
-          500,
-          { organizationName: `${data.firstName}'s Workspace` },
-          errorTranslations.server.failedToCreateOrganization
-        )
-      }
-
-      organizationId = org.id
-    }
+    // No workspace creation or invitation handling in JoeyJob
+    // Users will select their organization after onboarding
 
     return {
       success: true,
-      organizationId,
-      isInvite: !!data.invitationId,
       isOAuthUser: hasOAuthAccount,
       userType: isSimproUser ? 'simpro' : hasOAuthAccount ? 'oauth' : 'regular',
     }

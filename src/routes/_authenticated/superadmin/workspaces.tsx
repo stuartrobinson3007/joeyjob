@@ -1,13 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import { Building2, Users, Calendar, Trash2, MoreHorizontal, Eye } from 'lucide-react'
+import { Building2, Users, Calendar, Trash2, MoreHorizontal, Eye, Settings, Check, Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useConfirm } from '@/ui/confirm-dialog'
 import { useErrorHandler } from '@/lib/errors/hooks'
 import { ErrorState } from '@/components/error-state'
 import { parseError } from '@/taali/errors/client-handler'
 import { useSupportingQuery } from '@/taali/hooks/use-supporting-query'
+import { formatDate } from '@/taali/utils/date'
 import { authClient } from '@/lib/auth/auth-client'
 import {
   DataTable,
@@ -34,8 +38,87 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/ui/tooltip'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/ui/sheet'
+import { Input } from '@/ui/input'
+import { Label } from '@/ui/label'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/ui/form'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
+import { createServerFn } from '@tanstack/react-start'
+import { superadminMiddleware } from '@/features/admin/lib/superadmin-middleware'
+import { db } from '@/lib/db/db'
+import { simproCompanies } from '@/database/schema'
+import { eq } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
+import { testSimproConnectionForOrganization } from '@/lib/simpro/simpro.server'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+
+// Simpro configuration form schema
+const simproConfigSchema = z.object({
+  accessToken: z.string().min(1, 'Access token is required'),
+  buildName: z.string().min(1, 'Build name is required'),
+  domain: z.enum(['simprosuite.com', 'simprocloud.com']),
+  companyId: z.string().default('0'),
+})
+
+type SimproConfigForm = z.infer<typeof simproConfigSchema>
+
+// Server functions for Simpro configuration
+const updateSimproConfiguration = createServerFn({ method: 'POST' })
+  .middleware([superadminMiddleware])
+  .validator((data: unknown) => simproConfigSchema.extend({
+    organizationId: z.string()
+  }).parse(data))
+  .handler(async ({ data }) => {
+    const { organizationId, accessToken, buildName, domain, companyId } = data
+
+    // Check if configuration exists
+    const existing = await db
+      .select()
+      .from(simproCompanies)
+      .where(eq(simproCompanies.organizationId, organizationId))
+      .limit(1)
+
+    if (existing.length > 0) {
+      // Update existing
+      await db
+        .update(simproCompanies)
+        .set({
+          accessToken,
+          buildName,
+          domain,
+          companyId,
+          updatedAt: new Date(),
+        })
+        .where(eq(simproCompanies.organizationId, organizationId))
+    } else {
+      // Create new
+      await db.insert(simproCompanies).values({
+        id: nanoid(),
+        organizationId,
+        accessToken,
+        buildName,
+        domain,
+        companyId,
+      })
+    }
+
+    return { success: true }
+  })
+
+const testSimproConnection = createServerFn({ method: 'POST' })
+  .middleware([superadminMiddleware])
+  .validator((data: unknown) => z.object({ organizationId: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const success = await testSimproConnectionForOrganization(data.organizationId)
+    return { success }
+  })
 
 export const Route = createFileRoute('/_authenticated/superadmin/workspaces')({
   component: SuperAdminWorkspaces,
@@ -49,6 +132,53 @@ function SuperAdminWorkspaces() {
   const confirm = useConfirm()
   const { refetch: refetchOrganizations } = useListOrganizations()
   const [currentFilters, setCurrentFilters] = React.useState({})
+  
+  // Simpro configuration sheet state
+  const [simproSheetOpen, setSimproSheetOpen] = React.useState(false)
+  const [selectedOrganization, setSelectedOrganization] = React.useState<AdminWorkspace | null>(null)
+  
+  // Form setup with react-hook-form
+  const simproForm = useForm<SimproConfigForm>({
+    resolver: zodResolver(simproConfigSchema),
+    defaultValues: {
+      accessToken: '',
+      buildName: '',
+      domain: 'simprosuite.com',
+      companyId: '0',
+    },
+  })
+
+  const queryClient = useQueryClient()
+
+  // Mutations for Simpro configuration
+  const updateMutation = useMutation({
+    mutationFn: (data: SimproConfigForm & { organizationId: string }) => 
+      updateSimproConfiguration({ data }),
+    onSuccess: () => {
+      showSuccess('Simpro configuration saved successfully')
+      setSimproSheetOpen(false)
+      simproForm.reset()
+      refetch() // Refresh workspaces table
+    },
+    onError: (error) => {
+      showError(error)
+    },
+  })
+
+  const testMutation = useMutation({
+    mutationFn: (organizationId: string) => 
+      testSimproConnection({ data: { organizationId } }),
+    onSuccess: (result) => {
+      if (result.success) {
+        showSuccess('Connection test successful!')
+      } else {
+        showError('Connection test failed. Check your configuration.')
+      }
+    },
+    onError: (error) => {
+      showError(error)
+    },
+  })
 
   // Query for total stats (independent of filters)
   const { data: stats, showError: showStatsError } = useSupportingQuery({
@@ -204,6 +334,39 @@ function SuperAdminWorkspaces() {
         } as DataTableColumnMeta,
       },
       {
+        accessorKey: 'providerType',
+        header: ({ column }) => (
+          <DataTableHeader column={column} sortable>
+            Provider
+          </DataTableHeader>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+        size: 100,
+        cell: ({ row }) => {
+          const provider = row.original.providerType
+          if (!provider) {
+            return <span className="text-muted-foreground text-sm">None</span>
+          }
+          return (
+            <Badge variant="outline" appearance="soft">
+              {provider === 'simpro' ? 'Simpro' : provider}
+            </Badge>
+          )
+        },
+        meta: {
+          filterConfig: {
+            type: 'select',
+            title: 'Provider',
+            options: [
+              { value: 'simpro', label: 'Simpro' },
+              { value: '', label: 'None' },
+            ],
+          },
+          enableTextTruncation: false,
+        } as DataTableColumnMeta,
+      },
+      {
         accessorKey: 'memberCount',
         header: ({ column }) => (
           <DataTableHeader column={column} sortable>
@@ -267,7 +430,7 @@ function SuperAdminWorkspaces() {
           return (
             <div className="flex items-center text-sm text-muted-foreground">
               <Calendar className='size-4 mr-2' />
-              {new Date(org.createdAt).toLocaleDateString()}
+              {formatDate(org.createdAt, 'MMM d, yyyy', undefined, 'UTC')}
             </div>
           )
         },
@@ -334,6 +497,15 @@ function SuperAdminWorkspaces() {
                     >
                       <Eye />
                       {t('workspaces.impersonateOwner')}
+                    </DropdownMenuItem>
+                  )}
+                  {org.providerType === 'simpro' && (
+                    <DropdownMenuItem onClick={() => {
+                      setSelectedOrganization(org)
+                      setSimproSheetOpen(true)
+                    }}>
+                      <Settings />
+                      Configure Simpro
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => handleDeleteOrganization(org.id, org.name)}>
@@ -436,6 +608,137 @@ function SuperAdminWorkspaces() {
           noResultsText={tCommon('messages.noResults')}
         />
       </div>
+
+      {/* Simpro Configuration Sheet */}
+      <Sheet open={simproSheetOpen} onOpenChange={setSimproSheetOpen}>
+        <SheetContent className="w-[500px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle>Configure Simpro</SheetTitle>
+            <SheetDescription>
+              Set up Simpro API access for {selectedOrganization?.name}
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="mt-6">
+            <Form {...simproForm}>
+              <form 
+                onSubmit={simproForm.handleSubmit((data) => {
+                  if (selectedOrganization) {
+                    updateMutation.mutate({
+                      ...data,
+                      organizationId: selectedOrganization.id
+                    })
+                  }
+                })}
+                className="space-y-4"
+              >
+                <FormField
+                  control={simproForm.control}
+                  name="accessToken"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Access Token</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter permanent access token"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={simproForm.control}
+                  name="buildName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Build Name</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., joeyjob"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={simproForm.control}
+                  name="domain"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Domain</FormLabel>
+                      <FormControl>
+                        <select 
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          {...field}
+                        >
+                          <option value="simprosuite.com">simprosuite.com</option>
+                          <option value="simprocloud.com">simprocloud.com</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={simproForm.control}
+                  name="companyId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company ID</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Default: 0"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex gap-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      if (selectedOrganization) {
+                        testMutation.mutate(selectedOrganization.id)
+                      }
+                    }}
+                    disabled={testMutation.isPending}
+                  >
+                    {testMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4 mr-2" />
+                    )}
+                    Test Connection
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1"
+                    disabled={updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Save Configuration
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

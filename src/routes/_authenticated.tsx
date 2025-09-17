@@ -28,6 +28,7 @@ export const Route = createFileRoute('/_authenticated')({
 function AuthenticatedLayout() {
 
   const { data: session, isPending: sessionPending } = useSession()
+  
 
   // Only fetch organizations if user is authenticated
   const { data: organizations, isPending: orgsPending, error: orgsError } = useListOrganizations({
@@ -70,15 +71,23 @@ function AuthenticatedLayout() {
     // For authenticated users, wait for both session and organizations
     if (!sessionPending && session && !orgsPending) {
 
+      // FIRST: Check if user needs to complete profile onboarding
+      if (!session.user.onboardingCompleted) {
+        navigate({ to: '/onboarding' })
+        return
+      }
+
       // Check if current route requires organization access
       // Routes can opt-out of org check via staticData.skipOrgCheck
       // Check all matched routes in the hierarchy (for nested routes like /superadmin/users)
       const shouldSkipOrgCheck = matches.some(match => match.staticData?.skipOrgCheck === true)
       const needsCompleteOrg = !shouldSkipOrgCheck
+      
 
-
-      if (needsCompleteOrg && session.user.onboardingCompleted) {
+      // THEN: Handle organization logic for users who completed onboarding
+      if (needsCompleteOrg) {
         const activeOrgId = getActiveOrganizationId()
+
 
         // If no active org ID, redirect to select organization
         if (!activeOrgId || (organizations && !organizations.find(org => org.id === activeOrgId))) {
@@ -86,23 +95,8 @@ function AuthenticatedLayout() {
           return
         }
 
-        // Check if current organization has completed onboarding
-        const currentOrg = organizations?.find(org => org.id === activeOrgId)
-        console.log('🔄 [DEBUG] Layout org onboarding check:', {
-          currentPath,
-          hasCurrentOrg: !!currentOrg,
-          onboardingCompleted: currentOrg?.onboardingCompleted,
-          startsWithCompanySetup: currentPath.startsWith('/company-setup'),
-          shouldRedirect: currentOrg && !currentOrg.onboardingCompleted && !currentPath.startsWith('/company-setup')
-        })
-        
-        if (currentOrg && !currentOrg.onboardingCompleted && !currentPath.startsWith('/company-setup')) {
-          console.log('🔄 [DEBUG] Layout redirecting to company-setup/company-info from:', currentPath)
-          navigate({ to: '/company-setup/company-info' })
-          return
-        } else if (currentPath.startsWith('/company-setup')) {
-          console.log('🔄 [DEBUG] Layout allowing company-setup route:', currentPath)
-        }
+        // Organization exists and user can access it - no additional checks needed
+        // Organizations are ready to use as soon as they're created
 
       }
     }

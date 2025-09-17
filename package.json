@@ -41,7 +41,7 @@
     "db:generate": "drizzle-kit generate",
     "db:reset": "drizzle-kit reset",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
+    "db:studio": "drizzle-kit studio --port=3878",
     "docker:dev": "docker compose -f docker-compose.yml up -d --build",
     "docker:down": "docker compose -f docker-compose.yml down",
     "docker:reset": "docker compose -f docker-compose.yml down -v && docker compose -f docker-compose.yml up -d --build"
