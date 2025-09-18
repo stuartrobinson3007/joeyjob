@@ -27,7 +27,7 @@ export function ServiceDetailsView({
     const [price, setPrice] = useState(() => {
         if (!node?.price) return '';
         // Handle both existing formatted strings and new numeric values
-        return typeof node.price === 'string' ? node.price.replace(/^\$/, '') : node.price.toString();
+        return typeof node.price === 'string' && node.price ? node.price.replace(/^\$/, '') : (node.price ? node.price.toString() : '');
     });
 
     // Track if user has edited each field to prevent useEffect from overriding their changes
@@ -46,8 +46,8 @@ export function ServiceDetailsView({
             if (node) {
                 setTitle(node.label);
                 setDescription(node.description || '');
-                const displayPrice = !node.price ? '' : 
-                    typeof node.price === 'string' ? node.price.replace(/^\$/, '') : node.price.toString();
+                const displayPrice = !node.price ? '' :
+                    typeof node.price === 'string' && node.price ? node.price.replace(/^\$/, '') : (node.price ? node.price.toString() : '');
                 setPrice(displayPrice);
             }
             isInitialMount.current = false;
@@ -63,8 +63,8 @@ export function ServiceDetailsView({
                 setDescription(node.description || '');
             }
             if (!hasEditedRef.current.price) {
-                const displayPrice = !node.price ? '' : 
-                    typeof node.price === 'string' ? node.price.replace(/^\$/, '') : node.price.toString();
+                const displayPrice = !node.price ? '' :
+                    typeof node.price === 'string' && node.price ? node.price.replace(/^\$/, '') : (node.price ? node.price.toString() : '');
                 setPrice(displayPrice);
             }
         }
@@ -93,8 +93,8 @@ export function ServiceDetailsView({
         setPrice(newPrice);
         hasEditedRef.current.price = true;
         if (onUpdateNode && node) {
-            // Store price as number, not formatted string
-            const numericPrice = newPrice === '' ? 0 : parseFloat(newPrice) || 0;
+            // Store price as number, or undefined if empty
+            const numericPrice = newPrice === '' ? undefined : parseFloat(newPrice) || 0;
             onUpdateNode(node.id, { price: numericPrice });
         }
     };
@@ -154,7 +154,7 @@ export function ServiceDetailsView({
                         <input
                             type="text"
                             className="w-full pl-8 p-2 border rounded-md"
-                            value={price.replace(/^\$/, '')}
+                            value={typeof price === 'string' ? price.replace(/^\$/, '') : price}
                             onChange={handlePriceChange}
                             placeholder="Enter price"
                         />

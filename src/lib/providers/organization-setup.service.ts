@@ -95,8 +95,7 @@ export class OrganizationSetupService {
 
         createdOrganizations.push({
           id: orgId,
-          name: company.name,
-          providerCompanyId: company.id
+          name: company.name
         })
 
         // For single company or first company, set as default
@@ -124,13 +123,27 @@ export class OrganizationSetupService {
     providerType: string,
     providerCompanyId: string
   ) {
+    // First find the simpro company config with this company ID
+    const simproConfigs = await db
+      .select({
+        organizationId: simproCompanies.organizationId,
+      })
+      .from(simproCompanies)
+      .where(eq(simproCompanies.companyId, providerCompanyId))
+      .limit(1)
+
+    if (!simproConfigs.length) {
+      return null
+    }
+
+    // Then get the organization
     const orgs = await db
       .select()
       .from(organization)
       .where(
         and(
-          eq(organization.providerType, providerType),
-          eq(organization.providerCompanyId, providerCompanyId)
+          eq(organization.id, simproConfigs[0].organizationId),
+          eq(organization.providerType, providerType)
         )
       )
       .limit(1)
@@ -164,13 +177,12 @@ export class OrganizationSetupService {
       addressState: companyInfo.address?.state,
       addressPostalCode: companyInfo.address?.postalCode,
       addressCountry: companyInfo.address?.country,
-      providerType,
-      providerCompanyId: companyInfo.id
+      providerType
     })
 
     // Create provider-specific configuration if needed
     if (providerType === 'simpro' && companyInfo.providerData) {
-      await this.createSimproConfiguration(orgId, companyInfo.providerData, accessToken)
+      await this.createSimproConfiguration(orgId, companyInfo.providerData, accessToken, companyInfo.id)
     }
 
     return orgId
@@ -182,7 +194,8 @@ export class OrganizationSetupService {
   private async createSimproConfiguration(
     organizationId: string,
     providerData: any,
-    accessToken: string
+    accessToken: string,
+    companyId: string = '0'
   ): Promise<void> {
     if (providerData.buildName && providerData.domain) {
       await db.insert(simproCompanies).values({
@@ -191,7 +204,7 @@ export class OrganizationSetupService {
         accessToken,
         buildName: providerData.buildName,
         domain: providerData.domain,
-        companyId: '0', // Default company ID
+        companyId, // Use the actual company ID
       })
     }
   }
@@ -284,13 +297,11 @@ export class OrganizationSetupService {
   ): Promise<Array<{
     id: string
     name: string
-    providerCompanyId: string
   }>> {
     const orgs = await db
       .select({
         id: organization.id,
         name: organization.name,
-        providerCompanyId: organization.providerCompanyId,
       })
       .from(organization)
       .innerJoin(member, eq(member.organizationId, organization.id))

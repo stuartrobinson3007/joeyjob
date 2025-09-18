@@ -14,7 +14,7 @@
   "danger": {
     "title": "Zona de Peligro",
     "delete": "Eliminar Organización",
-    "deleteWorkspace": "Eliminar Espacio de Trabajo",
+    "deleteWorkspace": "Eliminar Empresa",
     "deleteDescription": "Eliminar permanentemente esta organización y todos sus datos. Esta acción no se puede deshacer.",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar esta organización?",
     "deleteConfirmTitle": "Eliminar Organización",

@@ -88,6 +88,7 @@ export const FormEditorDataProvider: React.FC<FormEditorDataProviderProps> = ({
         return result.errors.map(error => error.message);
     }, [data]);
 
+
     const contextValue: FormEditorContextValue = {
         data,
         dispatch,

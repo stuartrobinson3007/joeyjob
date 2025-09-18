@@ -1,5 +1,5 @@
 import { Component, ReactNode } from 'react'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, Copy, Check } from 'lucide-react'
 
 import { parseError, handleErrorAction } from '@/taali/errors/client-handler'
 import { isErrorCode } from '@/taali/errors/codes'
@@ -14,16 +14,17 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean
   error: Error | null
+  copied: boolean
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false, error: null, copied: false }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error }
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error, copied: false }
   }
 
   componentDidCatch(_error: Error, _errorInfo: { componentStack: string }) {
@@ -32,7 +33,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   reset = () => {
-    this.setState({ hasError: false, error: null })
+    this.setState({ hasError: false, error: null, copied: false })
+  }
+
+  handleCopy = async () => {
+    if (!this.state.error) return
+
+    const parsed = parseError(this.state.error)
+    const errorDetails = `Error Details:
+Code: ${parsed.code}
+Message: ${parsed.message}
+Context: ${JSON.stringify(parsed.context || {}, null, 2)}
+Stack Trace: ${this.state.error.stack || 'Not available'}
+Timestamp: ${new Date().toISOString()}
+User Agent: ${navigator.userAgent}
+URL: ${window.location.href}`
+
+    try {
+      await navigator.clipboard.writeText(errorDetails)
+      this.setState({ copied: true })
+      setTimeout(() => this.setState({ copied: false }), 2000)
+    } catch (err) {
+      console.error('Failed to copy error details:', err)
+    }
   }
 
   render() {
@@ -68,6 +91,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <Button onClick={this.reset}>
                 <RefreshCw />
                 {tryAgainText}
+              </Button>
+
+              <Button
+                onClick={this.handleCopy}
+                variant="outline"
+                disabled={this.state.copied}
+              >
+                {this.state.copied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Details
+                  </>
+                )}
               </Button>
 
               {parsed.actions?.map((action, index) => (

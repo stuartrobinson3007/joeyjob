@@ -233,18 +233,6 @@ railway shell -e production
 - Check for typos in variable names
 - Ensure VITE_ prefix for client-side vars
 
-## Weekly Maintenance
-
-1. **Every Monday:**
-   - Review and merge dependabot PRs
-   - Check Railway usage/costs
-   - Verify backups are running
-
-2. **Before Major Features:**
-   - Create database backup
-   - Document rollback plan
-   - Test on staging for at least 24h
-
 ## Emergency Contacts
 
 - Railway Status: https://status.railway.app
@@ -264,5 +252,4 @@ Once you need more automation:
 
 ---
 
-*Last Updated: [Current Date]*
 *Remember: Simple and stable beats complex and fragile*

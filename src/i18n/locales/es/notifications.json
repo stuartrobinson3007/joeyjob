@@ -29,12 +29,12 @@
     "organizationNameRequired": "Por favor ingresa un nombre de organización",
     "invalidImageFile": "Por favor selecciona un archivo de imagen válido (JPEG, PNG, GIF, o WebP)",
     "selectImageFirst": "Por favor selecciona una imagen primero",
-    "failedToCreateWorkspace": "Error al crear espacio de trabajo"
+    "failedToCreateWorkspace": "Error al crear empresa"
   },
   "confirmations": {
     "deleteOrganization": "¿Estás seguro de que quieres eliminar \"{{orgName}}\"? Esto eliminará permanentemente todos los datos asociados con esta organización.",
     "deleteOrganizationTitle": "Eliminar Organización",
-    "removeMember": "¿Estás seguro de que quieres eliminar a {{memberName}} de este espacio de trabajo?", 
+    "removeMember": "¿Estás seguro de que quieres eliminar a {{memberName}} de esta empresa?", 
     "removeMemberTitle": "Quitar Miembro",
     "resendInvitation": "¿Reenviar invitación a {{email}}?",
     "resendInvitationTitle": "Reenviar Invitación",

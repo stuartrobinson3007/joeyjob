@@ -70,19 +70,9 @@ export interface FlowNode {
     rollingUnit?: "calendar-days" | "week-days";
     fixedStartDate?: string; // ISO date string
     fixedEndDate?: string; // ISO date string
-    // Added: Minimum notice and booking interval properties
+    // Added: Minimum notice properties
     minimumNotice?: number;
     minimumNoticeUnit?: "days" | "hours";
-    bookingInterval?: number;
-    availabilityRules?: Array<{
-        days: number[];
-        timeRanges: Array<{ start: string; end: string }>;
-    }>;
-    blockedTimes?: Array<{
-        date: any; // Using any for now as the exact type depends on the implementation
-        timeRanges: Array<{ start: string; end: string }>;
-    }>;
-    unavailableDates?: any[]; // Using any[] for now
     additionalQuestions?: FormFieldConfig[];
     // Employee assignment fields
     assignedEmployeeIds?: string[];

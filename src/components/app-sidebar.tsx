@@ -22,6 +22,7 @@ import { UserTile } from '@/components/user-tile'
 import { Logo } from '@/components/logo'
 import { OrganizationSwitcher } from '@/features/organization/components/organization-switcher'
 import { BillingStatusDisplay } from '@/components/billing-status-display'
+import { PlanBadge } from '@/components/plan-badge'
 import { authClient } from '@/lib/auth/auth-client'
 import { useSession } from '@/lib/auth/auth-hooks'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
@@ -181,8 +182,9 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="px-2 py-2">
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <Logo />
+            <PlanBadge />
           </div>
           <div className='space-y-2'>
             <OrganizationSwitcher />

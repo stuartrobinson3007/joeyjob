@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlowNode } from '../form-flow-tree';
 import { FormFieldConfig } from '@/features/booking/lib/form-field-types';
+import {
+  validateFormConfiguration,
+  canSaveForm,
+  getSaveBlockedMessage,
+  ValidationResult,
+  ValidationIssue
+} from '../utils/form-validation';
 
 export interface AutosaveData {
   id: string;
@@ -23,6 +30,8 @@ export interface AutosaveOptions {
   enableLogging?: boolean;
   /** Enable autosave functionality */
   enabled?: boolean;
+  /** Whether the form is currently enabled/published */
+  isFormEnabled?: boolean;
 }
 
 export interface AutosaveState {
@@ -31,6 +40,9 @@ export interface AutosaveState {
   isDirty: boolean;
   errors: string[];
   retryCount: number;
+  validationResult: ValidationResult | null;
+  canSave: boolean;
+  saveBlockedReason?: string;
 }
 
 export interface AutosaveActions {
@@ -54,7 +66,8 @@ export function useUnifiedAutosave(
     maxRetries = 3,
     retryDelayMs = 1000,
     enableLogging = false,
-    enabled = true
+    enabled = true,
+    isFormEnabled = false
   } = options;
 
   // State
@@ -63,7 +76,10 @@ export function useUnifiedAutosave(
     lastSaved: null,
     isDirty: false,
     errors: [],
-    retryCount: 0
+    retryCount: 0,
+    validationResult: null,
+    canSave: true,
+    saveBlockedReason: undefined
   });
 
   // Refs for tracking
@@ -102,6 +118,44 @@ export function useUnifiedAutosave(
     data: AutosaveData,
     isManualSave: boolean = false
   ): Promise<void> => {
+    // Validate form configuration first
+    const validationResult = validateFormConfiguration({
+      internalName: data.internalName,
+      slug: data.slug,
+      serviceTree: data.serviceTree,
+      baseQuestions: data.baseQuestions,
+      theme: data.theme,
+      primaryColor: data.primaryColor,
+      isEnabled: isFormEnabled
+    });
+
+    // Check if we can save based on enabled state and validation
+    const canSaveNow = canSaveForm(isFormEnabled, validationResult);
+    const saveBlockedReason = canSaveNow ? undefined : getSaveBlockedMessage(validationResult);
+
+    // Update validation state
+    setState(prev => ({
+      ...prev,
+      validationResult,
+      canSave: canSaveNow,
+      saveBlockedReason
+    }));
+
+    // If form is enabled and has validation errors, don't save
+    if (isFormEnabled && !validationResult.isValid) {
+      if (enableLogging) {
+        console.log(`🚫 [Autosave] Cannot save enabled form with validation errors:`,
+          validationResult.errors.map(e => e.message));
+      }
+
+      setState(prev => ({
+        ...prev,
+        isSaving: false,
+        errors: [...prev.errors, saveBlockedReason || 'Form has validation errors']
+      }));
+      return;
+    }
+
     // Cancel any previous save operation
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -110,10 +164,10 @@ export function useUnifiedAutosave(
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    setState(prev => ({ 
-      ...prev, 
-      isSaving: true, 
-      errors: isManualSave ? [] : prev.errors 
+    setState(prev => ({
+      ...prev,
+      isSaving: true,
+      errors: isManualSave ? [] : prev.errors
     }));
 
     if (enableLogging) {
@@ -183,7 +237,7 @@ export function useUnifiedAutosave(
         abortControllerRef.current = null;
       }
     }
-  }, [onSave, enableLogging, createDataHash, maxRetries, retryDelayMs, state.retryCount]);
+  }, [onSave, enableLogging, createDataHash, maxRetries, retryDelayMs, state.retryCount, isFormEnabled]);
 
   // Debounced save function
   const debouncedSave = useCallback((data: AutosaveData) => {
@@ -250,7 +304,27 @@ export function useUnifiedAutosave(
     if (!isInitializedRef.current) {
       lastSavedDataRef.current = currentHash;
       isInitializedRef.current = true;
-      // Don't set isDirty here - it's already false from initial state
+      // Run initial validation to populate validation state
+      const initialValidationResult = validateFormConfiguration({
+        internalName: data.internalName,
+        slug: data.slug,
+        serviceTree: data.serviceTree,
+        baseQuestions: data.baseQuestions,
+        theme: data.theme,
+        primaryColor: data.primaryColor,
+        isEnabled: isFormEnabled
+      });
+
+
+      setState(prev => ({
+        ...prev,
+        validationResult: initialValidationResult,
+        canSave: canSaveForm(isFormEnabled, initialValidationResult),
+        saveBlockedReason: canSaveForm(isFormEnabled, initialValidationResult)
+          ? undefined
+          : getSaveBlockedMessage(initialValidationResult)
+      }));
+
       if (enableLogging) {
         console.log('🔄 [Autosave] Initialized with data, ready for change detection');
       }
@@ -259,11 +333,35 @@ export function useUnifiedAutosave(
 
     // Check if data has changed
     if (currentHash !== lastSavedDataRef.current && currentHash !== '') {
-      setState(prev => ({ ...prev, isDirty: true }));
+      // Run validation on data change for real-time feedback
+      const currentValidationResult = validateFormConfiguration({
+        internalName: data.internalName,
+        slug: data.slug,
+        serviceTree: data.serviceTree,
+        baseQuestions: data.baseQuestions,
+        theme: data.theme,
+        primaryColor: data.primaryColor,
+        isEnabled: isFormEnabled
+      });
+
+
+      setState(prev => ({
+        ...prev,
+        isDirty: true,
+        validationResult: currentValidationResult,
+        canSave: canSaveForm(isFormEnabled, currentValidationResult),
+        saveBlockedReason: canSaveForm(isFormEnabled, currentValidationResult)
+          ? undefined
+          : getSaveBlockedMessage(currentValidationResult)
+      }));
+
       debouncedSave(data);
 
       if (enableLogging) {
-        console.log('📝 [Autosave] Data changed, scheduling save...');
+        console.log('📝 [Autosave] Data changed, scheduling save...', {
+          validationErrors: currentValidationResult.errors.length,
+          canSave: canSaveForm(isFormEnabled, currentValidationResult)
+        });
       }
     }
 

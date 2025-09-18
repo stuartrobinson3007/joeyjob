@@ -77,18 +77,17 @@ export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods(
           const subscription = event.data.object
           console.log(`[WEBHOOK] Subscription metadata:`, subscription.metadata)
           const orgId = subscription.metadata?.organizationId || subscription.metadata?.referenceId
-          
-          console.log(`[WEBHOOK] Found orgId: ${orgId} for subscription ${subscription.id}`)
+
+          console.log(`[WEBHOOK] Found orgId: ${orgId} for subscription ${subscription.id} with status: ${subscription.status}`)
           if (orgId) {
-            // Only update if subscription is active or trialing
-            if (subscription.status === 'active' || subscription.status === 'trialing') {
-              // Determine plan from price ID
-              let planName = 'pro' // Default to pro since free no longer exists
-              const priceId = subscription.items?.data?.[0]?.price?.id
-              
+            // Determine plan from price ID (regardless of status)
+            let planName = 'pro' // Default to pro since free no longer exists
+            const priceId = subscription.items?.data?.[0]?.price?.id
+
+            if (priceId) {
               console.log(`[WEBHOOK] Subscription price ID: ${priceId}`)
               console.log(`[WEBHOOK] Available plans:`, Object.keys(BILLING_PLANS))
-              
+
               // Check each plan's price IDs
               for (const [key, plan] of Object.entries(BILLING_PLANS)) {
                 console.log(`[WEBHOOK] Checking plan ${key}:`, plan.stripePriceId)
@@ -105,69 +104,38 @@ export const ServerRoute = createServerFileRoute('/api/stripe/webhook').methods(
                   }
                 }
               }
-              
-              console.log(`[WEBHOOK] Final plan name: ${planName}`)
-              
-              // Extract Stripe customer ID from subscription
-              const stripeCustomerId = subscription.customer
-              
-              try {
-                const updateData: any = {
-                  currentPlan: planName,
-                  updatedAt: new Date(),
-                }
-                
-                // Also update stripeCustomerId if available
-                if (stripeCustomerId && typeof stripeCustomerId === 'string') {
-                  updateData.stripeCustomerId = stripeCustomerId
-                }
-                
-                console.log(`[WEBHOOK] Updating organization ${orgId} with data:`, updateData)
-                
-                await db
-                  .update(organization)
-                  .set(updateData)
-                  .where(eq(organization.id, orgId))
-
-                console.log(`[WEBHOOK] Successfully updated organization ${orgId} with plan ${planName}`)
-
-                // Mark onboarding as complete for the organization owner when they get their first paid plan
-                if (planName === 'pro' || planName === 'business') {
-                  console.log(`[WEBHOOK] Marking onboarding complete for paid plan ${planName}`)
-                  try {
-                    // Find the organization owner (admin role in member table)
-                    const orgMembers = await db
-                      .select({ userId: member.userId })
-                      .from(member)
-                      .where(eq(member.organizationId, orgId))
-                    
-                    console.log(`[WEBHOOK] Found ${orgMembers.length} members for org ${orgId}`)
-                    
-                    // Mark all members' onboarding as complete (for MVP, there's only one user per org anyway)
-                    for (const orgMember of orgMembers) {
-                      await db
-                        .update(user)
-                        .set({ 
-                          onboardingCompleted: true,
-                          updatedAt: new Date() 
-                        })
-                        .where(eq(user.id, orgMember.userId))
-                      console.log(`[WEBHOOK] Marked onboarding complete for user ${orgMember.userId}`)
-                    }
-                  } catch (onboardingError) {
-                    console.error(`[WEBHOOK] Failed to update onboarding status for org ${orgId}:`, onboardingError)
-                    // Don't throw - this is not critical for the subscription to work
-                  }
-                } else {
-                  console.log(`[WEBHOOK] Not marking onboarding complete - plan is ${planName}`)
-                }
-
-              } catch (dbError) {
-                console.error(`[WEBHOOK] Failed to update organization ${orgId} plan:`, dbError)
-                throw dbError
-              }
             } else {
-              console.log(`[WEBHOOK] Subscription status is ${subscription.status}, not updating organization`)
+              console.log(`[WEBHOOK] No price ID found, using default plan: ${planName}`)
+            }
+
+            console.log(`[WEBHOOK] Final plan name: ${planName} for status: ${subscription.status}`)
+
+            // Extract Stripe customer ID from subscription
+            const stripeCustomerId = subscription.customer
+
+            try {
+              const updateData: any = {
+                currentPlan: planName,
+                updatedAt: new Date(),
+              }
+
+              // Also update stripeCustomerId if available
+              if (stripeCustomerId && typeof stripeCustomerId === 'string') {
+                updateData.stripeCustomerId = stripeCustomerId
+              }
+
+              console.log(`[WEBHOOK] Updating organization ${orgId} with data:`, updateData)
+
+              await db
+                .update(organization)
+                .set(updateData)
+                .where(eq(organization.id, orgId))
+
+              console.log(`[WEBHOOK] Successfully updated organization ${orgId} with plan ${planName} for status ${subscription.status}`)
+
+            } catch (dbError) {
+              console.error(`[WEBHOOK] Failed to update organization ${orgId} plan:`, dbError)
+              throw dbError
             }
           } else {
             console.log(`[WEBHOOK] No orgId found in subscription metadata`)

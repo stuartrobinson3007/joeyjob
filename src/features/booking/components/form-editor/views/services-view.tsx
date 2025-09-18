@@ -5,6 +5,7 @@ import useFormEditorData from "../hooks/use-form-editor-data";
 import { Button } from "@/ui/button";
 import { PlusIcon, CalendarIcon, Users } from "lucide-react";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
+import type { ValidationResult } from "../utils/form-validation";
 
 interface ServicesViewProps {
     onNavigateBack: () => void;

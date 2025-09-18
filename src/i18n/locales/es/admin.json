@@ -36,8 +36,8 @@
     "unknown": "Desconocido"
   },
   "workspaces": {
-    "title": "Espacios de Trabajo",
-    "search": "Buscar espacios de trabajo",
+    "title": "Empresas",
+    "search": "Buscar empresas",
     "createdDate": "Fecha de Creación",
     "owner": "Propietario",
     "members": "Miembros",
@@ -50,8 +50,8 @@
     "noSlug": "Sin slug",
     "deleteOrganization": "Eliminar Organización",
     "impersonateOwner": "Suplantar Propietario",
-    "noOwnerTooltip": "Este espacio de trabajo no tiene propietario",
-    "ownerBannedTooltip": "El propietario del espacio de trabajo está bloqueado",
+    "noOwnerTooltip": "Esta empresa no tiene propietario",
+    "ownerBannedTooltip": "El propietario de la empresa está bloqueado",
     "cannotImpersonateTooltip": "No se puede suplantar al propietario"
   },
   "analytics": {
@@ -59,7 +59,7 @@
     "totalUsers": "Total de Usuarios",
     "activeUsers": "Usuarios Activos",
     "bannedUsers": "Usuarios Bloqueados",
-    "totalWorkspaces": "Total de Organizaciones",
+    "totalWorkspaces": "Total de Empresas",
     "totalMembers": "Total de Miembros",
     "avgMembersPerOrg": "Promedio de Miembros por Org",
     "revenue": "Ingresos"

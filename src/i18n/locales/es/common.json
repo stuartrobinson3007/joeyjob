@@ -131,26 +131,26 @@
     "noOrganizationDescription": "Por favor selecciona una organización para continuar"
   },
   "organization": {
-    "selectWorkspace": "Seleccionar espacio de trabajo",
-    "searchWorkspaces": "Buscar espacios de trabajo...",
-    "switchingDisabled": "Cambio de espacio de trabajo deshabilitado en modo superadmin",
-    "newWorkspace": "Nuevo espacio de trabajo",
-    "workspaceName": "Nombre del espacio de trabajo",
+    "selectWorkspace": "Seleccionar empresa",
+    "searchWorkspaces": "Buscar empresas...",
+    "switchingDisabled": "Cambio de empresa deshabilitado en modo superadmin",
+    "newWorkspace": "Nueva empresa",
+    "workspaceName": "Nombre de la empresa",
     "workspaceNamePlaceholder": "Mi Empresa",
-    "workspaceDescription": "Descripción del espacio de trabajo",
+    "workspaceDescription": "Descripción de la empresa",
     "workspaceDescriptionOptional": "Descripción (opcional)",
-    "workspaceDescriptionPlaceholder": "Una breve descripción de tu espacio de trabajo",
-    "createWorkspace": "Crear espacio de trabajo",
-    "createWorkspaceDescription": "Crea un nuevo espacio de trabajo para colaborar con tu equipo",
-    "createNewWorkspaceDescription": "Inicia un nuevo espacio de trabajo para tu equipo",
+    "workspaceDescriptionPlaceholder": "Una breve descripción de tu empresa",
+    "createWorkspace": "Crear empresa",
+    "createWorkspaceDescription": "Crea una nueva empresa para colaborar con tu equipo",
+    "createNewWorkspaceDescription": "Inicia una nueva empresa para tu equipo",
     "createOrganization": "Crear Organización",
     "createNew": "Crear Nueva Organización",
     "empty": "Aún no hay organizaciones",
-    "noWorkspaces": "No se encontraron espacios de trabajo.",
-    "noWorkspacesTitle": "Aún no hay espacios de trabajo",
-    "noWorkspacesDescription": "Comienza creando tu primer espacio de trabajo",
-    "createFirstWorkspace": "Crea tu primer espacio de trabajo",
-    "chooseWorkspaceDescription": "Elige un espacio de trabajo para continuar",
+    "noWorkspaces": "No se encontraron empresas.",
+    "noWorkspacesTitle": "Aún no hay empresas",
+    "noWorkspacesDescription": "Comienza creando tu primera empresa",
+    "createFirstWorkspace": "Crea tu primera empresa",
+    "chooseWorkspaceDescription": "Elige una empresa para continuar",
     "title": "Organizaciones",
     "noActiveOrganization": "No hay organización activa seleccionada"
   },
@@ -244,11 +244,11 @@
     }
   },
   "workspace": {
-    "selectWorkspace": "Seleccionar espacio de trabajo",
-    "createWorkspace": "Crear espacio de trabajo",
-    "workspaceName": "Nombre del espacio de trabajo",
+    "selectWorkspace": "Seleccionar empresa",
+    "createWorkspace": "Crear empresa",
+    "workspaceName": "Nombre de la empresa",
     "organizationName": "Nombre de la organización",
-    "createWorkspaceTitle": "Crear espacio de trabajo"
+    "createWorkspaceTitle": "Crear empresa"
   },
   "sidebar": {
     "superAdmin": "Super Admin"

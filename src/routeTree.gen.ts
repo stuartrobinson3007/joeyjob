@@ -11,34 +11,37 @@
 import { createServerRootRoute } from '@tanstack/react-start/server'
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as SuperadminSigninRouteImport } from './routes/superadmin/signin'
-import { Route as Oauth2AccessCodeRouteImport } from './routes/oauth2/accessCode'
-import { Route as InviteInvitationIdRouteImport } from './routes/invite.$invitationId'
-import { Route as EmbedFormIdRouteImport } from './routes/embed.$formId'
-import { Route as AuthUpdateConnectionRouteImport } from './routes/auth/update-connection'
-import { Route as AuthSigninRouteImport } from './routes/auth/signin'
-import { Route as AdminSimproConfigRouteImport } from './routes/admin/simpro-config'
-import { Route as AuthenticatedSuperadminRouteImport } from './routes/_authenticated/superadmin'
-import { Route as AuthenticatedSelectOrganizationRouteImport } from './routes/_authenticated/select-organization'
-import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedSuperadminIndexRouteImport } from './routes/_authenticated/superadmin/index'
-import { Route as AuthenticatedOrgRequiredIndexRouteImport } from './routes/_authenticated/_org-required/index'
-import { Route as FOrgSlugFormSlugRouteImport } from './routes/f.$orgSlug.$formSlug'
-import { Route as AuthenticatedSuperadminWorkspacesRouteImport } from './routes/_authenticated/superadmin/workspaces'
-import { Route as AuthenticatedSuperadminUsersRouteImport } from './routes/_authenticated/superadmin/users'
-import { Route as AuthenticatedCompanySetupSelectCompanyRouteImport } from './routes/_authenticated/company-setup/select-company'
-import { Route as AuthenticatedCompanySetupEmployeesRouteImport } from './routes/_authenticated/company-setup/employees'
-import { Route as AuthenticatedCompanySetupCompanyInfoRouteImport } from './routes/_authenticated/company-setup/company-info'
-import { Route as AuthenticatedOrgRequiredTeamRouteImport } from './routes/_authenticated/_org-required/team'
-import { Route as AuthenticatedOrgRequiredSettingsRouteImport } from './routes/_authenticated/_org-required/settings'
-import { Route as AuthenticatedOrgRequiredPaymentErrorRouteImport } from './routes/_authenticated/_org-required/payment-error'
-import { Route as AuthenticatedOrgRequiredChoosePlanRouteImport } from './routes/_authenticated/_org-required/choose-plan'
-import { Route as AuthenticatedOrgRequiredBookingsRouteImport } from './routes/_authenticated/_org-required/bookings'
-import { Route as AuthenticatedOrgRequiredBillingRouteImport } from './routes/_authenticated/_org-required/billing'
-import { Route as AuthenticatedOrgRequiredTodosIdEditRouteImport } from './routes/_authenticated/_org-required/todos.$id.edit'
-import { Route as AuthenticatedOrgRequiredFormFormIdEditRouteImport } from './routes/_authenticated/_org-required/form.$formId.edit'
+import { Route as BookingFormRouteImport } from './routes/_booking-form'
+import { Route as AllPagesRouteImport } from './routes/_all-pages'
+import { Route as AllPagesTermsRouteImport } from './routes/_all-pages/terms'
+import { Route as AllPagesAuthenticatedRouteImport } from './routes/_all-pages/_authenticated'
+import { Route as BookingFormEmbedFormIdRouteImport } from './routes/_booking-form/embed.$formId'
+import { Route as AllPagesSuperadminSigninRouteImport } from './routes/_all-pages/superadmin/signin'
+import { Route as AllPagesOauth2AccessCodeRouteImport } from './routes/_all-pages/oauth2/accessCode'
+import { Route as AllPagesInviteInvitationIdRouteImport } from './routes/_all-pages/invite.$invitationId'
+import { Route as AllPagesAuthUpdateConnectionRouteImport } from './routes/_all-pages/auth/update-connection'
+import { Route as AllPagesAuthSigninRouteImport } from './routes/_all-pages/auth/signin'
+import { Route as AllPagesAdminSimproConfigRouteImport } from './routes/_all-pages/admin/simpro-config'
+import { Route as AllPagesAuthenticatedSuperadminRouteImport } from './routes/_all-pages/_authenticated/superadmin'
+import { Route as AllPagesAuthenticatedSelectOrganizationRouteImport } from './routes/_all-pages/_authenticated/select-organization'
+import { Route as AllPagesAuthenticatedProfileRouteImport } from './routes/_all-pages/_authenticated/profile'
+import { Route as AllPagesAuthenticatedOnboardingRouteImport } from './routes/_all-pages/_authenticated/onboarding'
+import { Route as AllPagesAuthenticatedSuperadminIndexRouteImport } from './routes/_all-pages/_authenticated/superadmin/index'
+import { Route as AllPagesAuthenticatedOrgRequiredIndexRouteImport } from './routes/_all-pages/_authenticated/_org-required/index'
+import { Route as BookingFormFOrgSlugFormSlugRouteImport } from './routes/_booking-form/f.$orgSlug.$formSlug'
+import { Route as AllPagesAuthenticatedSuperadminWorkspacesRouteImport } from './routes/_all-pages/_authenticated/superadmin/workspaces'
+import { Route as AllPagesAuthenticatedSuperadminUsersRouteImport } from './routes/_all-pages/_authenticated/superadmin/users'
+import { Route as AllPagesAuthenticatedCompanySetupSelectCompanyRouteImport } from './routes/_all-pages/_authenticated/company-setup/select-company'
+import { Route as AllPagesAuthenticatedCompanySetupEmployeesRouteImport } from './routes/_all-pages/_authenticated/company-setup/employees'
+import { Route as AllPagesAuthenticatedCompanySetupCompanyInfoRouteImport } from './routes/_all-pages/_authenticated/company-setup/company-info'
+import { Route as AllPagesAuthenticatedOrgRequiredTeamRouteImport } from './routes/_all-pages/_authenticated/_org-required/team'
+import { Route as AllPagesAuthenticatedOrgRequiredSettingsRouteImport } from './routes/_all-pages/_authenticated/_org-required/settings'
+import { Route as AllPagesAuthenticatedOrgRequiredPaymentErrorRouteImport } from './routes/_all-pages/_authenticated/_org-required/payment-error'
+import { Route as AllPagesAuthenticatedOrgRequiredChoosePlanRouteImport } from './routes/_all-pages/_authenticated/_org-required/choose-plan'
+import { Route as AllPagesAuthenticatedOrgRequiredBookingsRouteImport } from './routes/_all-pages/_authenticated/_org-required/bookings'
+import { Route as AllPagesAuthenticatedOrgRequiredBillingRouteImport } from './routes/_all-pages/_authenticated/_org-required/billing'
+import { Route as AllPagesAuthenticatedOrgRequiredTodosIdEditRouteImport } from './routes/_all-pages/_authenticated/_org-required/todos.$id.edit'
+import { Route as AllPagesAuthenticatedOrgRequiredFormFormIdEditRouteImport } from './routes/_all-pages/_authenticated/_org-required/form.$formId.edit'
 import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
 import { ServerRoute as ApiEmployeesIndexServerRouteImport } from './routes/api/employees/index'
 import { ServerRoute as ApiStripeWebhookServerRouteImport } from './routes/api/stripe/webhook'
@@ -55,160 +58,182 @@ import { ServerRoute as ApiPublicServicesServiceIdAvailabilityServerRouteImport 
 
 const rootServerRouteImport = createServerRootRoute()
 
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
+const BookingFormRoute = BookingFormRouteImport.update({
+  id: '/_booking-form',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AllPagesRoute = AllPagesRouteImport.update({
+  id: '/_all-pages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AllPagesTermsRoute = AllPagesTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => AllPagesRoute,
+} as any)
+const AllPagesAuthenticatedRoute = AllPagesAuthenticatedRouteImport.update({
   id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AllPagesRoute,
 } as any)
-const SuperadminSigninRoute = SuperadminSigninRouteImport.update({
-  id: '/superadmin/signin',
-  path: '/superadmin/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Oauth2AccessCodeRoute = Oauth2AccessCodeRouteImport.update({
-  id: '/oauth2/accessCode',
-  path: '/oauth2/accessCode',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InviteInvitationIdRoute = InviteInvitationIdRouteImport.update({
-  id: '/invite/$invitationId',
-  path: '/invite/$invitationId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmbedFormIdRoute = EmbedFormIdRouteImport.update({
+const BookingFormEmbedFormIdRoute = BookingFormEmbedFormIdRouteImport.update({
   id: '/embed/$formId',
   path: '/embed/$formId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => BookingFormRoute,
 } as any)
-const AuthUpdateConnectionRoute = AuthUpdateConnectionRouteImport.update({
-  id: '/auth/update-connection',
-  path: '/auth/update-connection',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSigninRoute = AuthSigninRouteImport.update({
+const AllPagesSuperadminSigninRoute =
+  AllPagesSuperadminSigninRouteImport.update({
+    id: '/superadmin/signin',
+    path: '/superadmin/signin',
+    getParentRoute: () => AllPagesRoute,
+  } as any)
+const AllPagesOauth2AccessCodeRoute =
+  AllPagesOauth2AccessCodeRouteImport.update({
+    id: '/oauth2/accessCode',
+    path: '/oauth2/accessCode',
+    getParentRoute: () => AllPagesRoute,
+  } as any)
+const AllPagesInviteInvitationIdRoute =
+  AllPagesInviteInvitationIdRouteImport.update({
+    id: '/invite/$invitationId',
+    path: '/invite/$invitationId',
+    getParentRoute: () => AllPagesRoute,
+  } as any)
+const AllPagesAuthUpdateConnectionRoute =
+  AllPagesAuthUpdateConnectionRouteImport.update({
+    id: '/auth/update-connection',
+    path: '/auth/update-connection',
+    getParentRoute: () => AllPagesRoute,
+  } as any)
+const AllPagesAuthSigninRoute = AllPagesAuthSigninRouteImport.update({
   id: '/auth/signin',
   path: '/auth/signin',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AllPagesRoute,
 } as any)
-const AdminSimproConfigRoute = AdminSimproConfigRouteImport.update({
-  id: '/admin/simpro-config',
-  path: '/admin/simpro-config',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedSuperadminRoute = AuthenticatedSuperadminRouteImport.update({
-  id: '/superadmin',
-  path: '/superadmin',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSelectOrganizationRoute =
-  AuthenticatedSelectOrganizationRouteImport.update({
+const AllPagesAdminSimproConfigRoute =
+  AllPagesAdminSimproConfigRouteImport.update({
+    id: '/admin/simpro-config',
+    path: '/admin/simpro-config',
+    getParentRoute: () => AllPagesRoute,
+  } as any)
+const AllPagesAuthenticatedSuperadminRoute =
+  AllPagesAuthenticatedSuperadminRouteImport.update({
+    id: '/superadmin',
+    path: '/superadmin',
+    getParentRoute: () => AllPagesAuthenticatedRoute,
+  } as any)
+const AllPagesAuthenticatedSelectOrganizationRoute =
+  AllPagesAuthenticatedSelectOrganizationRouteImport.update({
     id: '/select-organization',
     path: '/select-organization',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSuperadminIndexRoute =
-  AuthenticatedSuperadminIndexRouteImport.update({
+const AllPagesAuthenticatedProfileRoute =
+  AllPagesAuthenticatedProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AllPagesAuthenticatedRoute,
+  } as any)
+const AllPagesAuthenticatedOnboardingRoute =
+  AllPagesAuthenticatedOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
+    getParentRoute: () => AllPagesAuthenticatedRoute,
+  } as any)
+const AllPagesAuthenticatedSuperadminIndexRoute =
+  AllPagesAuthenticatedSuperadminIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedSuperadminRoute,
+    getParentRoute: () => AllPagesAuthenticatedSuperadminRoute,
   } as any)
-const AuthenticatedOrgRequiredIndexRoute =
-  AuthenticatedOrgRequiredIndexRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredIndexRoute =
+  AllPagesAuthenticatedOrgRequiredIndexRouteImport.update({
     id: '/_org-required/',
     path: '/',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const FOrgSlugFormSlugRoute = FOrgSlugFormSlugRouteImport.update({
-  id: '/f/$orgSlug/$formSlug',
-  path: '/f/$orgSlug/$formSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedSuperadminWorkspacesRoute =
-  AuthenticatedSuperadminWorkspacesRouteImport.update({
+const BookingFormFOrgSlugFormSlugRoute =
+  BookingFormFOrgSlugFormSlugRouteImport.update({
+    id: '/f/$orgSlug/$formSlug',
+    path: '/f/$orgSlug/$formSlug',
+    getParentRoute: () => BookingFormRoute,
+  } as any)
+const AllPagesAuthenticatedSuperadminWorkspacesRoute =
+  AllPagesAuthenticatedSuperadminWorkspacesRouteImport.update({
     id: '/workspaces',
     path: '/workspaces',
-    getParentRoute: () => AuthenticatedSuperadminRoute,
+    getParentRoute: () => AllPagesAuthenticatedSuperadminRoute,
   } as any)
-const AuthenticatedSuperadminUsersRoute =
-  AuthenticatedSuperadminUsersRouteImport.update({
+const AllPagesAuthenticatedSuperadminUsersRoute =
+  AllPagesAuthenticatedSuperadminUsersRouteImport.update({
     id: '/users',
     path: '/users',
-    getParentRoute: () => AuthenticatedSuperadminRoute,
+    getParentRoute: () => AllPagesAuthenticatedSuperadminRoute,
   } as any)
-const AuthenticatedCompanySetupSelectCompanyRoute =
-  AuthenticatedCompanySetupSelectCompanyRouteImport.update({
+const AllPagesAuthenticatedCompanySetupSelectCompanyRoute =
+  AllPagesAuthenticatedCompanySetupSelectCompanyRouteImport.update({
     id: '/company-setup/select-company',
     path: '/company-setup/select-company',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedCompanySetupEmployeesRoute =
-  AuthenticatedCompanySetupEmployeesRouteImport.update({
+const AllPagesAuthenticatedCompanySetupEmployeesRoute =
+  AllPagesAuthenticatedCompanySetupEmployeesRouteImport.update({
     id: '/company-setup/employees',
     path: '/company-setup/employees',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedCompanySetupCompanyInfoRoute =
-  AuthenticatedCompanySetupCompanyInfoRouteImport.update({
+const AllPagesAuthenticatedCompanySetupCompanyInfoRoute =
+  AllPagesAuthenticatedCompanySetupCompanyInfoRouteImport.update({
     id: '/company-setup/company-info',
     path: '/company-setup/company-info',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredTeamRoute =
-  AuthenticatedOrgRequiredTeamRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredTeamRoute =
+  AllPagesAuthenticatedOrgRequiredTeamRouteImport.update({
     id: '/_org-required/team',
     path: '/team',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredSettingsRoute =
-  AuthenticatedOrgRequiredSettingsRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredSettingsRoute =
+  AllPagesAuthenticatedOrgRequiredSettingsRouteImport.update({
     id: '/_org-required/settings',
     path: '/settings',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredPaymentErrorRoute =
-  AuthenticatedOrgRequiredPaymentErrorRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredPaymentErrorRoute =
+  AllPagesAuthenticatedOrgRequiredPaymentErrorRouteImport.update({
     id: '/_org-required/payment-error',
     path: '/payment-error',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredChoosePlanRoute =
-  AuthenticatedOrgRequiredChoosePlanRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredChoosePlanRoute =
+  AllPagesAuthenticatedOrgRequiredChoosePlanRouteImport.update({
     id: '/_org-required/choose-plan',
     path: '/choose-plan',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredBookingsRoute =
-  AuthenticatedOrgRequiredBookingsRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredBookingsRoute =
+  AllPagesAuthenticatedOrgRequiredBookingsRouteImport.update({
     id: '/_org-required/bookings',
     path: '/bookings',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredBillingRoute =
-  AuthenticatedOrgRequiredBillingRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredBillingRoute =
+  AllPagesAuthenticatedOrgRequiredBillingRouteImport.update({
     id: '/_org-required/billing',
     path: '/billing',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredTodosIdEditRoute =
-  AuthenticatedOrgRequiredTodosIdEditRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredTodosIdEditRoute =
+  AllPagesAuthenticatedOrgRequiredTodosIdEditRouteImport.update({
     id: '/_org-required/todos/$id/edit',
     path: '/todos/$id/edit',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AuthenticatedOrgRequiredFormFormIdEditRoute =
-  AuthenticatedOrgRequiredFormFormIdEditRouteImport.update({
+const AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute =
+  AllPagesAuthenticatedOrgRequiredFormFormIdEditRouteImport.update({
     id: '/_org-required/form/$formId/edit',
     path: '/form/$formId/edit',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
 const ApiHealthServerRoute = ApiHealthServerRouteImport.update({
   id: '/api/health',
@@ -281,96 +306,102 @@ const ApiPublicServicesServiceIdAvailabilityServerRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/profile': typeof AuthenticatedProfileRoute
-  '/select-organization': typeof AuthenticatedSelectOrganizationRoute
-  '/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
-  '/admin/simpro-config': typeof AdminSimproConfigRoute
-  '/auth/signin': typeof AuthSigninRoute
-  '/auth/update-connection': typeof AuthUpdateConnectionRoute
-  '/embed/$formId': typeof EmbedFormIdRoute
-  '/invite/$invitationId': typeof InviteInvitationIdRoute
-  '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
-  '/superadmin/signin': typeof SuperadminSigninRoute
-  '/billing': typeof AuthenticatedOrgRequiredBillingRoute
-  '/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
-  '/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
-  '/payment-error': typeof AuthenticatedOrgRequiredPaymentErrorRoute
-  '/settings': typeof AuthenticatedOrgRequiredSettingsRoute
-  '/team': typeof AuthenticatedOrgRequiredTeamRoute
-  '/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
-  '/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
-  '/company-setup/select-company': typeof AuthenticatedCompanySetupSelectCompanyRoute
-  '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
-  '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
-  '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
-  '/': typeof AuthenticatedOrgRequiredIndexRoute
-  '/superadmin/': typeof AuthenticatedSuperadminIndexRoute
-  '/form/$formId/edit': typeof AuthenticatedOrgRequiredFormFormIdEditRoute
-  '/todos/$id/edit': typeof AuthenticatedOrgRequiredTodosIdEditRoute
+  '/terms': typeof AllPagesTermsRoute
+  '/onboarding': typeof AllPagesAuthenticatedOnboardingRoute
+  '/profile': typeof AllPagesAuthenticatedProfileRoute
+  '/select-organization': typeof AllPagesAuthenticatedSelectOrganizationRoute
+  '/superadmin': typeof AllPagesAuthenticatedSuperadminRouteWithChildren
+  '/admin/simpro-config': typeof AllPagesAdminSimproConfigRoute
+  '/auth/signin': typeof AllPagesAuthSigninRoute
+  '/auth/update-connection': typeof AllPagesAuthUpdateConnectionRoute
+  '/invite/$invitationId': typeof AllPagesInviteInvitationIdRoute
+  '/oauth2/accessCode': typeof AllPagesOauth2AccessCodeRoute
+  '/superadmin/signin': typeof AllPagesSuperadminSigninRoute
+  '/embed/$formId': typeof BookingFormEmbedFormIdRoute
+  '/billing': typeof AllPagesAuthenticatedOrgRequiredBillingRoute
+  '/bookings': typeof AllPagesAuthenticatedOrgRequiredBookingsRoute
+  '/choose-plan': typeof AllPagesAuthenticatedOrgRequiredChoosePlanRoute
+  '/payment-error': typeof AllPagesAuthenticatedOrgRequiredPaymentErrorRoute
+  '/settings': typeof AllPagesAuthenticatedOrgRequiredSettingsRoute
+  '/team': typeof AllPagesAuthenticatedOrgRequiredTeamRoute
+  '/company-setup/company-info': typeof AllPagesAuthenticatedCompanySetupCompanyInfoRoute
+  '/company-setup/employees': typeof AllPagesAuthenticatedCompanySetupEmployeesRoute
+  '/company-setup/select-company': typeof AllPagesAuthenticatedCompanySetupSelectCompanyRoute
+  '/superadmin/users': typeof AllPagesAuthenticatedSuperadminUsersRoute
+  '/superadmin/workspaces': typeof AllPagesAuthenticatedSuperadminWorkspacesRoute
+  '/f/$orgSlug/$formSlug': typeof BookingFormFOrgSlugFormSlugRoute
+  '/': typeof AllPagesAuthenticatedOrgRequiredIndexRoute
+  '/superadmin/': typeof AllPagesAuthenticatedSuperadminIndexRoute
+  '/form/$formId/edit': typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
+  '/todos/$id/edit': typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/onboarding': typeof AuthenticatedOnboardingRoute
-  '/profile': typeof AuthenticatedProfileRoute
-  '/select-organization': typeof AuthenticatedSelectOrganizationRoute
-  '/admin/simpro-config': typeof AdminSimproConfigRoute
-  '/auth/signin': typeof AuthSigninRoute
-  '/auth/update-connection': typeof AuthUpdateConnectionRoute
-  '/embed/$formId': typeof EmbedFormIdRoute
-  '/invite/$invitationId': typeof InviteInvitationIdRoute
-  '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
-  '/superadmin/signin': typeof SuperadminSigninRoute
-  '/billing': typeof AuthenticatedOrgRequiredBillingRoute
-  '/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
-  '/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
-  '/payment-error': typeof AuthenticatedOrgRequiredPaymentErrorRoute
-  '/settings': typeof AuthenticatedOrgRequiredSettingsRoute
-  '/team': typeof AuthenticatedOrgRequiredTeamRoute
-  '/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
-  '/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
-  '/company-setup/select-company': typeof AuthenticatedCompanySetupSelectCompanyRoute
-  '/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
-  '/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
-  '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
-  '/': typeof AuthenticatedOrgRequiredIndexRoute
-  '/superadmin': typeof AuthenticatedSuperadminIndexRoute
-  '/form/$formId/edit': typeof AuthenticatedOrgRequiredFormFormIdEditRoute
-  '/todos/$id/edit': typeof AuthenticatedOrgRequiredTodosIdEditRoute
+  '/terms': typeof AllPagesTermsRoute
+  '/onboarding': typeof AllPagesAuthenticatedOnboardingRoute
+  '/profile': typeof AllPagesAuthenticatedProfileRoute
+  '/select-organization': typeof AllPagesAuthenticatedSelectOrganizationRoute
+  '/admin/simpro-config': typeof AllPagesAdminSimproConfigRoute
+  '/auth/signin': typeof AllPagesAuthSigninRoute
+  '/auth/update-connection': typeof AllPagesAuthUpdateConnectionRoute
+  '/invite/$invitationId': typeof AllPagesInviteInvitationIdRoute
+  '/oauth2/accessCode': typeof AllPagesOauth2AccessCodeRoute
+  '/superadmin/signin': typeof AllPagesSuperadminSigninRoute
+  '/embed/$formId': typeof BookingFormEmbedFormIdRoute
+  '/billing': typeof AllPagesAuthenticatedOrgRequiredBillingRoute
+  '/bookings': typeof AllPagesAuthenticatedOrgRequiredBookingsRoute
+  '/choose-plan': typeof AllPagesAuthenticatedOrgRequiredChoosePlanRoute
+  '/payment-error': typeof AllPagesAuthenticatedOrgRequiredPaymentErrorRoute
+  '/settings': typeof AllPagesAuthenticatedOrgRequiredSettingsRoute
+  '/team': typeof AllPagesAuthenticatedOrgRequiredTeamRoute
+  '/company-setup/company-info': typeof AllPagesAuthenticatedCompanySetupCompanyInfoRoute
+  '/company-setup/employees': typeof AllPagesAuthenticatedCompanySetupEmployeesRoute
+  '/company-setup/select-company': typeof AllPagesAuthenticatedCompanySetupSelectCompanyRoute
+  '/superadmin/users': typeof AllPagesAuthenticatedSuperadminUsersRoute
+  '/superadmin/workspaces': typeof AllPagesAuthenticatedSuperadminWorkspacesRoute
+  '/f/$orgSlug/$formSlug': typeof BookingFormFOrgSlugFormSlugRoute
+  '/': typeof AllPagesAuthenticatedOrgRequiredIndexRoute
+  '/superadmin': typeof AllPagesAuthenticatedSuperadminIndexRoute
+  '/form/$formId/edit': typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
+  '/todos/$id/edit': typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
-  '/_authenticated/profile': typeof AuthenticatedProfileRoute
-  '/_authenticated/select-organization': typeof AuthenticatedSelectOrganizationRoute
-  '/_authenticated/superadmin': typeof AuthenticatedSuperadminRouteWithChildren
-  '/admin/simpro-config': typeof AdminSimproConfigRoute
-  '/auth/signin': typeof AuthSigninRoute
-  '/auth/update-connection': typeof AuthUpdateConnectionRoute
-  '/embed/$formId': typeof EmbedFormIdRoute
-  '/invite/$invitationId': typeof InviteInvitationIdRoute
-  '/oauth2/accessCode': typeof Oauth2AccessCodeRoute
-  '/superadmin/signin': typeof SuperadminSigninRoute
-  '/_authenticated/_org-required/billing': typeof AuthenticatedOrgRequiredBillingRoute
-  '/_authenticated/_org-required/bookings': typeof AuthenticatedOrgRequiredBookingsRoute
-  '/_authenticated/_org-required/choose-plan': typeof AuthenticatedOrgRequiredChoosePlanRoute
-  '/_authenticated/_org-required/payment-error': typeof AuthenticatedOrgRequiredPaymentErrorRoute
-  '/_authenticated/_org-required/settings': typeof AuthenticatedOrgRequiredSettingsRoute
-  '/_authenticated/_org-required/team': typeof AuthenticatedOrgRequiredTeamRoute
-  '/_authenticated/company-setup/company-info': typeof AuthenticatedCompanySetupCompanyInfoRoute
-  '/_authenticated/company-setup/employees': typeof AuthenticatedCompanySetupEmployeesRoute
-  '/_authenticated/company-setup/select-company': typeof AuthenticatedCompanySetupSelectCompanyRoute
-  '/_authenticated/superadmin/users': typeof AuthenticatedSuperadminUsersRoute
-  '/_authenticated/superadmin/workspaces': typeof AuthenticatedSuperadminWorkspacesRoute
-  '/f/$orgSlug/$formSlug': typeof FOrgSlugFormSlugRoute
-  '/_authenticated/_org-required/': typeof AuthenticatedOrgRequiredIndexRoute
-  '/_authenticated/superadmin/': typeof AuthenticatedSuperadminIndexRoute
-  '/_authenticated/_org-required/form/$formId/edit': typeof AuthenticatedOrgRequiredFormFormIdEditRoute
-  '/_authenticated/_org-required/todos/$id/edit': typeof AuthenticatedOrgRequiredTodosIdEditRoute
+  '/_all-pages': typeof AllPagesRouteWithChildren
+  '/_booking-form': typeof BookingFormRouteWithChildren
+  '/_all-pages/_authenticated': typeof AllPagesAuthenticatedRouteWithChildren
+  '/_all-pages/terms': typeof AllPagesTermsRoute
+  '/_all-pages/_authenticated/onboarding': typeof AllPagesAuthenticatedOnboardingRoute
+  '/_all-pages/_authenticated/profile': typeof AllPagesAuthenticatedProfileRoute
+  '/_all-pages/_authenticated/select-organization': typeof AllPagesAuthenticatedSelectOrganizationRoute
+  '/_all-pages/_authenticated/superadmin': typeof AllPagesAuthenticatedSuperadminRouteWithChildren
+  '/_all-pages/admin/simpro-config': typeof AllPagesAdminSimproConfigRoute
+  '/_all-pages/auth/signin': typeof AllPagesAuthSigninRoute
+  '/_all-pages/auth/update-connection': typeof AllPagesAuthUpdateConnectionRoute
+  '/_all-pages/invite/$invitationId': typeof AllPagesInviteInvitationIdRoute
+  '/_all-pages/oauth2/accessCode': typeof AllPagesOauth2AccessCodeRoute
+  '/_all-pages/superadmin/signin': typeof AllPagesSuperadminSigninRoute
+  '/_booking-form/embed/$formId': typeof BookingFormEmbedFormIdRoute
+  '/_all-pages/_authenticated/_org-required/billing': typeof AllPagesAuthenticatedOrgRequiredBillingRoute
+  '/_all-pages/_authenticated/_org-required/bookings': typeof AllPagesAuthenticatedOrgRequiredBookingsRoute
+  '/_all-pages/_authenticated/_org-required/choose-plan': typeof AllPagesAuthenticatedOrgRequiredChoosePlanRoute
+  '/_all-pages/_authenticated/_org-required/payment-error': typeof AllPagesAuthenticatedOrgRequiredPaymentErrorRoute
+  '/_all-pages/_authenticated/_org-required/settings': typeof AllPagesAuthenticatedOrgRequiredSettingsRoute
+  '/_all-pages/_authenticated/_org-required/team': typeof AllPagesAuthenticatedOrgRequiredTeamRoute
+  '/_all-pages/_authenticated/company-setup/company-info': typeof AllPagesAuthenticatedCompanySetupCompanyInfoRoute
+  '/_all-pages/_authenticated/company-setup/employees': typeof AllPagesAuthenticatedCompanySetupEmployeesRoute
+  '/_all-pages/_authenticated/company-setup/select-company': typeof AllPagesAuthenticatedCompanySetupSelectCompanyRoute
+  '/_all-pages/_authenticated/superadmin/users': typeof AllPagesAuthenticatedSuperadminUsersRoute
+  '/_all-pages/_authenticated/superadmin/workspaces': typeof AllPagesAuthenticatedSuperadminWorkspacesRoute
+  '/_booking-form/f/$orgSlug/$formSlug': typeof BookingFormFOrgSlugFormSlugRoute
+  '/_all-pages/_authenticated/_org-required/': typeof AllPagesAuthenticatedOrgRequiredIndexRoute
+  '/_all-pages/_authenticated/superadmin/': typeof AllPagesAuthenticatedSuperadminIndexRoute
+  '/_all-pages/_authenticated/_org-required/form/$formId/edit': typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
+  '/_all-pages/_authenticated/_org-required/todos/$id/edit': typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/terms'
     | '/onboarding'
     | '/profile'
     | '/select-organization'
@@ -378,10 +409,10 @@ export interface FileRouteTypes {
     | '/admin/simpro-config'
     | '/auth/signin'
     | '/auth/update-connection'
-    | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/superadmin/signin'
+    | '/embed/$formId'
     | '/billing'
     | '/bookings'
     | '/choose-plan'
@@ -400,16 +431,17 @@ export interface FileRouteTypes {
     | '/todos/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/terms'
     | '/onboarding'
     | '/profile'
     | '/select-organization'
     | '/admin/simpro-config'
     | '/auth/signin'
     | '/auth/update-connection'
-    | '/embed/$formId'
     | '/invite/$invitationId'
     | '/oauth2/accessCode'
     | '/superadmin/signin'
+    | '/embed/$formId'
     | '/billing'
     | '/bookings'
     | '/choose-plan'
@@ -428,46 +460,42 @@ export interface FileRouteTypes {
     | '/todos/$id/edit'
   id:
     | '__root__'
-    | '/_authenticated'
-    | '/_authenticated/onboarding'
-    | '/_authenticated/profile'
-    | '/_authenticated/select-organization'
-    | '/_authenticated/superadmin'
-    | '/admin/simpro-config'
-    | '/auth/signin'
-    | '/auth/update-connection'
-    | '/embed/$formId'
-    | '/invite/$invitationId'
-    | '/oauth2/accessCode'
-    | '/superadmin/signin'
-    | '/_authenticated/_org-required/billing'
-    | '/_authenticated/_org-required/bookings'
-    | '/_authenticated/_org-required/choose-plan'
-    | '/_authenticated/_org-required/payment-error'
-    | '/_authenticated/_org-required/settings'
-    | '/_authenticated/_org-required/team'
-    | '/_authenticated/company-setup/company-info'
-    | '/_authenticated/company-setup/employees'
-    | '/_authenticated/company-setup/select-company'
-    | '/_authenticated/superadmin/users'
-    | '/_authenticated/superadmin/workspaces'
-    | '/f/$orgSlug/$formSlug'
-    | '/_authenticated/_org-required/'
-    | '/_authenticated/superadmin/'
-    | '/_authenticated/_org-required/form/$formId/edit'
-    | '/_authenticated/_org-required/todos/$id/edit'
+    | '/_all-pages'
+    | '/_booking-form'
+    | '/_all-pages/_authenticated'
+    | '/_all-pages/terms'
+    | '/_all-pages/_authenticated/onboarding'
+    | '/_all-pages/_authenticated/profile'
+    | '/_all-pages/_authenticated/select-organization'
+    | '/_all-pages/_authenticated/superadmin'
+    | '/_all-pages/admin/simpro-config'
+    | '/_all-pages/auth/signin'
+    | '/_all-pages/auth/update-connection'
+    | '/_all-pages/invite/$invitationId'
+    | '/_all-pages/oauth2/accessCode'
+    | '/_all-pages/superadmin/signin'
+    | '/_booking-form/embed/$formId'
+    | '/_all-pages/_authenticated/_org-required/billing'
+    | '/_all-pages/_authenticated/_org-required/bookings'
+    | '/_all-pages/_authenticated/_org-required/choose-plan'
+    | '/_all-pages/_authenticated/_org-required/payment-error'
+    | '/_all-pages/_authenticated/_org-required/settings'
+    | '/_all-pages/_authenticated/_org-required/team'
+    | '/_all-pages/_authenticated/company-setup/company-info'
+    | '/_all-pages/_authenticated/company-setup/employees'
+    | '/_all-pages/_authenticated/company-setup/select-company'
+    | '/_all-pages/_authenticated/superadmin/users'
+    | '/_all-pages/_authenticated/superadmin/workspaces'
+    | '/_booking-form/f/$orgSlug/$formSlug'
+    | '/_all-pages/_authenticated/_org-required/'
+    | '/_all-pages/_authenticated/superadmin/'
+    | '/_all-pages/_authenticated/_org-required/form/$formId/edit'
+    | '/_all-pages/_authenticated/_org-required/todos/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  AdminSimproConfigRoute: typeof AdminSimproConfigRoute
-  AuthSigninRoute: typeof AuthSigninRoute
-  AuthUpdateConnectionRoute: typeof AuthUpdateConnectionRoute
-  EmbedFormIdRoute: typeof EmbedFormIdRoute
-  InviteInvitationIdRoute: typeof InviteInvitationIdRoute
-  Oauth2AccessCodeRoute: typeof Oauth2AccessCodeRoute
-  SuperadminSigninRoute: typeof SuperadminSigninRoute
-  FOrgSlugFormSlugRoute: typeof FOrgSlugFormSlugRoute
+  AllPagesRoute: typeof AllPagesRouteWithChildren
+  BookingFormRoute: typeof BookingFormRouteWithChildren
 }
 export interface FileServerRoutesByFullPath {
   '/api/health': typeof ApiHealthServerRoute
@@ -581,201 +609,222 @@ export interface RootServerRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
+    '/_booking-form': {
+      id: '/_booking-form'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof AuthenticatedRouteImport
+      preLoaderRoute: typeof BookingFormRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/superadmin/signin': {
-      id: '/superadmin/signin'
-      path: '/superadmin/signin'
-      fullPath: '/superadmin/signin'
-      preLoaderRoute: typeof SuperadminSigninRouteImport
+    '/_all-pages': {
+      id: '/_all-pages'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AllPagesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/oauth2/accessCode': {
-      id: '/oauth2/accessCode'
-      path: '/oauth2/accessCode'
-      fullPath: '/oauth2/accessCode'
-      preLoaderRoute: typeof Oauth2AccessCodeRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_all-pages/terms': {
+      id: '/_all-pages/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof AllPagesTermsRouteImport
+      parentRoute: typeof AllPagesRoute
     }
-    '/invite/$invitationId': {
-      id: '/invite/$invitationId'
-      path: '/invite/$invitationId'
-      fullPath: '/invite/$invitationId'
-      preLoaderRoute: typeof InviteInvitationIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_all-pages/_authenticated': {
+      id: '/_all-pages/_authenticated'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AllPagesAuthenticatedRouteImport
+      parentRoute: typeof AllPagesRoute
     }
-    '/embed/$formId': {
-      id: '/embed/$formId'
+    '/_booking-form/embed/$formId': {
+      id: '/_booking-form/embed/$formId'
       path: '/embed/$formId'
       fullPath: '/embed/$formId'
-      preLoaderRoute: typeof EmbedFormIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof BookingFormEmbedFormIdRouteImport
+      parentRoute: typeof BookingFormRoute
     }
-    '/auth/update-connection': {
-      id: '/auth/update-connection'
+    '/_all-pages/superadmin/signin': {
+      id: '/_all-pages/superadmin/signin'
+      path: '/superadmin/signin'
+      fullPath: '/superadmin/signin'
+      preLoaderRoute: typeof AllPagesSuperadminSigninRouteImport
+      parentRoute: typeof AllPagesRoute
+    }
+    '/_all-pages/oauth2/accessCode': {
+      id: '/_all-pages/oauth2/accessCode'
+      path: '/oauth2/accessCode'
+      fullPath: '/oauth2/accessCode'
+      preLoaderRoute: typeof AllPagesOauth2AccessCodeRouteImport
+      parentRoute: typeof AllPagesRoute
+    }
+    '/_all-pages/invite/$invitationId': {
+      id: '/_all-pages/invite/$invitationId'
+      path: '/invite/$invitationId'
+      fullPath: '/invite/$invitationId'
+      preLoaderRoute: typeof AllPagesInviteInvitationIdRouteImport
+      parentRoute: typeof AllPagesRoute
+    }
+    '/_all-pages/auth/update-connection': {
+      id: '/_all-pages/auth/update-connection'
       path: '/auth/update-connection'
       fullPath: '/auth/update-connection'
-      preLoaderRoute: typeof AuthUpdateConnectionRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AllPagesAuthUpdateConnectionRouteImport
+      parentRoute: typeof AllPagesRoute
     }
-    '/auth/signin': {
-      id: '/auth/signin'
+    '/_all-pages/auth/signin': {
+      id: '/_all-pages/auth/signin'
       path: '/auth/signin'
       fullPath: '/auth/signin'
-      preLoaderRoute: typeof AuthSigninRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AllPagesAuthSigninRouteImport
+      parentRoute: typeof AllPagesRoute
     }
-    '/admin/simpro-config': {
-      id: '/admin/simpro-config'
+    '/_all-pages/admin/simpro-config': {
+      id: '/_all-pages/admin/simpro-config'
       path: '/admin/simpro-config'
       fullPath: '/admin/simpro-config'
-      preLoaderRoute: typeof AdminSimproConfigRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AllPagesAdminSimproConfigRouteImport
+      parentRoute: typeof AllPagesRoute
     }
-    '/_authenticated/superadmin': {
-      id: '/_authenticated/superadmin'
+    '/_all-pages/_authenticated/superadmin': {
+      id: '/_all-pages/_authenticated/superadmin'
       path: '/superadmin'
       fullPath: '/superadmin'
-      preLoaderRoute: typeof AuthenticatedSuperadminRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedSuperadminRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/select-organization': {
-      id: '/_authenticated/select-organization'
+    '/_all-pages/_authenticated/select-organization': {
+      id: '/_all-pages/_authenticated/select-organization'
       path: '/select-organization'
       fullPath: '/select-organization'
-      preLoaderRoute: typeof AuthenticatedSelectOrganizationRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedSelectOrganizationRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/profile': {
-      id: '/_authenticated/profile'
+    '/_all-pages/_authenticated/profile': {
+      id: '/_all-pages/_authenticated/profile'
       path: '/profile'
       fullPath: '/profile'
-      preLoaderRoute: typeof AuthenticatedProfileRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedProfileRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
+    '/_all-pages/_authenticated/onboarding': {
+      id: '/_all-pages/_authenticated/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOnboardingRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/superadmin/': {
-      id: '/_authenticated/superadmin/'
+    '/_all-pages/_authenticated/superadmin/': {
+      id: '/_all-pages/_authenticated/superadmin/'
       path: '/'
       fullPath: '/superadmin/'
-      preLoaderRoute: typeof AuthenticatedSuperadminIndexRouteImport
-      parentRoute: typeof AuthenticatedSuperadminRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedSuperadminIndexRouteImport
+      parentRoute: typeof AllPagesAuthenticatedSuperadminRoute
     }
-    '/_authenticated/_org-required/': {
-      id: '/_authenticated/_org-required/'
+    '/_all-pages/_authenticated/_org-required/': {
+      id: '/_all-pages/_authenticated/_org-required/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredIndexRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/f/$orgSlug/$formSlug': {
-      id: '/f/$orgSlug/$formSlug'
+    '/_booking-form/f/$orgSlug/$formSlug': {
+      id: '/_booking-form/f/$orgSlug/$formSlug'
       path: '/f/$orgSlug/$formSlug'
       fullPath: '/f/$orgSlug/$formSlug'
-      preLoaderRoute: typeof FOrgSlugFormSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof BookingFormFOrgSlugFormSlugRouteImport
+      parentRoute: typeof BookingFormRoute
     }
-    '/_authenticated/superadmin/workspaces': {
-      id: '/_authenticated/superadmin/workspaces'
+    '/_all-pages/_authenticated/superadmin/workspaces': {
+      id: '/_all-pages/_authenticated/superadmin/workspaces'
       path: '/workspaces'
       fullPath: '/superadmin/workspaces'
-      preLoaderRoute: typeof AuthenticatedSuperadminWorkspacesRouteImport
-      parentRoute: typeof AuthenticatedSuperadminRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedSuperadminWorkspacesRouteImport
+      parentRoute: typeof AllPagesAuthenticatedSuperadminRoute
     }
-    '/_authenticated/superadmin/users': {
-      id: '/_authenticated/superadmin/users'
+    '/_all-pages/_authenticated/superadmin/users': {
+      id: '/_all-pages/_authenticated/superadmin/users'
       path: '/users'
       fullPath: '/superadmin/users'
-      preLoaderRoute: typeof AuthenticatedSuperadminUsersRouteImport
-      parentRoute: typeof AuthenticatedSuperadminRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedSuperadminUsersRouteImport
+      parentRoute: typeof AllPagesAuthenticatedSuperadminRoute
     }
-    '/_authenticated/company-setup/select-company': {
-      id: '/_authenticated/company-setup/select-company'
+    '/_all-pages/_authenticated/company-setup/select-company': {
+      id: '/_all-pages/_authenticated/company-setup/select-company'
       path: '/company-setup/select-company'
       fullPath: '/company-setup/select-company'
-      preLoaderRoute: typeof AuthenticatedCompanySetupSelectCompanyRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedCompanySetupSelectCompanyRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/company-setup/employees': {
-      id: '/_authenticated/company-setup/employees'
+    '/_all-pages/_authenticated/company-setup/employees': {
+      id: '/_all-pages/_authenticated/company-setup/employees'
       path: '/company-setup/employees'
       fullPath: '/company-setup/employees'
-      preLoaderRoute: typeof AuthenticatedCompanySetupEmployeesRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedCompanySetupEmployeesRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/company-setup/company-info': {
-      id: '/_authenticated/company-setup/company-info'
+    '/_all-pages/_authenticated/company-setup/company-info': {
+      id: '/_all-pages/_authenticated/company-setup/company-info'
       path: '/company-setup/company-info'
       fullPath: '/company-setup/company-info'
-      preLoaderRoute: typeof AuthenticatedCompanySetupCompanyInfoRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedCompanySetupCompanyInfoRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/team': {
-      id: '/_authenticated/_org-required/team'
+    '/_all-pages/_authenticated/_org-required/team': {
+      id: '/_all-pages/_authenticated/_org-required/team'
       path: '/team'
       fullPath: '/team'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredTeamRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredTeamRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/settings': {
-      id: '/_authenticated/_org-required/settings'
+    '/_all-pages/_authenticated/_org-required/settings': {
+      id: '/_all-pages/_authenticated/_org-required/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredSettingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredSettingsRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/payment-error': {
-      id: '/_authenticated/_org-required/payment-error'
+    '/_all-pages/_authenticated/_org-required/payment-error': {
+      id: '/_all-pages/_authenticated/_org-required/payment-error'
       path: '/payment-error'
       fullPath: '/payment-error'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredPaymentErrorRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredPaymentErrorRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/choose-plan': {
-      id: '/_authenticated/_org-required/choose-plan'
+    '/_all-pages/_authenticated/_org-required/choose-plan': {
+      id: '/_all-pages/_authenticated/_org-required/choose-plan'
       path: '/choose-plan'
       fullPath: '/choose-plan'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredChoosePlanRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredChoosePlanRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/bookings': {
-      id: '/_authenticated/_org-required/bookings'
+    '/_all-pages/_authenticated/_org-required/bookings': {
+      id: '/_all-pages/_authenticated/_org-required/bookings'
       path: '/bookings'
       fullPath: '/bookings'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredBookingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredBookingsRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/billing': {
-      id: '/_authenticated/_org-required/billing'
+    '/_all-pages/_authenticated/_org-required/billing': {
+      id: '/_all-pages/_authenticated/_org-required/billing'
       path: '/billing'
       fullPath: '/billing'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredBillingRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredBillingRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/todos/$id/edit': {
-      id: '/_authenticated/_org-required/todos/$id/edit'
+    '/_all-pages/_authenticated/_org-required/todos/$id/edit': {
+      id: '/_all-pages/_authenticated/_org-required/todos/$id/edit'
       path: '/todos/$id/edit'
       fullPath: '/todos/$id/edit'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredTodosIdEditRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_authenticated/_org-required/form/$formId/edit': {
-      id: '/_authenticated/_org-required/form/$formId/edit'
+    '/_all-pages/_authenticated/_org-required/form/$formId/edit': {
+      id: '/_all-pages/_authenticated/_org-required/form/$formId/edit'
       path: '/form/$formId/edit'
       fullPath: '/form/$formId/edit'
-      preLoaderRoute: typeof AuthenticatedOrgRequiredFormFormIdEditRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRouteImport
+      parentRoute: typeof AllPagesAuthenticatedRoute
     }
   }
 }
@@ -875,84 +924,127 @@ declare module '@tanstack/react-start/server' {
   }
 }
 
-interface AuthenticatedSuperadminRouteChildren {
-  AuthenticatedSuperadminUsersRoute: typeof AuthenticatedSuperadminUsersRoute
-  AuthenticatedSuperadminWorkspacesRoute: typeof AuthenticatedSuperadminWorkspacesRoute
-  AuthenticatedSuperadminIndexRoute: typeof AuthenticatedSuperadminIndexRoute
+interface AllPagesAuthenticatedSuperadminRouteChildren {
+  AllPagesAuthenticatedSuperadminUsersRoute: typeof AllPagesAuthenticatedSuperadminUsersRoute
+  AllPagesAuthenticatedSuperadminWorkspacesRoute: typeof AllPagesAuthenticatedSuperadminWorkspacesRoute
+  AllPagesAuthenticatedSuperadminIndexRoute: typeof AllPagesAuthenticatedSuperadminIndexRoute
 }
 
-const AuthenticatedSuperadminRouteChildren: AuthenticatedSuperadminRouteChildren =
+const AllPagesAuthenticatedSuperadminRouteChildren: AllPagesAuthenticatedSuperadminRouteChildren =
   {
-    AuthenticatedSuperadminUsersRoute: AuthenticatedSuperadminUsersRoute,
-    AuthenticatedSuperadminWorkspacesRoute:
-      AuthenticatedSuperadminWorkspacesRoute,
-    AuthenticatedSuperadminIndexRoute: AuthenticatedSuperadminIndexRoute,
+    AllPagesAuthenticatedSuperadminUsersRoute:
+      AllPagesAuthenticatedSuperadminUsersRoute,
+    AllPagesAuthenticatedSuperadminWorkspacesRoute:
+      AllPagesAuthenticatedSuperadminWorkspacesRoute,
+    AllPagesAuthenticatedSuperadminIndexRoute:
+      AllPagesAuthenticatedSuperadminIndexRoute,
   }
 
-const AuthenticatedSuperadminRouteWithChildren =
-  AuthenticatedSuperadminRoute._addFileChildren(
-    AuthenticatedSuperadminRouteChildren,
+const AllPagesAuthenticatedSuperadminRouteWithChildren =
+  AllPagesAuthenticatedSuperadminRoute._addFileChildren(
+    AllPagesAuthenticatedSuperadminRouteChildren,
   )
 
-interface AuthenticatedRouteChildren {
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
-  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
-  AuthenticatedSelectOrganizationRoute: typeof AuthenticatedSelectOrganizationRoute
-  AuthenticatedSuperadminRoute: typeof AuthenticatedSuperadminRouteWithChildren
-  AuthenticatedOrgRequiredBillingRoute: typeof AuthenticatedOrgRequiredBillingRoute
-  AuthenticatedOrgRequiredBookingsRoute: typeof AuthenticatedOrgRequiredBookingsRoute
-  AuthenticatedOrgRequiredChoosePlanRoute: typeof AuthenticatedOrgRequiredChoosePlanRoute
-  AuthenticatedOrgRequiredPaymentErrorRoute: typeof AuthenticatedOrgRequiredPaymentErrorRoute
-  AuthenticatedOrgRequiredSettingsRoute: typeof AuthenticatedOrgRequiredSettingsRoute
-  AuthenticatedOrgRequiredTeamRoute: typeof AuthenticatedOrgRequiredTeamRoute
-  AuthenticatedCompanySetupCompanyInfoRoute: typeof AuthenticatedCompanySetupCompanyInfoRoute
-  AuthenticatedCompanySetupEmployeesRoute: typeof AuthenticatedCompanySetupEmployeesRoute
-  AuthenticatedCompanySetupSelectCompanyRoute: typeof AuthenticatedCompanySetupSelectCompanyRoute
-  AuthenticatedOrgRequiredIndexRoute: typeof AuthenticatedOrgRequiredIndexRoute
-  AuthenticatedOrgRequiredFormFormIdEditRoute: typeof AuthenticatedOrgRequiredFormFormIdEditRoute
-  AuthenticatedOrgRequiredTodosIdEditRoute: typeof AuthenticatedOrgRequiredTodosIdEditRoute
+interface AllPagesAuthenticatedRouteChildren {
+  AllPagesAuthenticatedOnboardingRoute: typeof AllPagesAuthenticatedOnboardingRoute
+  AllPagesAuthenticatedProfileRoute: typeof AllPagesAuthenticatedProfileRoute
+  AllPagesAuthenticatedSelectOrganizationRoute: typeof AllPagesAuthenticatedSelectOrganizationRoute
+  AllPagesAuthenticatedSuperadminRoute: typeof AllPagesAuthenticatedSuperadminRouteWithChildren
+  AllPagesAuthenticatedOrgRequiredBillingRoute: typeof AllPagesAuthenticatedOrgRequiredBillingRoute
+  AllPagesAuthenticatedOrgRequiredBookingsRoute: typeof AllPagesAuthenticatedOrgRequiredBookingsRoute
+  AllPagesAuthenticatedOrgRequiredChoosePlanRoute: typeof AllPagesAuthenticatedOrgRequiredChoosePlanRoute
+  AllPagesAuthenticatedOrgRequiredPaymentErrorRoute: typeof AllPagesAuthenticatedOrgRequiredPaymentErrorRoute
+  AllPagesAuthenticatedOrgRequiredSettingsRoute: typeof AllPagesAuthenticatedOrgRequiredSettingsRoute
+  AllPagesAuthenticatedOrgRequiredTeamRoute: typeof AllPagesAuthenticatedOrgRequiredTeamRoute
+  AllPagesAuthenticatedCompanySetupCompanyInfoRoute: typeof AllPagesAuthenticatedCompanySetupCompanyInfoRoute
+  AllPagesAuthenticatedCompanySetupEmployeesRoute: typeof AllPagesAuthenticatedCompanySetupEmployeesRoute
+  AllPagesAuthenticatedCompanySetupSelectCompanyRoute: typeof AllPagesAuthenticatedCompanySetupSelectCompanyRoute
+  AllPagesAuthenticatedOrgRequiredIndexRoute: typeof AllPagesAuthenticatedOrgRequiredIndexRoute
+  AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute: typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
+  AllPagesAuthenticatedOrgRequiredTodosIdEditRoute: typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 
-const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
-  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
-  AuthenticatedSelectOrganizationRoute: AuthenticatedSelectOrganizationRoute,
-  AuthenticatedSuperadminRoute: AuthenticatedSuperadminRouteWithChildren,
-  AuthenticatedOrgRequiredBillingRoute: AuthenticatedOrgRequiredBillingRoute,
-  AuthenticatedOrgRequiredBookingsRoute: AuthenticatedOrgRequiredBookingsRoute,
-  AuthenticatedOrgRequiredChoosePlanRoute:
-    AuthenticatedOrgRequiredChoosePlanRoute,
-  AuthenticatedOrgRequiredPaymentErrorRoute:
-    AuthenticatedOrgRequiredPaymentErrorRoute,
-  AuthenticatedOrgRequiredSettingsRoute: AuthenticatedOrgRequiredSettingsRoute,
-  AuthenticatedOrgRequiredTeamRoute: AuthenticatedOrgRequiredTeamRoute,
-  AuthenticatedCompanySetupCompanyInfoRoute:
-    AuthenticatedCompanySetupCompanyInfoRoute,
-  AuthenticatedCompanySetupEmployeesRoute:
-    AuthenticatedCompanySetupEmployeesRoute,
-  AuthenticatedCompanySetupSelectCompanyRoute:
-    AuthenticatedCompanySetupSelectCompanyRoute,
-  AuthenticatedOrgRequiredIndexRoute: AuthenticatedOrgRequiredIndexRoute,
-  AuthenticatedOrgRequiredFormFormIdEditRoute:
-    AuthenticatedOrgRequiredFormFormIdEditRoute,
-  AuthenticatedOrgRequiredTodosIdEditRoute:
-    AuthenticatedOrgRequiredTodosIdEditRoute,
+const AllPagesAuthenticatedRouteChildren: AllPagesAuthenticatedRouteChildren = {
+  AllPagesAuthenticatedOnboardingRoute: AllPagesAuthenticatedOnboardingRoute,
+  AllPagesAuthenticatedProfileRoute: AllPagesAuthenticatedProfileRoute,
+  AllPagesAuthenticatedSelectOrganizationRoute:
+    AllPagesAuthenticatedSelectOrganizationRoute,
+  AllPagesAuthenticatedSuperadminRoute:
+    AllPagesAuthenticatedSuperadminRouteWithChildren,
+  AllPagesAuthenticatedOrgRequiredBillingRoute:
+    AllPagesAuthenticatedOrgRequiredBillingRoute,
+  AllPagesAuthenticatedOrgRequiredBookingsRoute:
+    AllPagesAuthenticatedOrgRequiredBookingsRoute,
+  AllPagesAuthenticatedOrgRequiredChoosePlanRoute:
+    AllPagesAuthenticatedOrgRequiredChoosePlanRoute,
+  AllPagesAuthenticatedOrgRequiredPaymentErrorRoute:
+    AllPagesAuthenticatedOrgRequiredPaymentErrorRoute,
+  AllPagesAuthenticatedOrgRequiredSettingsRoute:
+    AllPagesAuthenticatedOrgRequiredSettingsRoute,
+  AllPagesAuthenticatedOrgRequiredTeamRoute:
+    AllPagesAuthenticatedOrgRequiredTeamRoute,
+  AllPagesAuthenticatedCompanySetupCompanyInfoRoute:
+    AllPagesAuthenticatedCompanySetupCompanyInfoRoute,
+  AllPagesAuthenticatedCompanySetupEmployeesRoute:
+    AllPagesAuthenticatedCompanySetupEmployeesRoute,
+  AllPagesAuthenticatedCompanySetupSelectCompanyRoute:
+    AllPagesAuthenticatedCompanySetupSelectCompanyRoute,
+  AllPagesAuthenticatedOrgRequiredIndexRoute:
+    AllPagesAuthenticatedOrgRequiredIndexRoute,
+  AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute:
+    AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute,
+  AllPagesAuthenticatedOrgRequiredTodosIdEditRoute:
+    AllPagesAuthenticatedOrgRequiredTodosIdEditRoute,
 }
 
-const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
-  AuthenticatedRouteChildren,
+const AllPagesAuthenticatedRouteWithChildren =
+  AllPagesAuthenticatedRoute._addFileChildren(
+    AllPagesAuthenticatedRouteChildren,
+  )
+
+interface AllPagesRouteChildren {
+  AllPagesAuthenticatedRoute: typeof AllPagesAuthenticatedRouteWithChildren
+  AllPagesTermsRoute: typeof AllPagesTermsRoute
+  AllPagesAdminSimproConfigRoute: typeof AllPagesAdminSimproConfigRoute
+  AllPagesAuthSigninRoute: typeof AllPagesAuthSigninRoute
+  AllPagesAuthUpdateConnectionRoute: typeof AllPagesAuthUpdateConnectionRoute
+  AllPagesInviteInvitationIdRoute: typeof AllPagesInviteInvitationIdRoute
+  AllPagesOauth2AccessCodeRoute: typeof AllPagesOauth2AccessCodeRoute
+  AllPagesSuperadminSigninRoute: typeof AllPagesSuperadminSigninRoute
+}
+
+const AllPagesRouteChildren: AllPagesRouteChildren = {
+  AllPagesAuthenticatedRoute: AllPagesAuthenticatedRouteWithChildren,
+  AllPagesTermsRoute: AllPagesTermsRoute,
+  AllPagesAdminSimproConfigRoute: AllPagesAdminSimproConfigRoute,
+  AllPagesAuthSigninRoute: AllPagesAuthSigninRoute,
+  AllPagesAuthUpdateConnectionRoute: AllPagesAuthUpdateConnectionRoute,
+  AllPagesInviteInvitationIdRoute: AllPagesInviteInvitationIdRoute,
+  AllPagesOauth2AccessCodeRoute: AllPagesOauth2AccessCodeRoute,
+  AllPagesSuperadminSigninRoute: AllPagesSuperadminSigninRoute,
+}
+
+const AllPagesRouteWithChildren = AllPagesRoute._addFileChildren(
+  AllPagesRouteChildren,
+)
+
+interface BookingFormRouteChildren {
+  BookingFormEmbedFormIdRoute: typeof BookingFormEmbedFormIdRoute
+  BookingFormFOrgSlugFormSlugRoute: typeof BookingFormFOrgSlugFormSlugRoute
+}
+
+const BookingFormRouteChildren: BookingFormRouteChildren = {
+  BookingFormEmbedFormIdRoute: BookingFormEmbedFormIdRoute,
+  BookingFormFOrgSlugFormSlugRoute: BookingFormFOrgSlugFormSlugRoute,
+}
+
+const BookingFormRouteWithChildren = BookingFormRoute._addFileChildren(
+  BookingFormRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  AdminSimproConfigRoute: AdminSimproConfigRoute,
-  AuthSigninRoute: AuthSigninRoute,
-  AuthUpdateConnectionRoute: AuthUpdateConnectionRoute,
-  EmbedFormIdRoute: EmbedFormIdRoute,
-  InviteInvitationIdRoute: InviteInvitationIdRoute,
-  Oauth2AccessCodeRoute: Oauth2AccessCodeRoute,
-  SuperadminSigninRoute: SuperadminSigninRoute,
-  FOrgSlugFormSlugRoute: FOrgSlugFormSlugRoute,
+  AllPagesRoute: AllPagesRouteWithChildren,
+  BookingFormRoute: BookingFormRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

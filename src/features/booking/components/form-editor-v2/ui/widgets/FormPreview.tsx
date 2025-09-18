@@ -40,7 +40,7 @@ export function FormPreview() {
                         {(child as any).description && (
                           <p className="text-sm text-gray-600">{(child as any).description}</p>
                         )}
-                        {child.type === 'service' && (child as any).price && (
+                        {child.type === 'service' && (child as any).price !== undefined && (child as any).price !== null && (child as any).price > 0 && (
                           <p className="text-sm font-medium text-green-600">
                             ${(child as any).price}
                           </p>

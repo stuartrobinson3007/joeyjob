@@ -131,26 +131,26 @@
     "noOrganizationDescription": "Please select an organization to continue"
   },
   "organization": {
-    "selectWorkspace": "Select workspace",
-    "searchWorkspaces": "Search workspaces...",
-    "switchingDisabled": "Workspace switching disabled in superadmin mode",
-    "newWorkspace": "New workspace",
-    "workspaceName": "Workspace name",
+    "selectWorkspace": "Select company",
+    "searchWorkspaces": "Search companies...",
+    "switchingDisabled": "Company switching disabled in superadmin mode",
+    "newWorkspace": "New company",
+    "workspaceName": "Company name",
     "workspaceNamePlaceholder": "Acme Inc",
-    "workspaceDescription": "Workspace description",
+    "workspaceDescription": "Company description",
     "workspaceDescriptionOptional": "Description (optional)",
-    "workspaceDescriptionPlaceholder": "A brief description of your workspace",
-    "createWorkspace": "Create workspace",
-    "createWorkspaceDescription": "Create a new workspace to collaborate with your team",
-    "createNewWorkspaceDescription": "Start a new workspace for your team",
+    "workspaceDescriptionPlaceholder": "A brief description of your company",
+    "createWorkspace": "Create company",
+    "createWorkspaceDescription": "Create a new company to collaborate with your team",
+    "createNewWorkspaceDescription": "Start a new company for your team",
     "createOrganization": "Create Organization",
     "createNew": "Create New Organization",
     "empty": "No organizations yet",
-    "noWorkspaces": "No workspaces found.",
-    "noWorkspacesTitle": "No workspaces yet",
-    "noWorkspacesDescription": "Get started by creating your first workspace",
-    "createFirstWorkspace": "Create your first workspace",
-    "chooseWorkspaceDescription": "Choose a workspace to continue",
+    "noWorkspaces": "No companies found.",
+    "noWorkspacesTitle": "No companies yet",
+    "noWorkspacesDescription": "Get started by creating your first company",
+    "createFirstWorkspace": "Create your first company",
+    "chooseWorkspaceDescription": "Choose a company to continue",
     "title": "Organizations",
     "noActiveOrganization": "No active organization selected"
   },
@@ -244,11 +244,11 @@
     }
   },
   "workspace": {
-    "selectWorkspace": "Select workspace",
-    "createWorkspace": "Create workspace",
-    "workspaceName": "Workspace name",
+    "selectWorkspace": "Select company",
+    "createWorkspace": "Create company",
+    "workspaceName": "Company name",
     "organizationName": "Organization name",
-    "createWorkspaceTitle": "Create workspace"
+    "createWorkspaceTitle": "Create company"
   },
   "sidebar": {
     "superAdmin": "Super Admin"

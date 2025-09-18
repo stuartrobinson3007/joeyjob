@@ -5,6 +5,7 @@ import useFormEditorData from "../hooks/use-form-editor-data";
 import { FormFieldConfig, FormFieldType } from "@/features/booking/lib/form-field-types";
 import { QuestionList } from "../question-list";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
+import type { ValidationResult } from "../utils/form-validation";
 
 interface QuestionsViewProps {
     onNavigateBack: () => void;

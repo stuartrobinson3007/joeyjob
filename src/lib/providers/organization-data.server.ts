@@ -148,7 +148,7 @@ export const getOrganizationEmployees = createServerFn({ method: 'GET' })
         .limit(1)
 
       const org = orgs[0]
-      if (!org || !org.providerType || !org.providerCompanyId) {
+      if (!org || !org.providerType) {
         return { employees: [] } // No provider configured
       }
 
@@ -171,7 +171,7 @@ export const getOrganizationEmployees = createServerFn({ method: 'GET' })
           )
         }
 
-        const { accessToken, buildName, domain } = simproConfigs[0]
+        const { accessToken, buildName, domain, companyId } = simproConfigs[0]
 
         const buildConfig = {
           buildName,
@@ -188,9 +188,9 @@ export const getOrganizationEmployees = createServerFn({ method: 'GET' })
 
 
         // Get fresh company info
-        const companyInfo = await providerService.getCompanyInfo(org.providerCompanyId)
+        const companyInfo = await providerService.getCompanyInfo(companyId)
 
-        employees = await providerService.getEmployees(org.providerCompanyId)
+        employees = await providerService.getEmployees(companyId)
       } else {
         throw new AppError(
           ERROR_CODES.BIZ_INVALID_STATE,
@@ -256,7 +256,7 @@ export const refreshOrganizationFromProvider = createServerFn({ method: 'POST' }
         .limit(1)
 
       const org = orgs[0]
-      if (!org || !org.providerType || !org.providerCompanyId) {
+      if (!org || !org.providerType) {
         throw new AppError(
           ERROR_CODES.BIZ_INVALID_STATE,
           400,
@@ -282,7 +282,7 @@ export const refreshOrganizationFromProvider = createServerFn({ method: 'POST' }
           )
         }
 
-        const { accessToken, buildName, domain } = simproConfigs[0]
+        const { accessToken, buildName, domain, companyId } = simproConfigs[0]
         const buildConfig = {
           buildName,
           domain,
@@ -298,7 +298,7 @@ export const refreshOrganizationFromProvider = createServerFn({ method: 'POST' }
         )
 
         // Fetch fresh company data from Simpro
-        const companyInfo = await providerService.getCompanyInfo(org.providerCompanyId)
+        const companyInfo = await providerService.getCompanyInfo(companyId)
 
         // Update organization with fresh data
         await db

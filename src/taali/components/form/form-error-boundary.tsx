@@ -1,6 +1,6 @@
 import React from 'react'
 import { toast } from 'sonner'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Copy, Check } from 'lucide-react'
 
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Button } from '@/ui/button'
@@ -60,7 +60,27 @@ export function FormErrorBoundary({
  */
 function FormErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   const { t } = useTranslation('errors')
-  
+  const [copied, setCopied] = React.useState(false)
+
+  const handleCopy = async () => {
+    const errorDetails = `Form Error Details:
+Message: ${error.message}
+Name: ${error.name}
+Stack Trace:
+${error.stack || 'Not available'}
+Timestamp: ${new Date().toISOString()}
+URL: ${window.location.href}
+User Agent: ${navigator.userAgent}`
+
+    try {
+      await navigator.clipboard.writeText(errorDetails)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy error details:', err)
+    }
+  }
+
   return (
     <div className="p-6 border border-destructive/30 rounded-lg bg-destructive/5">
       <div className="flex items-start gap-3">
@@ -80,14 +100,33 @@ function FormErrorFallback({ error, reset }: { error: Error; reset: () => void }
               </pre>
             </details>
           )}
-          <Button 
-            onClick={reset} 
-            className="mt-4" 
-            variant="outline"
-            size="sm"
-          >
-            {t('actions.retry')}
-          </Button>
+          <div className="mt-4 flex gap-2">
+            <Button
+              onClick={reset}
+              variant="outline"
+              size="sm"
+            >
+              {t('actions.retry')}
+            </Button>
+            <Button
+              onClick={handleCopy}
+              variant="outline"
+              size="sm"
+              disabled={copied}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 mr-1" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy Details
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

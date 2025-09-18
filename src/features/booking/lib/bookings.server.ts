@@ -40,7 +40,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
     try {
       // Build where conditions
       const conditions: SQL[] = [eq(bookings.organizationId, organizationId)]
-      
+
       // Add search filter
       if (search) {
         conditions.push(
@@ -48,6 +48,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
             ilike(bookings.customerName, `%${search}%`),
             ilike(bookings.customerEmail, `%${search}%`),
             ilike(bookings.customerPhone, `%${search}%`),
+            ilike(bookings.customerAddress, `%${search}%`),
             ilike(bookings.confirmationCode, `%${search}%`)
           )!
         )
@@ -67,6 +68,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
           status: bookings.status,
           serviceName: bookings.serviceName,
           servicePrice: bookings.servicePrice,
+          customerAddress: bookings.customerAddress,
         }
         
         const column = columnMap[columnId]
@@ -102,6 +104,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
                   serviceDuration: bookings.serviceDuration,
                   servicePrice: bookings.servicePrice,
                   serviceName: bookings.serviceName,
+                  customerAddress: bookings.customerAddress,
                 }
                 const column = columnMap[sort.id]
                 return column ? (sort.desc ? desc(column) : asc(column)) : null
@@ -126,6 +129,7 @@ export const getBookingsTable = createServerFn({ method: 'POST' })
         customerEmail: booking.customerEmail,
         customerPhone: booking.customerPhone,
         customerCompany: booking.customerCompany,
+        customerAddress: booking.customerAddress,
         bookingStartAt: booking.bookingStartAt,
         bookingEndAt: booking.bookingEndAt,
         customerTimezone: booking.customerTimezone,
@@ -274,7 +278,7 @@ export const getAllBookingsIds = createServerFn({ method: 'POST' })
     try {
       // Build where conditions (same as table query)
       const conditions: SQL[] = [eq(bookings.organizationId, organizationId)]
-      
+
       // Add search filter
       if (search) {
         conditions.push(
@@ -282,6 +286,7 @@ export const getAllBookingsIds = createServerFn({ method: 'POST' })
             ilike(bookings.customerName, `%${search}%`),
             ilike(bookings.customerEmail, `%${search}%`),
             ilike(bookings.customerPhone, `%${search}%`),
+            ilike(bookings.customerAddress, `%${search}%`),
             ilike(bookings.confirmationCode, `%${search}%`)
           )!
         )
@@ -299,6 +304,7 @@ export const getAllBookingsIds = createServerFn({ method: 'POST' })
           status: bookings.status,
           serviceName: bookings.serviceName,
           servicePrice: bookings.servicePrice,
+          customerAddress: bookings.customerAddress,
         }
         
         const column = columnMap[columnId]

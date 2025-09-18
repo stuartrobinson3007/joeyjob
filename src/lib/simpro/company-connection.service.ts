@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm'
 
 import { authMiddleware } from '@/lib/auth/auth-middleware'
 import { db } from '@/lib/db/db'
-import { account, organization } from '@/database/schema'
+import { account, organization, simproCompanies } from '@/database/schema'
 import { createSimproApi } from './simpro-api'
 import { simproProvider } from '@/lib/auth/providers/simpro.provider'
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
@@ -134,18 +134,30 @@ export const checkExistingOrganization = createServerFn({ method: 'POST' })
     const { companyId } = data
 
     try {
+      // Check if a Simpro company configuration exists with this company ID
+      const existingSimproConfigs = await db
+        .select({
+          organizationId: simproCompanies.organizationId,
+        })
+        .from(simproCompanies)
+        .where(eq(simproCompanies.companyId, companyId))
+        .limit(1)
+
+      if (existingSimproConfigs.length === 0) {
+        return {
+          exists: false,
+          organization: null
+        }
+      }
+
+      // Get the organization details
       const existingOrgs = await db
         .select({
           id: organization.id,
           name: organization.name,
         })
         .from(organization)
-        .where(
-          and(
-            eq(organization.providerType, 'simpro'),
-            eq(organization.providerCompanyId, companyId)
-          )
-        )
+        .where(eq(organization.id, existingSimproConfigs[0].organizationId))
         .limit(1)
 
       return {

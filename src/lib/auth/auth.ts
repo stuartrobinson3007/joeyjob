@@ -411,11 +411,6 @@ const getAuthConfig = serverOnly(() =>
                 input: true,
                 required: false
               },
-              providerCompanyId: {
-                type: "string",
-                input: true,
-                required: false
-              },
               providerData: {
                 type: "string", // JSON stored as string
                 input: true,

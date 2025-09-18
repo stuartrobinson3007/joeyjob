@@ -5,9 +5,10 @@ import { customAlphabet } from 'nanoid'
 
 import { organizationMiddleware } from '@/features/organization/lib/organization-middleware'
 import { db } from '@/lib/db/db'
-import { bookingForms, organization } from '@/database/schema'
+import { bookingForms, organization, subscription } from '@/database/schema'
 import { AppError } from '@/taali/utils/errors'
 import { ERROR_CODES } from '@/taali/errors/codes'
+import { APP_ERROR_CODES } from '@/lib/errors/app-error-codes'
 
 // Custom ID generator for forms: 12 characters, lowercase letters and numbers only
 const generateFormId = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 12)
@@ -167,8 +168,8 @@ export const updateForm = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .validator((data: unknown) => updateFormSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { organizationId, user } = context
-    
+    const { organizationId, user, headers } = context
+
     // No permission checks needed - organization middleware ensures user is member
 
     try {
@@ -185,6 +186,64 @@ export const updateForm = createServerFn({ method: 'POST' })
 
       if (!existingForm.length) {
         throw AppError.notFound('Form')
+      }
+
+      // If trying to enable the form, check subscription status
+      if (data.isActive === true && !existingForm[0].isActive) {
+        console.log(`🔍 [updateForm] Attempting to enable form ${data.id} for org ${organizationId}`)
+
+        // Get subscription status for the organization
+        const [org] = await db
+          .select()
+          .from(organization)
+          .where(eq(organization.id, organizationId))
+          .limit(1)
+
+        console.log(`🔍 [updateForm] Organization plan check:`, {
+          orgId: organizationId,
+          currentPlan: org?.currentPlan,
+          stripeCustomerId: org?.stripeCustomerId
+        })
+
+        // Check subscription in database
+        const subscriptionRecords = await db
+          .select()
+          .from(subscription)
+          .where(eq(subscription.referenceId, organizationId))
+
+        console.log(`🔍 [updateForm] Subscription records found:`, {
+          count: subscriptionRecords.length,
+          subscriptions: subscriptionRecords.map(sub => ({
+            id: sub.id,
+            status: sub.status,
+            plan: sub.plan,
+            stripeSubscriptionId: sub.stripeSubscriptionId
+          }))
+        })
+
+        // Find active subscription
+        const activeSubscription = subscriptionRecords.find(
+          sub => sub.status === 'active' || sub.status === 'trialing'
+        )
+
+        console.log(`🔍 [updateForm] Active subscription check:`, {
+          activeSubscriptionFound: !!activeSubscription,
+          activeSubscriptionStatus: activeSubscription?.status,
+          activeSubscriptionId: activeSubscription?.id
+        })
+
+        if (!activeSubscription) {
+          console.log(`❌ [updateForm] No active subscription found - blocking form enable`)
+          // Return error with flag for frontend to show subscription dialog
+          throw new AppError(
+            ERROR_CODES.BIZ_SUBSCRIPTION_REQUIRED,
+            403,
+            { requiresSubscription: true },
+            'An active subscription is required to enable booking forms'
+          )
+        }
+
+        console.log(`✅ [updateForm] Active subscription found - allowing form enable`)
       }
 
       // Prepare update data
@@ -495,8 +554,7 @@ export const getBookingForm = createServerFn({ method: 'GET' })
     return schema.parse(data)
   })
   .handler(async ({ data }) => {
-    // This is for the public booking form - no organization middleware needed
-    // Join with organization table to get organization data like the hosted form
+    // Step 1: Always fetch form and organization data (regardless of isActive)
     const result = await db
       .select({
         form: bookingForms,
@@ -506,6 +564,7 @@ export const getBookingForm = createServerFn({ method: 'GET' })
           slug: organization.slug,
           logo: organization.logo,
           phone: organization.phone,
+          email: organization.email,
           timezone: organization.timezone
         }
       })
@@ -513,23 +572,80 @@ export const getBookingForm = createServerFn({ method: 'GET' })
       .innerJoin(organization, eq(bookingForms.organizationId, organization.id))
       .where(and(
         eq(bookingForms.id, data.id),
-        eq(bookingForms.isActive, true),
         isNull(bookingForms.deletedAt)
       ))
       .limit(1)
 
+    // Step 2: Check if form exists at all
     if (!result.length) {
       throw new AppError(
-        ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        APP_ERROR_CODES.BIZ_FORM_NOT_FOUND,
         404,
-        undefined,
-        'Booking form not found or inactive'
+        {
+          organizationData: null,
+          theme: 'light',
+          primaryColor: '#3B82F6'
+        },
+        'Booking form not found'
+      );
+    }
+
+    // Step 3: Extract theme data (always available now)
+    const formData = result[0];
+    const theme = formData.form.theme || 'light';
+    const primaryColor = formData.form.primaryColor || '#3B82F6';
+
+    console.log('🔍 [EMBED FORMS] Form found with theme:', {
+      formId: data.id,
+      isActive: formData.form.isActive,
+      theme,
+      primaryColor,
+      orgName: formData.organization.name
+    });
+
+    // Step 4: Check if form is active
+    if (!formData.form.isActive) {
+      throw new AppError(
+        APP_ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        404,
+        {
+          organizationData: formData.organization,
+          theme,
+          primaryColor
+        },
+        'This booking form is currently disabled'
+      );
+    }
+
+    // Step 5: Check subscription (we have theme data available)
+    const orgId = formData.organization.id
+    const subscriptionRecords = await db
+      .select()
+      .from(subscription)
+      .where(eq(subscription.referenceId, orgId))
+
+    const activeSubscription = subscriptionRecords.find(
+      sub => sub.status === 'active' || sub.status === 'trialing'
+    )
+
+    // If no active subscription, throw error with theme
+    if (!activeSubscription) {
+      throw new AppError(
+        APP_ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        404,
+        {
+          subscriptionRequired: true,
+          organizationData: formData.organization,
+          theme,
+          primaryColor
+        },
+        'Booking form temporarily unavailable'
       )
     }
 
     return {
-      form: result[0].form,
-      organization: result[0].organization,
+      form: formData.form,
+      organization: formData.organization,
       service: null // Legacy compatibility
     }
   })
@@ -544,37 +660,7 @@ export const getBookingFormBySlug = createServerFn({ method: 'GET' })
     return schema.parse(data)
   })
   .handler(async ({ data }) => {
-    // Join with organization table to get form by slugs
-    // First, let's check if the form exists at all
-    const formCheck = await db
-      .select()
-      .from(bookingForms)
-      .where(eq(bookingForms.slug, data.formSlug))
-      .limit(1)
-    
-    console.log('🔍 Form check:', {
-      formExists: formCheck.length > 0,
-      formSlug: data.formSlug,
-      isActive: formCheck[0]?.isActive,
-      organizationId: formCheck[0]?.organizationId
-    })
-
-    if (formCheck.length > 0) {
-      // Check the organization
-      const orgCheck = await db
-        .select()
-        .from(organization)
-        .where(eq(organization.id, formCheck[0].organizationId))
-        .limit(1)
-      
-      console.log('🔍 Organization check:', {
-        orgExists: orgCheck.length > 0,
-        orgSlug: orgCheck[0]?.slug,
-        expectedOrgSlug: data.orgSlug,
-        orgName: orgCheck[0]?.name
-      })
-    }
-
+    // Step 1: Always fetch form and organization data (regardless of isActive)
     const result = await db
       .select({
         form: bookingForms,
@@ -582,7 +668,10 @@ export const getBookingFormBySlug = createServerFn({ method: 'GET' })
           id: organization.id,
           name: organization.name,
           slug: organization.slug,
-          logo: organization.logo
+          logo: organization.logo,
+          phone: organization.phone,
+          email: organization.email,
+          timezone: organization.timezone
         }
       })
       .from(bookingForms)
@@ -590,40 +679,112 @@ export const getBookingFormBySlug = createServerFn({ method: 'GET' })
       .where(and(
         eq(organization.slug, data.orgSlug),
         eq(bookingForms.slug, data.formSlug),
-        eq(bookingForms.isActive, true),
         isNull(bookingForms.deletedAt)
       ))
       .limit(1)
 
+    // Step 2: Check if form exists at all
     if (!result.length) {
+      // Truly not found - try to get organization data for contact info
+      const orgResult = await db
+        .select({
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          logo: organization.logo,
+          phone: organization.phone,
+          email: organization.email,
+          timezone: organization.timezone
+        })
+        .from(organization)
+        .where(eq(organization.slug, data.orgSlug))
+        .limit(1)
+
       throw new AppError(
-        ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        APP_ERROR_CODES.BIZ_FORM_NOT_FOUND,
         404,
-        undefined,
-        'Booking form not found or inactive'
+        {
+          organizationData: orgResult[0] || null,
+          theme: 'light',
+          primaryColor: '#3B82F6'
+        },
+        'Booking form not found'
+      );
+    }
+
+    // Step 3: Extract theme data (always available now)
+    const formData = result[0];
+    const theme = formData.form.theme || 'light';
+    const primaryColor = formData.form.primaryColor || '#3B82F6';
+
+    console.log('🔍 [FORMS] Form found with theme:', {
+      formSlug: data.formSlug,
+      isActive: formData.form.isActive,
+      theme,
+      primaryColor,
+      orgName: formData.organization.name
+    });
+
+    // Step 4: Check if form is active
+    if (!formData.form.isActive) {
+      throw new AppError(
+        APP_ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        404,
+        {
+          organizationData: formData.organization,
+          theme,
+          primaryColor
+        },
+        'This booking form is currently disabled'
+      );
+    }
+
+    // Step 5: Check subscription (we have theme data available)
+    const orgId = formData.organization.id
+    const subscriptionRecords = await db
+      .select()
+      .from(subscription)
+      .where(eq(subscription.referenceId, orgId))
+
+    const activeSubscription = subscriptionRecords.find(
+      sub => sub.status === 'active' || sub.status === 'trialing'
+    )
+
+    // If no active subscription, throw error with theme
+    if (!activeSubscription) {
+      throw new AppError(
+        APP_ERROR_CODES.BIZ_FORM_NOT_FOUND,
+        404,
+        {
+          subscriptionRequired: true,
+          organizationData: formData.organization,
+          theme,
+          primaryColor
+        },
+        'Booking form temporarily unavailable'
       )
     }
 
     console.log('🔍 Form config details:', {
-      hasFormConfig: !!result[0].form.formConfig,
-      serviceTreeExists: !!result[0].form.formConfig?.serviceTree,
-      serviceTreeChildren: result[0].form.formConfig?.serviceTree?.children?.length || 0,
-      firstService: result[0].form.formConfig?.serviceTree?.children?.[0] ? {
-        id: result[0].form.formConfig.serviceTree.children[0].id,
-        label: result[0].form.formConfig.serviceTree.children[0].label,
-        type: result[0].form.formConfig.serviceTree.children[0].type,
-        hasDescription: !!result[0].form.formConfig.serviceTree.children[0].description,
-        hasPrice: !!result[0].form.formConfig.serviceTree.children[0].price,
-        hasDuration: !!result[0].form.formConfig.serviceTree.children[0].duration,
-        description: result[0].form.formConfig.serviceTree.children[0].description,
-        price: result[0].form.formConfig.serviceTree.children[0].price,
-        duration: result[0].form.formConfig.serviceTree.children[0].duration
+      hasFormConfig: !!formData.form.formConfig,
+      serviceTreeExists: !!formData.form.formConfig?.serviceTree,
+      serviceTreeChildren: formData.form.formConfig?.serviceTree?.children?.length || 0,
+      firstService: formData.form.formConfig?.serviceTree?.children?.[0] ? {
+        id: formData.form.formConfig.serviceTree.children[0].id,
+        label: formData.form.formConfig.serviceTree.children[0].label,
+        type: formData.form.formConfig.serviceTree.children[0].type,
+        hasDescription: !!formData.form.formConfig.serviceTree.children[0].description,
+        hasPrice: !!formData.form.formConfig.serviceTree.children[0].price,
+        hasDuration: !!formData.form.formConfig.serviceTree.children[0].duration,
+        description: formData.form.formConfig.serviceTree.children[0].description,
+        price: formData.form.formConfig.serviceTree.children[0].price,
+        duration: formData.form.formConfig.serviceTree.children[0].duration
       } : null
     })
 
     return {
-      form: result[0].form,
-      organization: result[0].organization,
+      form: formData.form,
+      organization: formData.organization,
       service: null // Legacy compatibility
     }
   })

@@ -14,7 +14,7 @@
   "danger": {
     "title": "Danger Zone",
     "delete": "Delete Organization",
-    "deleteWorkspace": "Delete Workspace",
+    "deleteWorkspace": "Delete Company",
     "deleteDescription": "Permanently delete this organization and all its data. This action cannot be undone.",
     "deleteConfirm": "Are you sure you want to delete this organization?",
     "deleteConfirmTitle": "Delete Organization",

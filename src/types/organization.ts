@@ -15,10 +15,8 @@ export interface Organization {
   addressPostalCode?: string | null
   addressCountry?: string | null
   providerType?: string | null
-  providerCompanyId?: string | null
   createdAt: Date
   updatedAt: Date
-  metadata?: string | null
 }
 
 export interface Member {

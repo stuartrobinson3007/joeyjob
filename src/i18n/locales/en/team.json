@@ -28,7 +28,7 @@
     "billing": "Manage billing",
     "members": "Manage members",
     "settings": "Manage settings",
-    "delete": "Delete workspace"
+    "delete": "Delete company"
   },
   "members": {
     "search": "Search members...",
@@ -72,7 +72,7 @@
     "cancelInvitation": "Cancel Invitation"
   },
   "dialogs": {
-    "inviteDescription": "Send an invitation to join your workspace. They'll receive an email with instructions.",
+    "inviteDescription": "Send an invitation to join your company. They'll receive an email with instructions.",
     "emailLabel": "Email Address",
     "emailPlaceholder": "member@example.com",
     "roleLabel": "Role",

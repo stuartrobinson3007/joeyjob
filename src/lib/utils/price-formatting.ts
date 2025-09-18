@@ -7,21 +7,23 @@
  * @param price - The price value (number or legacy string like "$25.00")
  * @param currency - Currency code (default: "USD")
  * @param locale - Locale for formatting (default: "en-US")
- * @returns Formatted currency string (e.g., "$25.00")
+ * @param showDashForMissing - Whether to show "-" for missing prices instead of "$0.00" (default: false)
+ * @returns Formatted currency string (e.g., "$25.00") or "-" for missing prices
  */
 export function formatServicePrice(
   price: number | string | undefined | null,
   currency: string = 'USD',
-  locale: string = 'en-US'
+  locale: string = 'en-US',
+  showDashForMissing: boolean = false
 ): string {
   // Handle null/undefined
   if (price === null || price === undefined) {
-    return '$0.00'
+    return showDashForMissing ? '-' : '$0.00'
   }
 
   // Handle empty string
   if (price === '') {
-    return '$0.00'
+    return showDashForMissing ? '-' : '$0.00'
   }
 
   let numericPrice: number
@@ -30,10 +32,10 @@ export function formatServicePrice(
     // Handle legacy formatted strings like "$25.00" or "$25"
     const cleanedPrice = price.replace(/[$,]/g, '')
     numericPrice = parseFloat(cleanedPrice)
-    
-    // If parsing failed, default to 0
+
+    // If parsing failed, show dash or fallback
     if (isNaN(numericPrice)) {
-      numericPrice = 0
+      return showDashForMissing ? '-' : '$0.00'
     }
   } else {
     numericPrice = price

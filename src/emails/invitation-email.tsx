@@ -25,17 +25,17 @@ interface InvitationEmailProps {
 // Fallback content for preview mode
 const fallbackContent = {
   preview: 'Invitation to join {{organizationName}}',
-  workspaceInvitation: 'Workspace Invitation',
+  workspaceInvitation: 'Company Invitation',
   welcome: 'Welcome to {{organizationName}}',
   greeting: 'Hi there,',
   message: '{{inviterName}} has invited you to join {{organizationName}} on Todo App.',
   description:
-    "You'll be joining a collaborative workspace where teams create, share, and manage projects together.",
+    "You'll be joining a collaborative company where teams create, share, and manage projects together.",
   acceptButton: 'Accept Invitation',
   accessTitle: "What you'll get access to:",
   access: {
     collaborate: '• Collaborate with {{inviterName}} and the team',
-    projects: '• Access to workspace projects and resources',
+    projects: '• Access to company projects and resources',
     communication: '• Real-time communication and file sharing',
   },
   expiry: 'This invitation expires in 48 hours.',
@@ -166,7 +166,7 @@ export default function InvitationEmail({
 
 InvitationEmail.PreviewProps = {
   appName: 'Todo App',
-  organizationName: "John's Workspace",
+  organizationName: "John's Company",
   inviterName: 'John Doe',
   url: 'https://app.example.com/invite/accept?token=abc123def456',
   language: 'en',

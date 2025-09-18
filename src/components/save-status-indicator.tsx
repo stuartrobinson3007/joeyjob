@@ -1,7 +1,9 @@
-import { Loader2, CheckCircle, AlertCircle, CloudCheck } from 'lucide-react'
+import React from 'react'
+import { Loader2, CheckCircle, AlertCircle, CloudCheck, AlertTriangle, CloudAlert } from 'lucide-react'
 
 import { Badge } from '@/ui/badge'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
+import { ValidationResult } from '@/features/booking/components/form-editor/utils/form-validation'
 
 interface SaveStatusIndicatorProps {
   isSaving: boolean
@@ -9,6 +11,11 @@ interface SaveStatusIndicatorProps {
   isDirty: boolean
   errors?: string[]
   className?: string
+  // New validation-specific props
+  validationResult?: ValidationResult | null
+  canSave?: boolean
+  saveBlockedReason?: string
+  isFormEnabled?: boolean
 }
 
 export function SaveStatusIndicator({
@@ -17,21 +24,20 @@ export function SaveStatusIndicator({
   isDirty,
   errors = [],
   className,
+  validationResult,
+  canSave = true,
+  saveBlockedReason,
+  isFormEnabled = false,
 }: SaveStatusIndicatorProps) {
   const { t } = useTranslation('common')
-  // Show errors if any
-  if (errors.length > 0) {
+
+  // Show "Resolve Issues" for enabled forms with validation errors
+  if (isFormEnabled && validationResult && !validationResult.isValid && isDirty) {
     return (
-      <Badge
-        variant="destructive"
-        appearance="soft"
-        startIcon={<AlertCircle className="h-3 w-3" />}
-        className={className}
-      >
-        {errors[0]}
-      </Badge>
+      <CloudAlert className="size-5 text-warning" aria-label="Resolve issues to save changes" />
     )
   }
+
 
   // Show saving state
   if (isSaving) {

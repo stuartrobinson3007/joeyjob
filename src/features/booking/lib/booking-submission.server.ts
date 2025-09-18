@@ -2,7 +2,7 @@ import { BookingSubmitData } from '@/features/booking/components/form-editor/boo
 import { createSimproBookingForOrganization } from '@/lib/simpro/simpro.server'
 import { assignEmployeeToBooking, updateBookingSimproStatus } from '@/lib/simpro/employees.server'
 import { db } from '@/lib/db/db'
-import { bookings, services, organizationEmployees, organization, bookingForms, bookingEmployees } from '@/database/schema'
+import { bookings, organizationEmployees, bookingForms, bookingEmployees } from '@/database/schema'
 import { eq, and, isNull, inArray } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { addMinutes, format } from 'date-fns'
@@ -10,6 +10,7 @@ import { selectEmployeeForBooking } from '@/lib/simpro/booking-employee-selectio
 import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 import { combineDateAndTime } from '@/taali/utils/date'
 import { toZonedTime } from 'date-fns-tz'
+import { formatAddressOneLine } from '@/utils/maps'
 
 // Helper functions for time conversion
 function to24HourTime(time12h: string): string {
@@ -42,13 +43,13 @@ function calculateEndTime(startTime12h: string, durationMinutes: number): string
 
 
 // Function to format form responses as HTML for Simpro notes
-function formatFormResponsesAsHTML(formData: any, questionMap: Map<string, string>): string {
+function formatFormResponsesAsHTML(formData: any): string {
     const responses: string[] = []
-    
-    // Process all fields except contact_info and address fields
+
+    // Process all fields except contact info and address fields
     Object.entries(formData)
-        .filter(([key]) => key !== 'contact_info' && !key.startsWith('address_'))
-        .forEach(([fieldId, answer]) => {
+        .filter(([key]) => !['Contact Information', 'contact_info', 'Address'].includes(key))
+        .forEach(([questionLabel, answer]) => {
             if (answer && answer !== '') {
                 // Handle different answer types
                 let formattedAnswer = answer
@@ -57,16 +58,15 @@ function formatFormResponsesAsHTML(formData: any, questionMap: Map<string, strin
                 } else if (typeof answer === 'object') {
                     formattedAnswer = JSON.stringify(answer)
                 }
-                
-                const questionLabel = questionMap.get(fieldId) || fieldId
+
                 responses.push(`<li><strong>${questionLabel}:</strong> ${formattedAnswer}</li>`)
             }
         })
-    
+
     if (responses.length === 0) {
         return ''
     }
-    
+
     return `<h4>Customer Responses:</h4>\n<ul>\n${responses.join('\n')}\n</ul>`
 }
 
@@ -134,21 +134,18 @@ export async function submitBookingWithSimproIntegration({
     const dateOnly = format(orgZonedTime, 'yyyy-MM-dd')
 
 
-    // Extract customer info from form data  
-    // Form data has nested contact_info structure
+    // Extract customer info from form data (handle both old and new format)
+    const contactInfo = bookingData.formData['Contact Information'] || bookingData.formData.contact_info
     const customer = {
-        firstName: bookingData.formData.contact_info?.firstName || '',
-        lastName: bookingData.formData.contact_info?.lastName || '',
-        name: `${bookingData.formData.contact_info?.firstName || ''} ${bookingData.formData.contact_info?.lastName || ''}`.trim() || 'Customer',
-        email: bookingData.formData.contact_info?.email || '',
-        phone: bookingData.formData.contact_info?.phone || ''
+        firstName: contactInfo?.firstName || '',
+        lastName: contactInfo?.lastName || '',
+        name: `${contactInfo?.firstName || ''} ${contactInfo?.lastName || ''}`.trim() || 'Customer',
+        email: contactInfo?.email || '',
+        phone: contactInfo?.phone || ''
     }
 
-    // Extract address data from form (check for dynamic address field IDs)
-    const addressEntry = Object.entries(bookingData.formData)
-        .find(([key, value]) => key.startsWith('address_') && value && typeof value === 'object')
-    
-    const addressData = addressEntry ? addressEntry[1] as any : null
+    // Extract address data from form (now using question labels)
+    const addressData = bookingData.formData['Address'] as any || null
     const address = addressData ? {
         line1: `${addressData.street || ''}${addressData.street2 ? ', ' + addressData.street2 : ''}`.trim() || 'No Address Provided',
         city: addressData.city || 'Unknown',
@@ -163,15 +160,16 @@ export async function submitBookingWithSimproIntegration({
 
     // Transform form data to match schema structure
     const formResponses = {
-        contactInfo: bookingData.formData.contact_info,
+        contactInfo: bookingData.formData['Contact Information'] || bookingData.formData.contact_info,
+        address: bookingData.formData['Address'] || null,
         customQuestions: Object.entries(bookingData.formData)
-            .filter(([key]) => !['contact_info'].includes(key))
-            .map(([fieldName, answer]) => ({
-                questionId: fieldName,
-                questionText: fieldName, // Could be enhanced with actual question text
+            .filter(([key]) => !['Contact Information', 'contact_info', 'Address'].includes(key))
+            .map(([questionText, answer]) => ({
+                questionId: questionText, // Now using question text as ID since we transformed it
+                questionText: questionText, // The key is now the question text
                 questionType: 'text', // Could be determined from field name or form config
                 answer,
-                fieldName
+                fieldName: questionText
             }))
     }
 
@@ -193,6 +191,7 @@ export async function submitBookingWithSimproIntegration({
             customerName: customer.name,
             customerPhone: customer.phone,
             customerCompany: bookingData.formData['company'] || null,
+            customerAddress: addressData ? formatAddressOneLine(addressData) : null,
             
             // Scheduling (UTC timestamps)
             bookingStartAt,
@@ -302,11 +301,8 @@ export async function submitBookingWithSimproIntegration({
         let simproData = null
         if (employeeRecord) {
             try {
-                // Use question labels passed from frontend (more reliable than reconstructing)
-                const questionMap = new Map(Object.entries(bookingData.questionLabels))
-                
                 // Format form responses as HTML for job notes (separate from description)
-                const formResponsesHTML = formatFormResponsesAsHTML(bookingData.formData, questionMap)
+                const formResponsesHTML = formatFormResponsesAsHTML(bookingData.formData)
                 
                 
                 simproData = await createSimproBookingForOrganization(organizationId, {

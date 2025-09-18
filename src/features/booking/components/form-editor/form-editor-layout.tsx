@@ -5,6 +5,7 @@ import { useActiveOrganization } from '@/features/organization/lib/organization-
 import { FlowNode, NodeType, FormFlowTree } from "@/features/booking/components/form-editor/form-flow-tree";
 import BookingFlow from "./booking-flow";
 import FormEditorHeader from "./components/form-editor-header";
+import { ValidationResult } from "./utils/form-validation";
 import FormEditorPreview from "./components/form-editor-preview";
 import RootView from "./views/root-view";
 import ServicesView from "./views/services-view";
@@ -21,7 +22,6 @@ import { FormEditorDataProvider } from "@/features/booking/components/form-edito
 import useFormEditorData from "./hooks/use-form-editor-data";
 import React, { ReactNode, useCallback, useEffect, useState, useRef } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
-import { formatServicePrice } from '@/lib/utils/price-formatting';
 
 // BookingState type definition
 interface BookingState {
@@ -65,6 +65,10 @@ interface FormEditorLayoutProps {
     isDirty?: boolean;
     saveErrors?: string[];
     onSaveNow?: () => Promise<void>;
+    // Validation state
+    validationResult?: ValidationResult | null;
+    canSave?: boolean;
+    saveBlockedReason?: string;
 }
 
 
@@ -92,7 +96,10 @@ function FormEditorLayoutInner({
     lastSaved = null,
     isDirty = false,
     saveErrors = [],
-    onSaveNow = async () => {}
+    onSaveNow = async () => {},
+    validationResult = null,
+    canSave = true,
+    saveBlockedReason
 }: FormEditorLayoutProps) {
     const navigate = useNavigate();
     const { data, dispatch } = useFormEditorData();
@@ -574,27 +581,16 @@ function FormEditorLayoutInner({
                     id: child.id,
                     type: 'split',
                     label: child.label,
-                    description: child.description || 'Group of services', // Use description if available
+                    description: child.description || '', // No default description
                     children: child.children ? convertFlowNodesToServices(child) : []
                 };
             } else if (child.type === 'service') {
                 // Extract service properties from the node data if available
-                const servicePrice = child.price || 99;
+                const servicePrice = child.price;
                 const serviceDuration = child.duration || 60;
-                const serviceDescription = child.description || 'Book this service';
+                const serviceDescription = child.description || '';
                 const serviceBufferTime = child.bufferTime || 15;
                 const serviceInterval = child.interval || 30;
-                const serviceAvailabilityRules = child.availabilityRules || [
-                    {
-                        days: [1, 2, 3, 4, 5], // Monday-Friday
-                        timeRanges: [
-                            { start: "09:00", end: "12:00" },
-                            { start: "13:00", end: "17:00" }
-                        ]
-                    }
-                ];
-                const serviceBlockedTimes = child.blockedTimes || [];
-                const serviceUnavailableDates = child.unavailableDates || [];
                 const serviceAdditionalQuestions = child.additionalQuestions || [];
                 const serviceAssignedEmployeeIds = child.assignedEmployeeIds || [];
                 const serviceDefaultEmployeeId = child.defaultEmployeeId;
@@ -607,19 +603,19 @@ function FormEditorLayoutInner({
                     description: serviceDescription,
                     duration: serviceDuration,
                     price: servicePrice,
-                    availabilityRules: serviceAvailabilityRules,
-                    blockedTimes: serviceBlockedTimes,
-                    unavailableDates: serviceUnavailableDates,
                     bufferTime: serviceBufferTime,
                     interval: serviceInterval,
                     additionalQuestions: serviceAdditionalQuestions,
                     assignedEmployeeIds: serviceAssignedEmployeeIds,
                     defaultEmployeeId: serviceDefaultEmployeeId,
-                    // Add missing scheduling properties
+                    // Add scheduling properties for actual availability calculation
                     minimumNotice: child.minimumNotice || 24,
                     minimumNoticeUnit: child.minimumNoticeUnit || 'hours',
                     dateRangeType: child.dateRangeType || 'indefinite',
-                    rollingDays: child.rollingDays || 14
+                    rollingDays: child.rollingDays || 14,
+                    rollingUnit: child.rollingUnit || 'calendar-days',
+                    fixedStartDate: child.fixedStartDate,
+                    fixedEndDate: child.fixedEndDate
                 };
             }
             return null;
@@ -634,7 +630,6 @@ function FormEditorLayoutInner({
 
     // Handle node update - memoized with minimal dependencies to prevent infinite loops
     const handleUpdateNode = useCallback((nodeId: string, updates: Partial<FlowNode>) => {
-        console.log('🔧 [FormEditorLayout] Updating node:', { nodeId, updates });
         dispatch({
             type: 'UPDATE_NODE',
             payload: { nodeId, updates }
@@ -789,7 +784,7 @@ function FormEditorLayoutInner({
                         onNavigate={actions.navigateToLevel}
                         servicesContent={renderServicesContent()}
                         onAddService={() => {
-                            // Add service to root node with all required fields
+                            // Add service to root node with required fields
                             const newNode: FlowNode = {
                                 id: `node-${Date.now()}`,
                                 type: "service",
@@ -802,10 +797,8 @@ function FormEditorLayoutInner({
                                 dateRangeType: "indefinite",
                                 minimumNotice: 24,
                                 minimumNoticeUnit: "hours",
-                                bookingInterval: 30,
-                                availabilityRules: [],
-                                blockedTimes: [],
-                                unavailableDates: [],
+                                rollingDays: 14,
+                                rollingUnit: "calendar-days",
                                 additionalQuestions: [],
                                 assignedEmployeeIds: [],
                                 defaultEmployeeId: undefined
@@ -1136,16 +1129,15 @@ function FormEditorLayoutInner({
 
         return (
             <FormEditorPreview
-                darkMode={data.theme === "dark"}
+                theme={data.theme}
                 primaryColor={data.primaryColor}>
                 <BookingFlow
                     id="form-editor-preview"
                     startTitle={bookingFlowTitle}
-                    startDescription={data.serviceTree?.description || "Select a service to get started"}
+                    startDescription={data.serviceTree?.description || ""}
                     services={servicesData}
                     baseQuestions={data.baseQuestions}
                     primaryColor={data.primaryColor}
-                    darkMode={data.theme === "dark"}
                     onBookingSubmit={handleBookingSubmit}
                     getServiceById={getServiceById}
                     bookingState={bookingState}
@@ -1237,7 +1229,7 @@ function FormEditorLayoutInner({
         };
 
         const handleAddNode = (parentId: string, type: NodeType) => {
-            // Create a new node with all required fields
+            // Create a new node with required fields
             const newNode: FlowNode = type === "service" ? {
                 id: `node-${Date.now()}`,
                 type: "service",
@@ -1250,10 +1242,8 @@ function FormEditorLayoutInner({
                 dateRangeType: "indefinite",
                 minimumNotice: 24,
                 minimumNoticeUnit: "hours",
-                bookingInterval: 30,
-                availabilityRules: [],
-                blockedTimes: [],
-                unavailableDates: [],
+                rollingDays: 14,
+                rollingUnit: "calendar-days",
                 additionalQuestions: [],
                 assignedEmployeeIds: [],
                 defaultEmployeeId: undefined
@@ -1313,10 +1303,19 @@ function FormEditorLayoutInner({
                 isDirty={isDirty}
                 errors={saveErrors}
                 onSaveNow={onSaveNow}
-                formUrl={React.useMemo(() => 
-                    activeOrganization?.slug && data.slug 
-                        ? `/f/${activeOrganization.slug}/${data.slug}` 
-                        : undefined, 
+                validationResult={validationResult}
+                canSave={canSave}
+                saveBlockedReason={saveBlockedReason}
+                onNavigateToIssue={(level, nodeId) => {
+                    if (nodeId) {
+                        actions.selectNode(nodeId);
+                    }
+                    actions.navigateToLevel(level);
+                }}
+                formUrl={React.useMemo(() =>
+                    activeOrganization?.slug && data.slug
+                        ? `/f/${activeOrganization.slug}/${data.slug}`
+                        : undefined,
                     [activeOrganization?.slug, data.slug]
                 )}
             />

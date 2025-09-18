@@ -1,8 +1,14 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
+import Stripe from 'stripe'
 
 import { BILLING_PLANS } from './plans.config'
+
+// Initialize Stripe client
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2025-08-27.basil',
+})
 
 // Define subscription type based on BetterAuth Stripe plugin actual response
 interface BetterAuthSubscription {
@@ -37,6 +43,7 @@ export const getSubscription = createServerFn({ method: 'GET' })
   .handler(async ({ context }) => {
     const orgId = context.organizationId! // organizationMiddleware ensures this exists
 
+    console.log(`🔍 [getSubscription] Starting for orgId: ${orgId}`)
 
     // Get organization to check if it exists and get current plan
     const [org] = await db.select({
@@ -46,6 +53,12 @@ export const getSubscription = createServerFn({ method: 'GET' })
       stripeCustomerId: organization.stripeCustomerId,
     }).from(organization).where(eq(organization.id, orgId))
 
+    console.log(`🔍 [getSubscription] Organization data:`, {
+      orgExists: !!org,
+      orgId,
+      currentPlan: org?.currentPlan,
+      stripeCustomerId: org?.stripeCustomerId
+    })
 
     if (!org) {
       throw AppError.notFound(errorTranslations.fields.organization)
@@ -58,6 +71,18 @@ export const getSubscription = createServerFn({ method: 'GET' })
     try {
       // Query the database directly for complete subscription data
       const directDbQuery = await db.select().from(schema.subscription).where(eq(schema.subscription.referenceId, orgId))
+
+      console.log(`🔍 [getSubscription] Database subscription query result:`, {
+        subscriptionCount: directDbQuery.length,
+        subscriptions: directDbQuery.map(sub => ({
+          id: sub.id,
+          status: sub.status,
+          plan: sub.plan,
+          stripeSubscriptionId: sub.stripeSubscriptionId,
+          periodStart: sub.periodStart,
+          periodEnd: sub.periodEnd
+        }))
+      })
 
       // Use our database results directly - they have all the fields we need
       if (directDbQuery && directDbQuery.length > 0) {
@@ -84,6 +109,12 @@ export const getSubscription = createServerFn({ method: 'GET' })
           allSubscriptions.find(sub => sub.status === 'active' || sub.status === 'trialing') ||
           allSubscriptions[0] // Use first subscription even if past_due/incomplete
 
+        console.log(`🔍 [getSubscription] Active subscription selection:`, {
+          totalSubscriptions: allSubscriptions.length,
+          activeSubscriptionFound: !!activeSubscription,
+          activeSubscriptionStatus: activeSubscription?.status,
+          activeSubscriptionId: activeSubscription?.id
+        })
       }
     } catch (error) {
       console.error('[getSubscription] Error fetching subscriptions from BetterAuth', {
@@ -111,6 +142,13 @@ export const getSubscription = createServerFn({ method: 'GET' })
         allSubscriptions.length > 0,
     }
 
+    console.log(`🔍 [getSubscription] Final result:`, {
+      orgId,
+      currentPlan: result.currentPlan,
+      hasActiveSubscription: !!result.subscription,
+      subscriptionStatus: result.subscription?.status,
+      allSubscriptionStatuses: result.allSubscriptions.map(sub => sub.status)
+    })
 
     return result
   })
@@ -193,53 +231,71 @@ export const createBillingPortal = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .handler(async ({ context }) => {
     const orgId = context.organizationId! // organizationMiddleware ensures this exists
+    const userId = context.user.id
+
+    console.log(`🏛️ [createBillingPortal] Starting for orgId: ${orgId}, userId: ${userId}`)
 
     // Check billing permissions
     await checkPermission('billing', ['manage'], orgId)
-
+    console.log(`🏛️ [createBillingPortal] Billing permissions verified`)
 
     // Get organization to check for stripeCustomerId
     const [org] = await db.select().from(organization).where(eq(organization.id, orgId)).limit(1)
+
+    console.log(`🏛️ [createBillingPortal] Organization data:`, {
+      orgExists: !!org,
+      orgId,
+      orgName: org?.name,
+      stripeCustomerId: org?.stripeCustomerId,
+      currentPlan: org?.currentPlan
+    })
 
     if (!org) {
       throw AppError.notFound(errorTranslations.fields.organization)
     }
 
-    // Try to create portal session
-    // BetterAuth's createBillingPortal should work if there's a customer associated
+    // Check subscription records
+    const subscriptionRecords = await db.select().from(schema.subscription).where(eq(schema.subscription.referenceId, orgId))
+    console.log(`🏛️ [createBillingPortal] Subscription records:`, {
+      count: subscriptionRecords.length,
+      subscriptions: subscriptionRecords.map(sub => ({
+        id: sub.id,
+        status: sub.status,
+        stripeCustomerId: sub.stripeCustomerId,
+        stripeSubscriptionId: sub.stripeSubscriptionId
+      }))
+    })
+
+    // Use Stripe SDK directly since Better Auth only looks for active/trialing subscriptions
+    // but we need billing portal access especially for past_due customers to update payment
+    console.log(`🏛️ [createBillingPortal] Using Stripe SDK directly for organization customer: ${org.stripeCustomerId}`)
+
     try {
-      const result = await auth.api.createBillingPortal({
-        body: {
-          referenceId: orgId,
-        },
-        headers: context.headers,
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: org.stripeCustomerId,
+        return_url: `${process.env.BETTER_AUTH_URL}/billing`
       })
 
-      if (!result?.url) {
-        throw new AppError(
-          ERROR_CODES.SYS_CONFIG_ERROR,
-          500,
-          undefined,
-          errorTranslations.server.billingPortalFailed
-        )
-      }
+      console.log(`🏛️ [createBillingPortal] Stripe SDK success:`, {
+        sessionId: portalSession.id,
+        hasUrl: !!portalSession.url,
+        customerId: portalSession.customer
+      })
 
-      return { portalUrl: result.url }
-    } catch (error) {
-      // If no customer exists, we need to handle this differently
-      if (org.stripeCustomerId) {
-        // Customer exists but portal failed - this is a real error
-        throw error
-      } else {
-        // No customer yet - they need to subscribe first
-        throw new AppError(
-          ERROR_CODES.BIZ_INVALID_STATE,
-          400,
-          undefined,
-          errorTranslations.server.noBillingHistory,
-          [{ action: 'upgrade' }]
-        )
-      }
+      return { portalUrl: portalSession.url }
+    } catch (stripeError) {
+      console.error(`🏛️ [createBillingPortal] Stripe SDK error:`, {
+        error: stripeError,
+        errorMessage: stripeError instanceof Error ? stripeError.message : String(stripeError),
+        orgStripeCustomerId: org.stripeCustomerId
+      })
+
+      throw new AppError(
+        ERROR_CODES.SYS_CONFIG_ERROR,
+        500,
+        undefined,
+        `Failed to create billing portal: ${stripeError instanceof Error ? stripeError.message : 'Unknown error'}`
+      )
     }
   })
 

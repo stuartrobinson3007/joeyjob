@@ -36,8 +36,8 @@
     "unknown": "Unknown"
   },
   "workspaces": {
-    "title": "Workspaces",
-    "search": "Search workspaces",
+    "title": "Companies",
+    "search": "Search companies",
     "createdDate": "Created Date",
     "owner": "Owner",
     "members": "Members",
@@ -50,8 +50,8 @@
     "noSlug": "No slug",
     "deleteOrganization": "Delete Organization",
     "impersonateOwner": "Impersonate Owner",
-    "noOwnerTooltip": "This workspace has no owner",
-    "ownerBannedTooltip": "The workspace owner is banned",
+    "noOwnerTooltip": "This company has no owner",
+    "ownerBannedTooltip": "The company owner is banned",
     "cannotImpersonateTooltip": "Cannot impersonate owner"
   },
   "analytics": {
@@ -59,7 +59,7 @@
     "totalUsers": "Total Users",
     "activeUsers": "Active Users",
     "bannedUsers": "Banned Users",
-    "totalWorkspaces": "Total Organizations",
+    "totalWorkspaces": "Total Companies",
     "totalMembers": "Total Members",
     "avgMembersPerOrg": "Avg Members per Org",
     "revenue": "Revenue"
@@ -109,7 +109,7 @@
   "pages": {
     "dashboard": "Dashboard",
     "userManagement": "User Management",
-    "workspaceManagement": "Workspace Management",
+    "workspaceManagement": "Company Management",
     "analytics": "Analytics",
     "systemSettings": "System Settings"
   },

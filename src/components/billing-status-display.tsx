@@ -1,9 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 
-import { BILLING_PLANS } from '@/features/billing/lib/plans.config'
 import { useSubscription } from '@/features/billing/hooks/use-subscription'
-import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Alert, AlertDescription } from '@/ui/alert'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
@@ -14,61 +12,62 @@ export function BillingStatusDisplay() {
   const { canViewBilling } = useClientPermissions()
   const { data: subscription, isLoading, error } = useSubscription()
 
+  console.log(`🚨 [BillingStatusDisplay] Render state:`, {
+    isLoading,
+    hasError: !!error,
+    hasSubscriptionData: !!subscription,
+    subscriptionData: subscription ? {
+      currentPlan: subscription.currentPlan,
+      subscriptionStatus: subscription.subscription?.status,
+      orgPlan: subscription.organization?.currentPlan
+    } : null
+  })
+
   // Don't show anything if loading, error, or no subscription data
   if (isLoading || error || !subscription) {
+    console.log(`🚨 [BillingStatusDisplay] Not rendering - loading: ${isLoading}, error: ${!!error}, subscription: ${!!subscription}`)
     return null
   }
 
-  const currentPlan = subscription.currentPlan || 'pro'
   const subscriptionRecord = subscription.subscription
   const subscriptionStatus = subscriptionRecord?.status
-  const isPaidPlan = currentPlan !== null
   const hasBillingError = subscriptionStatus === 'past_due' || subscriptionStatus === 'incomplete'
 
-  // Don't show anything without billing errors (since all plans are paid now)
+  console.log(`🚨 [BillingStatusDisplay] Error check:`, {
+    subscriptionStatus,
+    hasBillingError,
+    willDisplay: hasBillingError
+  })
+
+  // Only show if there's a billing error
   if (!hasBillingError) {
+    console.log(`🚨 [BillingStatusDisplay] Not displaying - no billing error (status: ${subscriptionStatus})`)
     return null
   }
 
-  const planConfig = BILLING_PLANS[currentPlan as keyof typeof BILLING_PLANS]
-  const planName = planConfig?.name || currentPlan
+  console.log(`🚨 [BillingStatusDisplay] Displaying billing error alert for status: ${subscriptionStatus}`)
 
   return (
-    <div className="pb-2 space-y-2">
-      {/* Plan Name Display */}
-      {isPaidPlan && !hasBillingError && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{t('billing.currentPlan')}</span>
-          <Badge variant="secondary" className="text-xs">
-            {planName}
-          </Badge>
-        </div>
-      )}
-
-      {/* Billing Error Alert */}
-      {hasBillingError && (
-        <Alert className="py-2">
-          <AlertTriangle className="h-3 w-3" />
-          <AlertDescription className="text-xs">
-            {subscriptionStatus === 'past_due'
-              ? t('billing.pastDueAlert')
-              : t('billing.incompleteAlert')
-            }
-            {canViewBilling() && (
-              <Button
-                asChild
-                variant="destructive"
-                size="sm"
-                className='mt-1'
-              >
-                <Link to="/billing">
-                  {t('billing.fixPayment')}
-                </Link>
-              </Button>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-    </div>
+    <Alert className="py-2">
+      <AlertTriangle className="h-3 w-3" />
+      <AlertDescription className="text-xs">
+        {subscriptionStatus === 'past_due'
+          ? t('billing.pastDueAlert')
+          : t('billing.incompleteAlert')
+        }
+        {canViewBilling() && (
+          <Button
+            asChild
+            variant="destructive"
+            size="sm"
+            className='mt-1'
+          >
+            <Link to="/billing">
+              {t('billing.fixPayment')}
+            </Link>
+          </Button>
+        )}
+      </AlertDescription>
+    </Alert>
   )
 }

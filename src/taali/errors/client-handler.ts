@@ -61,7 +61,8 @@ export function handleErrorAction(action: ErrorAction) {
       window.location.href = '/auth/signin'
       break
     case 'updateConnection':
-      window.location.href = '/auth/update-connection'
+      const currentPath = window.location.pathname + window.location.search
+      window.location.href = `/auth/update-connection?redirectTo=${encodeURIComponent(currentPath)}`
       break
     case 'upgrade':
       window.location.href = '/billing'

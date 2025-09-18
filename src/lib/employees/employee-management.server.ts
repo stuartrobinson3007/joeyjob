@@ -43,7 +43,6 @@ export const syncEmployeesFromProvider = createServerFn({ method: 'POST' })
       const orgs = await db
         .select({
           providerType: organization.providerType,
-          providerCompanyId: organization.providerCompanyId,
         })
         .from(organization)
         .where(eq(organization.id, organizationId))
@@ -52,8 +51,7 @@ export const syncEmployeesFromProvider = createServerFn({ method: 'POST' })
       const org = orgs[0]
       console.log('🔍 [syncEmployeesFromProvider] Organization data:', {
         hasOrg: !!org,
-        providerType: org?.providerType,
-        providerCompanyId: org?.providerCompanyId
+        providerType: org?.providerType
       })
 
       if (!org?.providerType) {

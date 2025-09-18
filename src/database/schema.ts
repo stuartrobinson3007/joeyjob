@@ -92,7 +92,6 @@ export const organization = pgTable('organization', {
   
   // Provider integration
   providerType: text('provider_type'), // 'simpro', 'minuba', etc.
-  providerCompanyId: text('provider_company_id'), // Company ID from provider
   // providerData removed - now stored in provider-specific tables
 
   // Billing fields
@@ -101,7 +100,6 @@ export const organization = pgTable('organization', {
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  metadata: text('metadata'),
 })
 
 export const member = pgTable('member', {
@@ -184,7 +182,7 @@ export const services = pgTable('services', {
   description: text('description'),
   category: text('category'),
   duration: integer('duration').notNull(), // in minutes
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }),
   isActive: boolean('is_active').default(true).notNull(),
   requiresApproval: boolean('requires_approval').default(false).notNull(),
   maxAdvanceBookingDays: integer('max_advance_booking_days').default(30),
@@ -244,7 +242,7 @@ export const bookings = pgTable('bookings', {
   serviceName: text('service_name').notNull(),
   serviceDescription: text('service_description'),
   serviceDuration: integer('service_duration').notNull(), // minutes
-  servicePrice: decimal('service_price', { precision: 10, scale: 2 }).notNull(),
+  servicePrice: decimal('service_price', { precision: 10, scale: 2 }),
   
   // Customer Information
   customerId: text('customer_id')
@@ -307,6 +305,9 @@ export const bookings = pgTable('bookings', {
   // Notes
   customerNotes: text('customer_notes'),
   internalNotes: text('internal_notes'),
+
+  // Computed/Derived Fields
+  customerAddress: text('customer_address'), // Formatted address string for searching
   
   // Metadata
   confirmationCode: text('confirmation_code').notNull(),

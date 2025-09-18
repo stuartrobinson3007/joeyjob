@@ -6,6 +6,7 @@
  */
 
 import { useState, memo, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Check, ChevronsUpDown, Plus, Loader2, Building2, Lock } from 'lucide-react'
 
 import { useSuperAdminWrapper } from '../../admin/components/super-admin-wrapper'
@@ -21,41 +22,20 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/ui/command'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/popover'
-import { Input } from '@/ui/input'
-import { Label } from '@/ui/label'
-import { Textarea } from '@/ui/textarea'
 import { Skeleton } from '@/ui/skeleton'
-import { authClient } from '@/lib/auth/auth-client'
 import { useActiveOrganization } from '@/features/organization/lib/organization-context'
 import { useListOrganizations } from '@/lib/auth/auth-hooks'
 import { useTranslation } from '@/i18n/hooks/useTranslation'
-import { AppError, ERROR_CODES } from '@/taali/utils/errors'
 
 // Memoized OrganizationSwitcher to prevent re-renders on form state changes
 const OrganizationSwitcher = memo(function OrganizationSwitcher() {
   const [open, setOpen] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
   const { t } = useTranslation('common')
   const { t: tNotifications } = useTranslation('notifications')
   const { showError, showSuccess } = useErrorHandler()
+  const navigate = useNavigate()
 
-  // Form state for creating new organizations
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    industry: '',
-  })
-  const [isCreating, setIsCreating] = useState(false)
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   // Use better-auth organization hooks (organizations = workspaces in our UI)
   const {
@@ -78,55 +58,6 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
   const shouldDisableOrganizationSwitcher = shouldShowSuperAdminFrame && !isImpersonating
 
   // Memoized event handlers to prevent breaking memoization
-  const handleCreateWorkspace = useCallback(async () => {
-    if (!formData.name.trim()) {
-      setValidationErrors({ name: tNotifications('error.organizationNameRequired') })
-      return
-    }
-
-    setValidationErrors({})
-    setIsCreating(true)
-
-    try {
-      const { data: result, error } = await authClient.organization.create({
-        name: formData.name.trim(),
-        slug: formData.name.trim().toLowerCase().replace(/\s+/g, '-'), // Generate slug from name
-        // Note: better-auth organization.create might not support description field
-      })
-
-      if (error) {
-        throw new AppError(
-          ERROR_CODES.BIZ_INVALID_STATE,
-          400,
-          { organizationName: formData.name },
-          error.message || tNotifications('error.organizationCreateFailed')
-        )
-      }
-
-      if (result) {
-        // Switch to the newly created organization
-        setActiveOrganization(result.id)
-
-        // Refresh the organizations list to show the new organization
-        refetchOrganizations()
-
-        // Reset form and close dialog
-        setFormData({ name: '', description: '', industry: '' })
-        setShowCreateDialog(false)
-
-        // Show success message
-        showSuccess(tNotifications('success.organizationCreated'))
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : tNotifications('error.failedToCreateWorkspace')
-      setValidationErrors({
-        name: errorMessage,
-      })
-      showError(error)
-    } finally {
-      setIsCreating(false)
-    }
-  }, [formData, setActiveOrganization, refetchOrganizations, showError, showSuccess, tNotifications])
 
   const handleWorkspaceSelect = useCallback(
     async (organizationId: string) => {
@@ -157,16 +88,6 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
     [activeOrganization?.id, organizations, setActiveOrganization, showError, showSuccess, tNotifications]
   )
 
-  const updateFormField = useCallback(
-    (field: string, value: string) => {
-      setFormData(prev => ({ ...prev, [field]: value }))
-      // Clear validation error when user starts typing
-      if (validationErrors[field]) {
-        setValidationErrors(prev => ({ ...prev, [field]: '' }))
-      }
-    },
-    [validationErrors]
-  )
 
   if (isLoading || orgContextLoading) {
     return (
@@ -211,7 +132,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
             aria-expanded={open}
             aria-label={t('organization.selectWorkspace')}
             className={`w-full justify-between ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={isCreating || isSwitching}
+            disabled={isSwitching}
           >
             {activeOrganization ? (
               <span className="text-sm font-medium truncate flex-1 text-left">
@@ -223,7 +144,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
                 <span>{t('organization.selectWorkspace')}</span>
               </div>
             )}
-            {isCreating || isSwitching ? (
+            {isSwitching ? (
               <Loader2 className="ml-2 h-4 w-4 animate-spin" />
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -264,7 +185,7 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
                 forceMount
                 onSelect={() => {
                   setOpen(false)
-                  setShowCreateDialog(true)
+                  navigate({ to: '/company-setup/select-company' })
                 }}
                 className="flex items-center space-x-2"
               >
@@ -278,72 +199,6 @@ const OrganizationSwitcher = memo(function OrganizationSwitcher() {
         </PopoverContent>
       </Popover>
 
-      {/* Create Workspace Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t('organization.createWorkspace')}</DialogTitle>
-            <DialogDescription>{t('organization.createWorkspaceDescription')}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">{t('organization.workspaceName')}</Label>
-              <Input
-                id="name"
-                placeholder={t('organization.workspaceNamePlaceholder')}
-                value={formData.name}
-                onChange={e => updateFormField('name', e.target.value)}
-                className={
-                  validationErrors.name ? 'border-destructive focus-visible:ring-destructive' : ''
-                }
-              />
-              {validationErrors.name && (
-                <p className="text-sm text-destructive">{validationErrors.name}</p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">{t('organization.workspaceDescriptionOptional')}</Label>
-              <Textarea
-                id="description"
-                placeholder={t('organization.workspaceDescriptionPlaceholder')}
-                value={formData.description}
-                onChange={e => updateFormField('description', e.target.value)}
-                className={
-                  validationErrors.description
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : ''
-                }
-              />
-              {validationErrors.description && (
-                <p className="text-sm text-destructive">{validationErrors.description}</p>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowCreateDialog(false)
-                setFormData({ name: '', description: '', industry: '' })
-                setValidationErrors({})
-              }}
-              disabled={isCreating}
-            >
-              {t('actions.cancel')}
-            </Button>
-            <Button onClick={handleCreateWorkspace} disabled={!formData.name.trim()} loading={isCreating}>
-              {isCreating ? (
-                t('states.uploading')
-              ) : (
-                <>
-                  <Building2 />
-                  {t('organization.createWorkspace')}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 })

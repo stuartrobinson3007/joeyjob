@@ -1,29 +1,11 @@
-import { HeadContent, Scripts, createRootRoute, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanstackDevtools } from '@tanstack/react-devtools'
-import { Toaster } from 'sonner'
-import { ThemeProvider, useTheme } from 'next-themes'
+import type { ReactNode } from 'react'
+import { createRootRoute, Outlet, HeadContent, Scripts } from '@tanstack/react-router'
 
 import appCss from '../styles.css?url'
-
-import { Providers } from '@/lib/hooks/providers'
 import { NotFoundComponent } from '@/components/not-found'
-import { ConfirmDialogProvider } from '@/ui/confirm-dialog'
 
 export const Route = createRootRoute({
   head: () => ({
-    meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'JoeyJob',
-      },
-    ],
     links: [
       {
         rel: 'stylesheet',
@@ -31,53 +13,30 @@ export const Route = createRootRoute({
       },
     ],
   }),
-
   shellComponent: RootDocument,
   component: RootComponent,
-
   notFoundComponent: NotFoundComponent,
 })
 
 function RootComponent() {
-  const { theme } = useTheme()
-  return (
-    <Providers>
-      <ConfirmDialogProvider>
-        <Outlet />
-        <Toaster position="bottom-right" theme={theme as 'light' | 'dark' | 'system'} />
-      </ConfirmDialogProvider>
-    </Providers>
-  )
+  // Minimal root component that delegates to layout routes
+  // _all-routes and _booking-form handle their own themes and providers
+  return <Outlet />
 }
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+interface RootDocumentProps {
+  children: ReactNode
+}
+
+function RootDocument({ children }: RootDocumentProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-          value={{ light: "light", dark: "dark" }}
-        >
-          {children}
-          <TanstackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-          <Scripts />
-        </ThemeProvider>
+        {children}
+        <Scripts />
       </body>
     </html>
   )

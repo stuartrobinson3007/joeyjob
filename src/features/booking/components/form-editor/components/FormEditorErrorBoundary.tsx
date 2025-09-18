@@ -2,7 +2,7 @@ import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { Button } from '@/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card';
 import { Alert, AlertDescription } from '@/ui/alert';
-import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { FormEditorError, globalErrorHandler, handleReactError } from '../utils/error-handling';
 
 interface Props {
@@ -19,6 +19,7 @@ interface State {
   errorInfo: ErrorInfo | null;
   formEditorError: FormEditorError | null;
   showDetails: boolean;
+  copied: boolean;
 }
 
 /**
@@ -34,14 +35,16 @@ export class FormEditorErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       formEditorError: null,
-      showDetails: false
+      showDetails: false,
+      copied: false
     };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return {
       hasError: true,
-      error
+      error,
+      copied: false
     };
   }
 
@@ -66,7 +69,8 @@ export class FormEditorErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       formEditorError: null,
-      showDetails: false
+      showDetails: false,
+      copied: false
     });
   };
 
@@ -74,6 +78,53 @@ export class FormEditorErrorBoundary extends Component<Props, State> {
     this.setState(prev => ({
       showDetails: !prev.showDetails
     }));
+  };
+
+  handleCopy = async () => {
+    if (!this.state.error && !this.state.formEditorError) return;
+
+    let errorDetails = `Error Details:
+Timestamp: ${new Date().toISOString()}
+Context: ${this.props.context || 'Unknown'}
+URL: ${window.location.href}
+User Agent: ${navigator.userAgent}
+
+`;
+
+    if (this.state.formEditorError) {
+      errorDetails += `FormEditor Error:
+Code: ${this.state.formEditorError.code}
+Message: ${this.state.formEditorError.message}
+Severity: ${this.state.formEditorError.severity}
+Retryable: ${this.state.formEditorError.retryable ? 'Yes' : 'No'}
+Context: ${this.state.formEditorError.context || 'None'}
+Timestamp: ${this.state.formEditorError.timestamp.toISOString()}
+
+`;
+    }
+
+    if (this.state.error) {
+      errorDetails += `JavaScript Error:
+Name: ${this.state.error.name}
+Message: ${this.state.error.message}
+Stack Trace:
+${this.state.error.stack || 'Not available'}
+
+`;
+    }
+
+    if (this.state.errorInfo?.componentStack) {
+      errorDetails += `React Component Stack:
+${this.state.errorInfo.componentStack}`;
+    }
+
+    try {
+      await navigator.clipboard.writeText(errorDetails);
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    } catch (err) {
+      console.error('Failed to copy error details:', err);
+    }
   };
 
   render() {
@@ -104,7 +155,7 @@ export class FormEditorErrorBoundary extends Component<Props, State> {
               </Alert>
 
               <div className="flex items-center gap-2">
-                <Button 
+                <Button
                   onClick={this.handleRetry}
                   variant="outline"
                   size="sm"
@@ -112,6 +163,26 @@ export class FormEditorErrorBoundary extends Component<Props, State> {
                 >
                   <RefreshCw className="h-4 w-4" />
                   Try Again
+                </Button>
+
+                <Button
+                  onClick={this.handleCopy}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={this.state.copied}
+                >
+                  {this.state.copied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy Details
+                    </>
+                  )}
                 </Button>
 
                 {(this.props.showErrorDetails || process.env.NODE_ENV === 'development') && (

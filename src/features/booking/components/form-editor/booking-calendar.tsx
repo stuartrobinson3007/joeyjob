@@ -76,6 +76,7 @@ export type BookingCalendarProps = {
     hasNoEmployees?: boolean; // No employees available for this service
     organizationName?: string;
     organizationPhone?: string;
+    organizationEmail?: string;
     currentMonth?: number; // Current month being displayed (1-12)
     currentYear?: number; // Current year being displayed
     // Employee availability integration (simplified)
@@ -182,6 +183,7 @@ export default function BookingCalendar({
     hasNoEmployees = false,
     organizationName,
     organizationPhone,
+    organizationEmail,
     currentMonth,
     currentYear,
     availabilityData = {}
@@ -419,7 +421,7 @@ export default function BookingCalendar({
                             <p className="text-sm font-semibold">{duration} mins</p>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            Timezone: {timezone.replace(/_/g, " ")}
+                            Timezone: {timezone ? timezone.replace(/_/g, " ") : 'Not set'}
                         </p>
                     </div>
                 </div>
@@ -477,18 +479,34 @@ export default function BookingCalendar({
                                         <p className="text-muted-foreground text-sm">
                                             There is currently no available for this service for the month of {currentMonth && currentYear ? `${MONTH_NAMES[currentMonth - 1]}, ${currentYear}` : 'the selected month'}.
                                         </p>
-                                        {organizationPhone && (
+                                        {(organizationPhone || organizationEmail) ? (
                                             <>
                                                 <p className="text-muted-foreground text-sm mb-3">
                                                     Please contact {organizationName || 'our company'} to book this service:
                                                 </p>
-                                                <a
-                                                    href={`tel:${organizationPhone}`}
-                                                    className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/80 transition-colors text-sm font-medium"
-                                                >
-                                                    Call {organizationPhone}
-                                                </a>
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {organizationPhone && (
+                                                        <a
+                                                            href={`tel:${organizationPhone}`}
+                                                            className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/80 transition-colors text-sm font-medium"
+                                                        >
+                                                            Call {organizationPhone}
+                                                        </a>
+                                                    )}
+                                                    {organizationEmail && (
+                                                        <a
+                                                            href={`mailto:${organizationEmail}?subject=Service Booking Inquiry`}
+                                                            className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/80 transition-colors text-sm font-medium"
+                                                        >
+                                                            Email {organizationEmail}
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </>
+                                        ) : (
+                                            <p className="text-muted-foreground text-sm">
+                                                Please contact {organizationName || 'the company'} directly to book this service.
+                                            </p>
                                         )}
                                     </div>
                                 ) : availableTimeSlots.length > 0 ? (

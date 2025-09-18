@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import BookingCalendar from './booking-calendar';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useErrorHandler } from '@/lib/errors/hooks';
+import { getContactErrorMessage } from '@/components/organization-contact';
 import { formatServicePrice } from '@/lib/utils/price-formatting';
 
 // Unique identifier for items in the booking tree
@@ -80,7 +81,6 @@ export interface BookingFlowProps {
     services: (Service | ServiceGroup)[]; // Root level services/groups
     baseQuestions: FormFieldConfig[];
     primaryColor?: string;
-    darkMode?: boolean;
     onBookingSubmit?: (bookingData: BookingSubmitData) => Promise<any>;
     className?: string;
     getServiceById?: (id: string) => Service | null;
@@ -94,6 +94,7 @@ export interface BookingFlowProps {
     // Organization info for contact display
     organizationName?: string;
     organizationPhone?: string;
+    organizationEmail?: string;
     organizationId?: string; // Added for API context
     organizationTimezone?: string; // Organization timezone
 }
@@ -144,12 +145,12 @@ export function findFirstAvailableDate(availabilityData: { [date: string]: strin
     if (!availabilityData || Object.keys(availabilityData).length === 0) {
         return null;
     }
-    
+
     // Get all dates with available slots, sorted chronologically
     const availableDates = Object.keys(availabilityData)
         .filter(dateKey => availabilityData[dateKey].length > 0)
         .sort();
-    
+
     return availableDates.length > 0 ? new Date(availableDates[0]) : null;
 }
 
@@ -178,11 +179,10 @@ function contrastingColor(hex: string, factorAlpha = false): string {
 export default function BookingFlow({
     id = 'booking-flow',
     startTitle = 'Booking',
-    startDescription = 'Select a service to get started',
+    startDescription = '',
     services,
     baseQuestions,
     primaryColor = '#3B82F6', // Default to blue
-    darkMode = false,
     onBookingSubmit,
     className,
     getServiceById,
@@ -192,6 +192,7 @@ export default function BookingFlow({
     onOptionValueChange,
     organizationName,
     organizationPhone,
+    organizationEmail,
     organizationId,
     organizationTimezone
 }: BookingFlowProps) {
@@ -201,7 +202,7 @@ export default function BookingFlow({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { showError } = useErrorHandler();
     const mainContainerRef = React.useRef<HTMLDivElement>(null); // Ref for the main container
-    
+
     // Get current month/year for availability fetching
     const [currentDate, setCurrentDate] = useState(new Date());
     const currentYear = currentDate.getFullYear();
@@ -217,7 +218,7 @@ export default function BookingFlow({
         queryFn: async () => {
             const service = bookingState.selectedService;
             if (!service?.id) return {};
-            
+
             // Prepare complete service settings
             const serviceSettings = {
                 duration: service.duration,
@@ -232,14 +233,14 @@ export default function BookingFlow({
                 fixedEndDate: service.fixedEndDate,
                 assignedEmployeeIds: service.assignedEmployeeIds
             };
-            
+
             console.log('🔍 [BOOKING FLOW] Fetching availability for month:', {
                 serviceId: service.id,
                 year: currentYear,
                 month: currentMonth,
                 serviceSettings
             });
-            
+
             const response = await fetch(`/api/public/services/${service.id}/availability`, {
                 method: 'POST',
                 headers: {
@@ -253,18 +254,18 @@ export default function BookingFlow({
                     organizationTimezone
                 })
             });
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || 'Failed to fetch service availability');
             }
-            
+
             const availability = await response.json();
             console.log('✅ [BOOKING FLOW] Received availability:', {
                 datesWithAvailability: Object.keys(availability).length,
                 totalSlots: Object.values(availability).reduce((sum: number, slots: any) => sum + (slots?.length || 0), 0)
             });
-            
+
             return availability;
         },
         enabled: !!bookingState.selectedService?.id && bookingState.stage === 'date-time',
@@ -277,15 +278,15 @@ export default function BookingFlow({
         if (bookingState.selectedService?.id && bookingState.stage === 'date-time') {
             const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
             const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-            
+
             console.log('📅 [BOOKING FLOW] Prefetching next month:', { year: nextYear, month: nextMonth });
-            
+
             queryClient.prefetchQuery({
                 queryKey: ['service-availability', bookingState.selectedService.id, nextYear, nextMonth],
                 queryFn: async () => {
                     const service = bookingState.selectedService;
                     if (!service?.id) return {};
-                    
+
                     const serviceSettings = {
                         duration: service.duration,
                         interval: service.interval,
@@ -299,19 +300,19 @@ export default function BookingFlow({
                         fixedEndDate: service.fixedEndDate,
                         assignedEmployeeIds: service.assignedEmployeeIds
                     };
-                    
+
                     const response = await fetch(`/api/public/services/${service.id}/availability`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            year: nextYear, 
-                            month: nextMonth, 
-                            organizationId, 
+                        body: JSON.stringify({
+                            year: nextYear,
+                            month: nextMonth,
+                            organizationId,
                             serviceSettings,
                             organizationTimezone
                         })
                     });
-                    
+
                     if (!response.ok) return {};
                     return response.json();
                 },
@@ -335,11 +336,11 @@ export default function BookingFlow({
         // 2. No date is currently selected  
         // 3. Availability data is loaded
         // 4. We have availability data
-        if (bookingState.stage === 'date-time' && 
-            !bookingState.selectedDate && 
+        if (bookingState.stage === 'date-time' &&
+            !bookingState.selectedDate &&
             !availabilityLoading &&
             Object.keys(availabilityData).length > 0) {
-            
+
             const firstDate = findFirstAvailableDate(availabilityData);
             if (firstDate) {
                 handleBookingStateChange({
@@ -484,10 +485,19 @@ export default function BookingFlow({
 
                 } catch (error) {
                     console.error('Booking submission failed:', error);
-                    
-                    // Show error message but stay on form
-                    showError(error);
-                    
+
+                    // Create an enhanced error message with contact information
+                    const errorMessage = error instanceof Error ? error.message : 'Booking submission failed';
+                    const contactMessage = getContactErrorMessage(
+                        errorMessage,
+                        organizationName,
+                        organizationPhone,
+                        organizationEmail
+                    );
+
+                    // Show error message with contact info
+                    showError(new Error(contactMessage));
+
                     setShowValidation(true);
                 } finally {
                     // Always clear loading state
@@ -814,7 +824,7 @@ export default function BookingFlow({
                                     <div className="flex flex-col gap-0 items-start flex-1">
                                         <span className="text-lg font-semibold opacity-80">{item.label}</span>
                                         <span className="text-sm opacity-50">{item.description || ''}</span>
-                                        {item.type === 'service' && item.price !== undefined && (
+                                        {item.type === 'service' && item.price !== undefined && item.price !== null && item.price > 0 && (
                                             <span className="text-sm mt-2 font-medium">{formatServicePrice(item.price)}</span>
                                         )}
                                     </div>
@@ -872,7 +882,6 @@ export default function BookingFlow({
                     fixedStartDate={latestService.fixedStartDate ? new Date(latestService.fixedStartDate) : undefined}
                     fixedEndDate={latestService.fixedEndDate ? new Date(latestService.fixedEndDate) : undefined}
                     primaryColor={primaryColor}
-                    darkMode={darkMode}
                     selectedDate={bookingState.selectedDate}
                     selectedTime={bookingState.selectedTime}
                     availabilityData={availabilityData}
@@ -880,6 +889,7 @@ export default function BookingFlow({
                     hasNoEmployees={!availabilityLoading && !hasAvailability}
                     organizationName={organizationName}
                     organizationPhone={organizationPhone}
+                    organizationEmail={organizationEmail}
                     currentMonth={currentMonth}
                     currentYear={currentYear}
                     onDateChange={(date) => {
@@ -945,8 +955,8 @@ export default function BookingFlow({
 
         return (
             <>
-                <div className="@3xl:grid @3xl:grid-cols-[1fr_500px] @3xl:gap-12">
-                    <div className="@3xl:sticky @3xl:top-8">
+                <div className="@3xl:grid @3xl:grid-cols-[minmax(300px,1fr)_minmax(0,500px)] @3xl:gap-12">
+                    <div className="@3xl:sticky @3xl:top-8 overflow-x-hidden wrap-break-word">
 
                         <Button
                             variant="ghost"
@@ -976,9 +986,6 @@ export default function BookingFlow({
                                         </svg>
                                     </div>
                                     <h2 className="text-xl font-bold mb-2">Booking Confirmed!</h2>
-                                    <p className="text-foreground/50">
-                                        Thank you for your booking. We'll be in touch shortly.
-                                    </p>
                                 </div>
                                 <div className="space-y-4 text-left mb-6">
                                     <div>
@@ -1006,28 +1013,27 @@ export default function BookingFlow({
                                         }}
                                         className="space-y-10"
                                     >
-                                    {allQuestions.map((field) => (
-                                        <FormFieldRenderer
-                                            key={`${field.id}-${field.type}`}
-                                            field={field}
-                                            control={form.control}
-                                            onFileUpdate={handleFileUpdate}
-                                            maxTotalFileSize={MAX_TOTAL_FILE_SIZE}
-                                            currentTotalFileSize={totalFileSize}
-                                            showValidation={showValidation}
-                                            onOptionValueChange={handleOptionValueChange}
-                                            darkMode={darkMode}
-                                        />
-                                    ))}
-                                    <Button
-                                        type="submit"
-                                        size="lg"
-                                        className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90"
-                                        loading={isSubmitting}
-                                        disabled={isSubmitting}
-                                    >
-                                        {isSubmitting ? 'Submitting...' : 'Complete Booking'}
-                                    </Button>
+                                        {allQuestions.map((field) => (
+                                            <FormFieldRenderer
+                                                key={`${field.id}-${field.type}`}
+                                                field={field}
+                                                control={form.control}
+                                                onFileUpdate={handleFileUpdate}
+                                                maxTotalFileSize={MAX_TOTAL_FILE_SIZE}
+                                                currentTotalFileSize={totalFileSize}
+                                                showValidation={showValidation}
+                                                onOptionValueChange={handleOptionValueChange}
+                                            />
+                                        ))}
+                                        <Button
+                                            type="submit"
+                                            size="lg"
+                                            className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90"
+                                            loading={isSubmitting}
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSubmitting ? 'Submitting...' : 'Complete Booking'}
+                                        </Button>
                                     </form>
                                 </fieldset>
                             </Form>
@@ -1073,7 +1079,7 @@ export default function BookingFlow({
         <div
             id={id}
             ref={mainContainerRef} // Attach ref here
-            className={cn("w-full flex bg-background text-foreground @container", darkMode ? "dark" : "", className)}
+            className={cn("w-full flex bg-background text-foreground @container", className)}
             style={customStyleVars}
         >
             <div className="w-full p-4 @lg:p-6 @2xl:p-8">

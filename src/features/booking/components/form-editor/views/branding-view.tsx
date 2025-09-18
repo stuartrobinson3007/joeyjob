@@ -5,6 +5,7 @@ import { TitleWithBack } from "../components/title-with-back";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 import { ColorPicker } from "@/ui/color-picker";
 import type { NavigationLevel } from "../hooks/use-form-editor-state";
+import type { ValidationResult } from "../utils/form-validation";
 
 interface BrandingViewProps {
     onNavigateBack: () => void;
@@ -17,6 +18,7 @@ interface BrandingViewProps {
     onFormThemeChange: (theme: "light" | "dark") => void;
     onPrimaryColorChange: (color: string) => void;
     onFormSlugChange: (slug: string) => void;
+    validationResult?: ValidationResult | null;
 }
 
 /**
