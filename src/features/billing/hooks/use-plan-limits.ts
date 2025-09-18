@@ -17,7 +17,7 @@ export function usePlanLimits() {
     // Error handling is done by the mutation consumer
   })
 
-  const canCreate = async (resource: 'todos' | 'members' | 'storage') => {
+  const canCreate = async (resource: 'members' | 'storage') => {
     const result = await checkLimit.mutateAsync({
       data: {
         resource,

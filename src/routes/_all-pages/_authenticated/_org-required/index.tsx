@@ -124,7 +124,7 @@ function FormsPage() {
     }
   }
 
-  // Handle immediate form creation (like createTodo pattern)
+  // Handle immediate form creation
   const handleCreateForm = async () => {
     setIsCreating(true)
     try {

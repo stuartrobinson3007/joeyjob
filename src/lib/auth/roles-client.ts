@@ -9,7 +9,6 @@ import { defaultStatements } from 'better-auth/plugins/organization/access'
 // Use the same statements as the server
 const statement = {
   ...defaultStatements,
-  todos: ['create', 'update', 'delete', 'assign'],
   billing: ['view', 'manage'],
   invitation: ['create', 'delete', 'cancel'], // Add cancel permission for Better Auth compatibility
 } as const
@@ -23,7 +22,6 @@ export const viewer = ac.newRole({
 })
 
 export const member = ac.newRole({
-  todos: ['create', 'update', 'delete'],
   billing: ['view'],
 })
 
@@ -31,7 +29,6 @@ export const admin = ac.newRole({
   organization: ['update'],
   member: ['create', 'update', 'delete'],
   invitation: ['create', 'delete', 'cancel'],
-  todos: ['create', 'update', 'delete', 'assign'],
   billing: ['view', 'manage'],
 })
 
@@ -39,7 +36,6 @@ export const owner = ac.newRole({
   organization: ['update', 'delete'],
   member: ['create', 'update', 'delete'],
   invitation: ['create', 'delete', 'cancel'],
-  todos: ['create', 'update', 'delete', 'assign'],
   billing: ['view', 'manage'],
 })
 

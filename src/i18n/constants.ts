@@ -8,7 +8,6 @@ export const DEFAULT_LANGUAGE = 'en'
 export const NAMESPACES = [
   'common',
   'auth',
-  'todos',
   'team',
   'billing',
   'admin',

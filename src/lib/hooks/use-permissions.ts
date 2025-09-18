@@ -24,12 +24,6 @@ export function useClientPermissions() {
       return isAuthenticated
     }
 
-    // Todo permissions - all allowed
-    const canCreateTodo = () => isAuthenticated
-    const canReadTodo = () => isAuthenticated
-    const canUpdateTodo = () => isAuthenticated
-    const canDeleteTodo = () => isAuthenticated
-    const canAssignTodo = () => isAuthenticated
 
     // Member management permissions - disabled in single-user mode
     const canManageMembers = () => false
@@ -52,12 +46,6 @@ export function useClientPermissions() {
       // Generic permission check
       hasPermission,
 
-      // Todo permissions
-      canCreateTodo,
-      canReadTodo,
-      canUpdateTodo,
-      canDeleteTodo,
-      canAssignTodo,
 
       // Member permissions (disabled)
       canManageMembers,

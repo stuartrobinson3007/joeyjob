@@ -2,4 +2,3 @@
 export * from './validation-registry'
 export * from './organization.schema'
 export * from './user.schema'
-export * from './todo.schema'

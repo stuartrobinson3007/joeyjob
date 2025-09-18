@@ -2,10 +2,10 @@ import { count, eq, isNull, and } from 'drizzle-orm'
 
 import { auth } from '@/lib/auth/auth'
 import { db } from '@/lib/db/db'
-import { member, todos, invitation, organization } from '@/database/schema'
+import { member, invitation, organization } from '@/database/schema'
 import { BILLING_PLANS } from '@/features/billing/lib/plans.config'
 
-export type PlanLimitResource = 'todos' | 'members' | 'storage' | 'connectedEmployees'
+export type PlanLimitResource = 'members' | 'storage' | 'connectedEmployees'
 export type PlanLimitAction = 'create' | 'update'
 
 export interface PlanLimitResult {
@@ -74,14 +74,6 @@ export async function checkPlanLimitUtil(
   let currentUsage = 0
   try {
     switch (resource) {
-      case 'todos': {
-        const result = await db
-          .select({ count: count(todos.id) })
-          .from(todos)
-          .where(and(eq(todos.organizationId, organizationId), isNull(todos.deletedAt)))
-        currentUsage = result[0]?.count || 0
-        break
-      }
       case 'members': {
         // Count both active members and pending invitations for plan limits
         const [memberCount, invitationCount] = await Promise.all([

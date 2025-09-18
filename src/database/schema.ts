@@ -146,27 +146,6 @@ export const subscription = pgTable('subscription', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// Custom todos table
-export const todos = pgTable('todos', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => nanoid()),
-  title: text('title').notNull(),
-  description: text('description'),
-  organizationId: text('organization_id')
-    .references(() => organization.id, { onDelete: 'cascade' })
-    .notNull(),
-  createdBy: text('created_by')
-    .references(() => user.id, { onDelete: 'cascade' })
-    .notNull(),
-  assignedTo: text('assigned_to').references(() => user.id, { onDelete: 'set null' }),
-  completed: boolean('completed').default(false).notNull(),
-  priority: integer('priority').default(3).notNull(),
-  dueDate: timestamp('due_date'),
-  deletedAt: timestamp('deleted_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
 
 // Booking-related tables
 

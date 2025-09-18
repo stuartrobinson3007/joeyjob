@@ -23,7 +23,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 // Use default statements and add our custom resource
 const statement = {
   ...defaultStatements, // Includes invitation permissions needed for invites to work
-  todos: ['create', 'read', 'update', 'delete', 'assign'],
   billing: ['view', 'manage'], // Add billing permissions
   invitation: ['create', 'read', 'delete', 'cancel'], // Add cancel permission for Better Auth compatibility
 } as const
@@ -37,7 +36,6 @@ const viewer = ac.newRole({
 })
 
 const member = ac.newRole({
-  todos: ['create', 'update', 'delete'],
   billing: ['view'],
 })
 
@@ -45,7 +43,6 @@ const orgAdmin = ac.newRole({
   organization: ['update'],
   member: ['create', 'update', 'delete'],
   invitation: ['create', 'delete', 'cancel'],
-  todos: ['create', 'update', 'delete', 'assign'],
   billing: ['view', 'manage'],
 })
 
@@ -53,7 +50,6 @@ const owner = ac.newRole({
   organization: ['update', 'delete'],
   member: ['create', 'update', 'delete'],
   invitation: ['create', 'delete', 'cancel'],
-  todos: ['create', 'update', 'delete', 'assign'],
   billing: ['view', 'manage'],
 })
 
@@ -314,7 +310,6 @@ const getAuthConfig = serverOnly(() =>
               priceId: process.env.STRIPE_PRO_MONTHLY_PRICE_ID!,
               annualDiscountPriceId: process.env.STRIPE_PRO_ANNUAL_PRICE_ID!,
               limits: {
-                todos: -1,
                 members: 10,
                 storage: 5000,
               },
@@ -324,7 +319,6 @@ const getAuthConfig = serverOnly(() =>
               priceId: process.env.STRIPE_BUSINESS_MONTHLY_PRICE_ID!,
               annualDiscountPriceId: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID!,
               limits: {
-                todos: -1,
                 members: -1,
                 storage: -1,
               },

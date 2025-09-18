@@ -6,7 +6,6 @@ export const BILLING_PLANS = {
       annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID!,
     },
     features: {
-      todos: -1, // Unlimited
       members: 10,
       connectedEmployees: 10,
       customFields: true,
@@ -14,7 +13,6 @@ export const BILLING_PLANS = {
       prioritySupport: false,
     },
     limits: {
-      todos: -1,
       members: 10,
       connectedEmployees: 10,
       storage: 5000, // MB
@@ -28,7 +26,6 @@ export const BILLING_PLANS = {
       annual: process.env.STRIPE_BUSINESS_ANNUAL_PRICE_ID!,
     },
     features: {
-      todos: -1,
       members: -1,
       connectedEmployees: 20,
       customFields: true,
@@ -36,7 +33,6 @@ export const BILLING_PLANS = {
       prioritySupport: true,
     },
     limits: {
-      todos: -1,
       members: -1,
       connectedEmployees: 20,
       storage: -1, // Unlimited

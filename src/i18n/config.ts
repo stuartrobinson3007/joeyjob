@@ -6,7 +6,6 @@ import { DEFAULT_LANGUAGE, NAMESPACES } from './constants'
 // Import translation files
 import enCommon from './locales/en/common.json'
 import enAuth from './locales/en/auth.json'
-import enTodos from './locales/en/todos.json'
 import enTeam from './locales/en/team.json'
 import enBilling from './locales/en/billing.json'
 import enAdmin from './locales/en/admin.json'
@@ -23,7 +22,6 @@ import enServices from './locales/en/services.json'
 import enForms from './locales/en/forms.json'
 import esCommon from './locales/es/common.json'
 import esAuth from './locales/es/auth.json'
-import esTodos from './locales/es/todos.json'
 import esTeam from './locales/es/team.json'
 import esBilling from './locales/es/billing.json'
 import esAdmin from './locales/es/admin.json'
@@ -45,7 +43,6 @@ export const resources = {
   en: {
     common: enCommon,
     auth: enAuth,
-    todos: enTodos,
     team: enTeam,
     billing: enBilling,
     admin: enAdmin,
@@ -64,7 +61,6 @@ export const resources = {
   es: {
     common: esCommon,
     auth: esAuth,
-    todos: esTodos,
     team: esTeam,
     billing: esBilling,
     admin: esAdmin,

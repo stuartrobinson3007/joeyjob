@@ -325,7 +325,7 @@ export const checkPlanLimit = createServerFn({ method: 'POST' })
   .middleware([organizationMiddleware])
   .validator(
     z.object({
-      resource: z.enum(['todos', 'members', 'storage']),
+      resource: z.enum(['members', 'storage']),
       action: z.enum(['create', 'update']),
     }).parse
   )

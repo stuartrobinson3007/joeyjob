@@ -40,7 +40,6 @@ import { Route as AllPagesAuthenticatedOrgRequiredPaymentErrorRouteImport } from
 import { Route as AllPagesAuthenticatedOrgRequiredChoosePlanRouteImport } from './routes/_all-pages/_authenticated/_org-required/choose-plan'
 import { Route as AllPagesAuthenticatedOrgRequiredBookingsRouteImport } from './routes/_all-pages/_authenticated/_org-required/bookings'
 import { Route as AllPagesAuthenticatedOrgRequiredBillingRouteImport } from './routes/_all-pages/_authenticated/_org-required/billing'
-import { Route as AllPagesAuthenticatedOrgRequiredTodosIdEditRouteImport } from './routes/_all-pages/_authenticated/_org-required/todos.$id.edit'
 import { Route as AllPagesAuthenticatedOrgRequiredFormFormIdEditRouteImport } from './routes/_all-pages/_authenticated/_org-required/form.$formId.edit'
 import { ServerRoute as ApiHealthServerRouteImport } from './routes/api/health'
 import { ServerRoute as ApiEmployeesIndexServerRouteImport } from './routes/api/employees/index'
@@ -223,12 +222,6 @@ const AllPagesAuthenticatedOrgRequiredBillingRoute =
     path: '/billing',
     getParentRoute: () => AllPagesAuthenticatedRoute,
   } as any)
-const AllPagesAuthenticatedOrgRequiredTodosIdEditRoute =
-  AllPagesAuthenticatedOrgRequiredTodosIdEditRouteImport.update({
-    id: '/_org-required/todos/$id/edit',
-    path: '/todos/$id/edit',
-    getParentRoute: () => AllPagesAuthenticatedRoute,
-  } as any)
 const AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute =
   AllPagesAuthenticatedOrgRequiredFormFormIdEditRouteImport.update({
     id: '/_org-required/form/$formId/edit',
@@ -333,7 +326,6 @@ export interface FileRoutesByFullPath {
   '/': typeof AllPagesAuthenticatedOrgRequiredIndexRoute
   '/superadmin/': typeof AllPagesAuthenticatedSuperadminIndexRoute
   '/form/$formId/edit': typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
-  '/todos/$id/edit': typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRoutesByTo {
   '/terms': typeof AllPagesTermsRoute
@@ -362,7 +354,6 @@ export interface FileRoutesByTo {
   '/': typeof AllPagesAuthenticatedOrgRequiredIndexRoute
   '/superadmin': typeof AllPagesAuthenticatedSuperadminIndexRoute
   '/form/$formId/edit': typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
-  '/todos/$id/edit': typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -396,7 +387,6 @@ export interface FileRoutesById {
   '/_all-pages/_authenticated/_org-required/': typeof AllPagesAuthenticatedOrgRequiredIndexRoute
   '/_all-pages/_authenticated/superadmin/': typeof AllPagesAuthenticatedSuperadminIndexRoute
   '/_all-pages/_authenticated/_org-required/form/$formId/edit': typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
-  '/_all-pages/_authenticated/_org-required/todos/$id/edit': typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -428,7 +418,6 @@ export interface FileRouteTypes {
     | '/'
     | '/superadmin/'
     | '/form/$formId/edit'
-    | '/todos/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/terms'
@@ -457,7 +446,6 @@ export interface FileRouteTypes {
     | '/'
     | '/superadmin'
     | '/form/$formId/edit'
-    | '/todos/$id/edit'
   id:
     | '__root__'
     | '/_all-pages'
@@ -490,7 +478,6 @@ export interface FileRouteTypes {
     | '/_all-pages/_authenticated/_org-required/'
     | '/_all-pages/_authenticated/superadmin/'
     | '/_all-pages/_authenticated/_org-required/form/$formId/edit'
-    | '/_all-pages/_authenticated/_org-required/todos/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -812,13 +799,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredBillingRouteImport
       parentRoute: typeof AllPagesAuthenticatedRoute
     }
-    '/_all-pages/_authenticated/_org-required/todos/$id/edit': {
-      id: '/_all-pages/_authenticated/_org-required/todos/$id/edit'
-      path: '/todos/$id/edit'
-      fullPath: '/todos/$id/edit'
-      preLoaderRoute: typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRouteImport
-      parentRoute: typeof AllPagesAuthenticatedRoute
-    }
     '/_all-pages/_authenticated/_org-required/form/$formId/edit': {
       id: '/_all-pages/_authenticated/_org-required/form/$formId/edit'
       path: '/form/$formId/edit'
@@ -961,7 +941,6 @@ interface AllPagesAuthenticatedRouteChildren {
   AllPagesAuthenticatedCompanySetupSelectCompanyRoute: typeof AllPagesAuthenticatedCompanySetupSelectCompanyRoute
   AllPagesAuthenticatedOrgRequiredIndexRoute: typeof AllPagesAuthenticatedOrgRequiredIndexRoute
   AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute: typeof AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute
-  AllPagesAuthenticatedOrgRequiredTodosIdEditRoute: typeof AllPagesAuthenticatedOrgRequiredTodosIdEditRoute
 }
 
 const AllPagesAuthenticatedRouteChildren: AllPagesAuthenticatedRouteChildren = {
@@ -993,8 +972,6 @@ const AllPagesAuthenticatedRouteChildren: AllPagesAuthenticatedRouteChildren = {
     AllPagesAuthenticatedOrgRequiredIndexRoute,
   AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute:
     AllPagesAuthenticatedOrgRequiredFormFormIdEditRoute,
-  AllPagesAuthenticatedOrgRequiredTodosIdEditRoute:
-    AllPagesAuthenticatedOrgRequiredTodosIdEditRoute,
 }
 
 const AllPagesAuthenticatedRouteWithChildren =

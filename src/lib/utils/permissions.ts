@@ -6,7 +6,7 @@ import { auth } from '@/lib/auth/auth'
 
 /**
  * Check if the current user has specific permissions for a resource
- * @param resource - The resource to check permissions for (e.g., 'billing', 'todos')
+ * @param resource - The resource to check permissions for (e.g., 'billing', 'members')
  * @param actions - Array of actions to check (e.g., ['view', 'manage'])
  * @param organizationId - The organization context for the permission check
  * @param customMessage - Optional custom error message if permission is denied
